@@ -33,6 +33,7 @@ const TOGGLES = [
   ['fixedSeed', 'Fixed seed', ''],
   ['autoRetry', 'Auto-retry', ''],
   ['autopilot', 'Autopilot', 'A'],
+  ['debugView', 'Debug view (ticks, counts)', ''],
   ['sound', 'Sound', 'M'],
   ['haptics', 'Haptics', ''],
 ];

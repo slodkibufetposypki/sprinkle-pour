@@ -133,6 +133,34 @@ kbd {
   pointer-events: auto;
 }
 
+/* While pouring, the HUD steps back: the level name and counts go, the
+   buttons fade (they come back on hover, and in full at start/result). */
+.hud-left,
+.hud-right,
+.progress {
+  transition: opacity 0.35s ease;
+}
+
+.stage[data-state='play'] .hud-left,
+.stage[data-state='settle'] .hud-left {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.stage[data-state='play'] .hud-right,
+.stage[data-state='settle'] .hud-right {
+  opacity: 0.35;
+}
+
+.stage[data-state='play'] .hud-right:hover,
+.stage[data-state='play'] .hud-right:focus-within {
+  opacity: 1;
+}
+
+.stage[data-state='play'] .progress {
+  opacity: 0.5;
+}
+
 .hud-right {
   display: flex;
   flex: none;

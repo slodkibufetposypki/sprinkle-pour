@@ -56,7 +56,7 @@ function collide(world, p, T, nx, ny, pen, mat, body, zone) {
     if (impact > 25) p.squash = Math.min(0.4, Math.max(p.squash, impact / 450));
     if (p.large && impact > 45 && world.t - p.lastHit > 0.06) {
       p.lastHit = world.t;
-      world.events.push({ type: 'hit', t: p.t, speed: impact, x: p.x, y: p.y, zone });
+      world.events.push({ type: 'hit', t: p.t, speed: impact, x: p.x, y: p.y, r: p.r, zone, cake: body ? body.i : -1 });
     }
   }
   // Visual spin: round pieces roll, flat pieces settle flat on the surface.

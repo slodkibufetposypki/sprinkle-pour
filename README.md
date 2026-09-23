@@ -29,7 +29,8 @@ work, because browsers block ES modules on `file://`.
 | <kbd>T</kbd> / <kbd>M</kbd> | Tuning panel / sound |
 
 For local dev you can add `?level=7&autopilot=1&gauge=1&panel=0&warp=3` to
-the URL. `warp` fast-forwards the sim that many seconds.
+the URL. `warp` fast-forwards the sim that many seconds, and `freeze` pauses
+right after it (handy for screenshots).
 
 ## What is simulated
 
@@ -49,8 +50,14 @@ The sprinkles come in pastel pink, mint, lilac, cream and white with metallic
 gold: small pearls, sugar rods with glitter, flat sequins and hearts, and big
 shimmer pearls. The look palettes are `LOOKS` in `render.js`. Levels use a
 "house mix" of pearls, rods and sequins, and big pearls arrive in level 7.
-The sound is synthesized (`src/audio.js`), and haptics work on Android only,
-since iOS Safari has no vibration API.
+The style is deliberately clean flat vector. Cakes get only flat accents: a
+darker rim on right-facing edges, a flat shadow under each frosting layer and
+a white shine dash on the icing. Landings add small flat twinkles, and big
+pieces kick up dabs of frosting. A heavier, shaded look (gradients and gloss)
+was tried and set aside because it read as plastic. While pouring, the HUD
+fades back. The piece counter and the centimetre ticks on the mat show only
+with **Debug view** in the panel. The sound is synthesized (`src/audio.js`),
+and haptics work on Android only, since iOS Safari has no vibration API.
 
 ## Languages
 

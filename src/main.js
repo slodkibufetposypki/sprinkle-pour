@@ -49,6 +49,7 @@ class App {
       fixedSeed: false,
       autoRetry: false,
       autopilot: false,
+      debugView: false,
       sound: true,
       haptics: true,
       panel: window.innerWidth >= 1100,
@@ -58,12 +59,13 @@ class App {
     // Pause and autopilot never carry over from a previous visit.
     this.ui.paused = false;
     this.ui.autopilot = false;
-    if (PLAYER) Object.assign(this.ui, { panel: false, gauge: false, autopilot: false, slowmo: false, fixedSeed: false, autoRetry: false });
+    if (PLAYER) Object.assign(this.ui, { panel: false, gauge: false, autopilot: false, slowmo: false, fixedSeed: false, autoRetry: false, debugView: false });
     // Local dev shortcuts, e.g. ?level=7&autopilot=1&gauge=1&panel=0
     const q = new URLSearchParams(PLAYER ? '' : location.search);
     this.warp = Number(q.get('warp')) || 0;
+    this.freeze = q.has('freeze'); // dev: stop right after the warp (screenshots)
     if (q.has('level')) this.ui.level = Number(q.get('level'));
-    for (const k of ['autopilot', 'gauge', 'panel', 'slowmo', 'fixedSeed']) {
+    for (const k of ['autopilot', 'gauge', 'panel', 'slowmo', 'fixedSeed', 'debugView']) {
       if (q.has(k)) this.ui[k] = q.get(k) !== '0';
     }
     this.best = load(STORE.best, {});
@@ -85,6 +87,7 @@ class App {
 
   start() {
     applyStaticText();
+    $('jar-count').hidden = !this.ui.debugView;
     if (PLAYER) {
       $('btn-tune').hidden = true;
       $('panel').hidden = true;
@@ -110,6 +113,7 @@ class App {
       this.game.step(1 / 240, this.ui.autopilot ? botHold(this.game) : false);
     }
     if (this.warp) this.renderer.snapCamera(this.game);
+    if (this.freeze) this.ui.paused = true;
     requestAnimationFrame((t) => this.frame(t));
   }
 
@@ -241,6 +245,7 @@ class App {
     if (key === 'haptics') this.sfx.haptics = on;
     if (key === 'paused') $('paused').hidden = !on;
     if (key === 'panel') this.applyPanelState();
+    if (key === 'debugView') $('jar-count').hidden = !on;
     if (key !== 'paused') save(STORE.ui, this.ui);
     this.panel?.syncToggles();
   }
@@ -361,7 +366,12 @@ class App {
     this.handleEvents(g);
     this.sfx.frame(dt);
     this.sfx.setPour(this.ui.paused ? 0 : g.jar.flow);
-    this.renderer.render(g, this.ui.paused ? 0 : dt, { gauge: this.ui.gauge, meters: this.ui.meters });
+    this.renderer.render(g, this.ui.paused ? 0 : dt, { gauge: this.ui.gauge, meters: this.ui.meters, debug: this.ui.debugView });
+    // The HUD steps back while pouring (see styles.css).
+    if (g.state !== this.shownState) {
+      this.shownState = g.state;
+      $('stage').dataset.state = g.state;
+    }
     const x0 = g.level.hand.startX;
     const k = Math.max(0, Math.min(1, (g.jar.x - x0) / (g.endX - x0)));
     $('progress-fill').style.width = `${(k * 100).toFixed(1)}%`;
@@ -392,6 +402,7 @@ class App {
           sfx.buzz(8, 0.15);
           break;
         case 'land':
+          if (e.zone === 'target' && Math.random() < 0.4) r.addFx('glint', e.x, e.y);
           if (e.t === 'bead' || e.t === 'rod') sfx.patter(e.zone === 'target');
           else {
             sfx.thud(Math.max(40, e.impact), e.zone === 'target');
@@ -403,6 +414,7 @@ class App {
           break;
         case 'hit':
           sfx.thud(e.speed, e.zone === 'target');
+          if (e.zone === 'target') r.frostingImpact(g, e);
           break;
         case 'plop':
           // a big piece tumbling out over the rim

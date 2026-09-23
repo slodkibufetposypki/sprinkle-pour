@@ -141,6 +141,12 @@ function dripBand(topPts, thick, rng, dripiness = 1) {
   return [...topPts.map((p) => [p[0], p[1] + 0.15]), ...lower];
 }
 
+// A frosting layer. `top` (render-only) is its upper edge, left→right: the
+// renderer puts a flat shine on it and a flat shadow under it.
+function frosting(pts, top, fill) {
+  return { op: 'poly', pts, fill, top };
+}
+
 // ---- builders ---------------------------------------------------------------
 const cls = (spec) => (nx, ny) =>
   ny > 0.4
@@ -197,7 +203,7 @@ const BUILDERS = {
       visuals: [
         { op: 'poly', pts: body.pts, fill: SPONGE[spec.sponge || 'vanilla'] },
         { op: 'layer', y: y0 + h * 0.45, x0: 0.2, x1: w - 0.2, color: FROST[spec.filling || 'pink'], width: 0.9 },
-        { op: 'poly', pts: dripBand(top, 1.3, rng, 0.6), fill: FROST[spec.frost || 'white'] },
+        frosting(dripBand(top, 1.3, rng, 0.6), top, FROST[spec.frost || 'white']),
       ],
     };
   },
@@ -219,7 +225,7 @@ const BUILDERS = {
       polys: [body],
       visuals: [
         { op: 'poly', pts: body.pts, fill: FROST[spec.frost || 'white'] },
-        { op: 'poly', pts: dripBand(top, 1.1, rng, 1.2), fill: FROST[spec.drip || 'pink'] },
+        frosting(dripBand(top, 1.1, rng, 1.2), top, FROST[spec.drip || 'pink']),
       ],
     };
   },
@@ -290,7 +296,7 @@ const BUILDERS = {
       visuals: [
         { op: 'poly', pts: wrapper.pts, fill: '#A9D8EA' },
         ...stripes,
-        { op: 'poly', pts: cream.pts, fill: FROST[spec.frost || 'pink'] },
+        frosting(cream.pts, prof.slice().reverse(), FROST[spec.frost || 'pink']),
         ...swirls,
       ],
     };
@@ -338,7 +344,8 @@ const BUILDERS = {
       const body = makePoly([[a, y0], [b, y0], ...prof], cls({ ...spec, material: spec.material || 'glaze' }));
       polys.push(body);
       visuals.push({ op: 'poly', pts: body.pts, fill: SPONGE[spec.sponge || 'chocolate'] });
-      visuals.push({ op: 'poly', pts: dripBand(topOf(body.pts, 0.2), 0.9, rng, 1.3), fill: FROST[spec.frost || 'white'] });
+      const top = topOf(body.pts, 0.2);
+      visuals.push(frosting(dripBand(top, 0.9, rng, 1.3), top, FROST[spec.frost || 'white']));
     }
     return { polys, visuals };
   },
@@ -373,9 +380,8 @@ const BUILDERS = {
     );
     const visuals = [
       { op: 'poly', pts: body.pts, fill: FROST[spec.frost || 'white'] },
-      {
-        op: 'poly',
-        pts: dripBand(
+      frosting(
+        dripBand(
           [
             [0, ya],
             [w, ya],
@@ -384,11 +390,14 @@ const BUILDERS = {
           rng,
           0.5,
         ).map(([x, y]) => [Math.max(0, Math.min(w, x)), y]),
-        fill: FROST[spec.drip || 'pink'],
-      },
-      {
-        op: 'poly',
-        pts: dripBand(
+        [
+          [0, ya],
+          [xl, ya],
+        ],
+        FROST[spec.drip || 'pink'],
+      ),
+      frosting(
+        dripBand(
           [
             [xl, yb],
             [xr, yb],
@@ -397,8 +406,12 @@ const BUILDERS = {
           rng,
           0.6,
         ),
-        fill: FROST[spec.drip || 'pink'],
-      },
+        [
+          [xl, yb],
+          [xr, yb],
+        ],
+        FROST[spec.drip || 'pink'],
+      ),
       { op: 'dots', y: y0 + 0.5, x0: 0.4, x1: w - 0.4, r: 0.32, color: '#F2E6C9' },
       { op: 'dots', y: ya + 0.4, x0: xl + 0.4, x1: xr - 0.4, r: 0.28, color: '#F2E6C9' },
     ];
@@ -415,7 +428,7 @@ const BUILDERS = {
       polys: [body],
       visuals: [
         { op: 'poly', pts: body.pts, fill: SPONGE[spec.sponge || 'vanilla'] },
-        { op: 'poly', pts: dripBand(topOf(body.pts, 0.3), R * 0.55, rng, 0.8), fill: FROST[spec.frost || 'berry'] },
+        frosting(dripBand(topOf(body.pts, 0.3), R * 0.55, rng, 0.8), topOf(body.pts, 0.3), FROST[spec.frost || 'berry']),
       ],
     };
   },

@@ -328,6 +328,56 @@ export class Renderer {
     this.fx.push({ kind, x, y, t: 0, ...extra });
   }
 
+  // A big piece landing in frosting kicks up a few flat dabs of it.
+  frostingImpact(game, e) {
+    const cake = game.cakes[e.cake];
+    if (!cake) return;
+    const layers = cake.visuals.filter((o) => o.op === 'poly');
+    const color = (layers.find((o) => o.top) || layers[layers.length - 1])?.fill || '#FFF6EE';
+    const bits = [];
+    const n = 3 + Math.min(2, Math.round(e.speed / 90));
+    for (let i = 0; i < n; i++) {
+      const a = Math.PI * (0.2 + 0.6 * Math.random());
+      const sp = 10 + Math.random() * 14;
+      bits.push({ vx: Math.cos(a) * sp * (i % 2 ? -1 : 1), vy: Math.sin(a) * sp, r: 0.12 + Math.random() * 0.1 });
+    }
+    this.addFx('pop', e.x, e.y - e.r * 0.5, { bits, color });
+  }
+
+  // Flat highlight on a frosting layer: a short rounded dash and a dot,
+  // following the top edge on the lit (left) side.
+  drawShine(top) {
+    const { ctx } = this;
+    const pts = top.map(([x, y]) => [x, y - 0.42]);
+    const cum = [0];
+    for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+    const total = cum[cum.length - 1];
+    if (total < 2) return;
+    const at = (d) => {
+      let i = 1;
+      while (i < cum.length - 1 && cum[i] < d) i++;
+      const t = (d - cum[i - 1]) / (cum[i] - cum[i - 1] || 1);
+      return [pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * t, pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * t];
+    };
+    const d0 = Math.min(total * 0.1, 1.6);
+    const d1 = d0 + Math.min(total * 0.22, 4);
+    ctx.strokeStyle = 'rgba(255,255,255,0.75)';
+    ctx.lineWidth = 0.3;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    for (let d = d0; d <= d1; d += 0.25) {
+      const [x, y] = at(d);
+      d === d0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    const [dx, dy] = at(d1 + 0.6);
+    ctx.fillStyle = 'rgba(255,255,255,0.75)';
+    ctx.beginPath();
+    ctx.arc(dx, dy, 0.15, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
   // ---- frame ------------------------------------------------------------------
   render(game, dt, opts) {
     const { ctx } = this;
@@ -344,7 +394,7 @@ export class Renderer {
     this.screenTransform();
     this.drawBackdrop();
     this.worldTransform(shx, shy);
-    this.drawTable(game);
+    this.drawTable(game, opts.debug);
     for (const c of game.cakes) this.drawCake(c, game);
     this.drawStuck(game, shx, shy);
     this.worldTransform(shx, shy);
@@ -373,7 +423,7 @@ export class Renderer {
     ctx.fillRect(0, 0, w, h);
   }
 
-  drawTable(game) {
+  drawTable(game, debug) {
     const { ctx } = this;
     const x0 = this.camX - 10;
     const x1 = this.camX + this.viewW + 10;
@@ -388,11 +438,13 @@ export class Renderer {
     ctx.fillRect(x0, -1.3, x1 - x0, 1.3);
     ctx.fillStyle = 'rgba(120,80,100,0.18)';
     ctx.fillRect(x0, -1.36, x1 - x0, 0.08);
-    // Centimetre ticks along the mat edge: the scale reference for everything.
-    ctx.fillStyle = 'rgba(120,80,100,0.28)';
-    for (let x = Math.floor(x0); x <= x1; x++) {
-      const len = x % 10 === 0 ? 0.75 : x % 5 === 0 ? 0.5 : 0.25;
-      ctx.fillRect(x - 0.03, -len, 0.06, len);
+    // Centimetre ticks along the mat edge: the scale reference (debug view).
+    if (debug) {
+      ctx.fillStyle = 'rgba(120,80,100,0.28)';
+      for (let x = Math.floor(x0); x <= x1; x++) {
+        const len = x % 10 === 0 ? 0.75 : x % 5 === 0 ? 0.5 : 0.25;
+        ctx.fillRect(x - 0.03, -len, 0.06, len);
+      }
     }
     if (game.level.conveyor) {
       ctx.fillStyle = 'rgba(80,60,80,0.10)';
@@ -429,11 +481,32 @@ export class Renderer {
           break;
         }
         case 'poly': {
+          const b = (v.box ??= box(v.pts));
+          // frosting drops a flat shadow on the layer under it
+          if (v.top) {
+            ctx.save();
+            ctx.translate(0, -0.35);
+            ctx.fillStyle = 'rgba(90,40,70,0.08)';
+            polyPath(ctx, v.pts);
+            ctx.fill();
+            ctx.restore();
+          }
+          // flat two-tone: tint the whole layer, then lay the base colour
+          // back over it shifted left, leaving a darker rim on every
+          // right-facing edge (each tier, each drip)
           ctx.fillStyle = v.fill;
-          ctx.beginPath();
-          v.pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
-          ctx.closePath();
+          polyPath(ctx, v.pts);
           ctx.fill();
+          ctx.save();
+          ctx.clip();
+          ctx.fillStyle = 'rgba(90,40,70,0.06)';
+          ctx.fill();
+          ctx.translate(-(v.top ? 0.45 : Math.min(2, (b.x1 - b.x0) * 0.1)), 0);
+          ctx.fillStyle = v.fill;
+          polyPath(ctx, v.pts);
+          ctx.fill();
+          ctx.restore();
+          if (v.top) this.drawShine(v.top);
           break;
         }
         case 'line': {
@@ -754,7 +827,7 @@ export class Renderer {
     for (let i = this.fx.length - 1; i >= 0; i--) {
       const f = this.fx[i];
       f.t += dt;
-      const life = f.kind === 'ring' ? 0.28 : 0.5;
+      const life = f.kind === 'ring' ? 0.28 : f.kind === 'glint' ? 0.35 : f.kind === 'pop' ? 0.45 : 0.5;
       if (f.t > life) {
         this.fx.splice(i, 1);
         continue;
@@ -773,6 +846,32 @@ export class Renderer {
         }
         ctx.closePath();
         ctx.fill();
+      } else if (f.kind === 'glint') {
+        // a small four-point twinkle where a sprinkle settles on frosting
+        const r = (2 + 4 * Math.sin(k * Math.PI)) * (this.s / 14);
+        ctx.fillStyle = `rgba(255,255,255,${0.95 * (1 - k)})`;
+        ctx.beginPath();
+        for (let j = 0; j < 8; j++) {
+          const a = (j * Math.PI) / 4;
+          const rr = j % 2 ? r * 0.22 : r;
+          ctx.lineTo(x + Math.cos(a) * rr, y - 0.4 * this.s + Math.sin(a) * rr);
+        }
+        ctx.closePath();
+        ctx.fill();
+      } else if (f.kind === 'pop') {
+        ctx.fillStyle = f.color;
+        ctx.strokeStyle = 'rgba(90,40,70,0.25)';
+        ctx.lineWidth = 1;
+        ctx.globalAlpha = 1 - k * k;
+        for (const bit of f.bits) {
+          const bx = this.sx(f.x + bit.vx * f.t);
+          const by = this.sy(f.y + bit.vy * f.t - 40 * f.t * f.t);
+          ctx.beginPath();
+          ctx.arc(bx, by, bit.r * this.s, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
       } else if (f.kind === 'ring') {
         ctx.strokeStyle = `rgba(232,69,111,${0.55 * (1 - k)})`;
         ctx.lineWidth = 1.5;
@@ -870,3 +969,20 @@ function pill(ctx, x, y, w, h) {
   roundRect(ctx, x, y, w, h, Math.min(h / 2, w / 2));
 }
 
+
+function polyPath(ctx, pts) {
+  ctx.beginPath();
+  pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+  ctx.closePath();
+}
+
+function box(pts) {
+  const b = { x0: Infinity, x1: -Infinity, y0: Infinity, y1: -Infinity };
+  for (const [x, y] of pts) {
+    b.x0 = Math.min(b.x0, x);
+    b.x1 = Math.max(b.x1, x);
+    b.y0 = Math.min(b.y0, y);
+    b.y1 = Math.max(b.y1, y);
+  }
+  return b;
+}
