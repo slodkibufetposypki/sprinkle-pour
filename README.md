@@ -54,20 +54,28 @@ since iOS Safari has no vibration API.
 
 ## Rating
 
-Every run scores 100 points, shown broken down on the result card:
+The goal is to cover every cake without spilling. Pouring a lot is never
+punished: the only limit is the jar running out, which matters when there
+are several cakes.
+
+- **Coverage ribbon:** a segmented strip on the mat under each cake shows
+  which ~3 cm strips of frosting are sprinkled. Half of each neighbour's
+  sprinkles count too, so a thin gap doesn't look bare. It turns green with
+  a ✓ once the cake reaches its cover goal (`coverGoal`, default 60%). A
+  cake's `required` in `levels.js` is the sprinkle mass that covers it
+  completely when spread evenly.
+- **Score (100 points):**
 
 | Part | Points | Measures |
 | --- | --- | --- |
-| Decorated | 30 | Each cake got its required amount |
-| Even spread | 20 | How evenly the frosting is covered (≈3 cm strips, partial credit) |
-| Clean pour | 25 | Little waste. Spills on the table or plate count, and so does anything piled on a cake beyond twice what it needed. At 1.5× the level's waste allowance this part is zero. |
-| Portions | 25 | No buried cakes: up to 1.5× the requirement is perfect, zero at 2.5× |
+| Coverage | 50 | How much of every cake's frosting got sprinkles |
+| Clean pour | 30 | Little spilled on the table or plates (zero at 1.5× the level's waste allowance) |
+| On the cakes | 20 | How much of the jar ended up on cakes (80% or more = full marks) |
 | Jar bumps | −8 each | The jar hitting a cake |
 
-Stars: ★ for decorating every cake, then ★★ at 65 points, ★★★ at 76, ★★★★
-at 86 and ★★★★★ at 94 (`POINTS` and `STAR_POINTS` in `game.js`). The card
-also names the part that would earn the next star. Dumping the whole jar
-scores 0–1★; clean, even pours reach 4–5★.
+Stars: ★ for covering every cake to its goal, then ★★ at 65 points, ★★★ at
+76, ★★★★ at 86 and ★★★★★ at 94 (`POINTS` and `STAR_POINTS` in `game.js`).
+The result card shows the breakdown and names what would earn the next star.
 
 ## Tuning
 

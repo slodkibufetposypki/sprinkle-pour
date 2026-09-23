@@ -467,14 +467,28 @@ export function buildCake(spec, index) {
   };
 }
 
-// How evenly the frosting is covered, 0–1. Each ~3 cm strip counts as full
-// once it holds half its fair share of the requirement; less gives partial
-// credit, so a pile in one spot scores low even when the amount is right.
-export function cakeCoverage(cake) {
+// How much of a strip's frosting is covered, 0–1: full once it holds its
+// fair share of the cake's full-cover amount (`required`). Half of each
+// neighbour's sprinkles count too, the way the eye reads a cake: a one-strip
+// gap between sprinkled patches doesn't look bare, a wider one does.
+export function stripCover(cake, i) {
   const t = cake.target;
   if (!t.required) return 1;
-  const per = (t.required / t.bins.length) * 0.5;
+  const b = t.bins;
+  const n = b.length;
+  const here = b[i];
+  const left = i > 0 ? b[i - 1] : here;
+  const right = i < n - 1 ? b[i + 1] : here;
+  const blended = 0.5 * here + 0.25 * (left + right);
+  return Math.min(1, blended / (0.5 * (t.required / n)));
+}
+
+// How much of the whole frosting is covered, 0–1 (~3 cm strips, partial
+// credit), so a pile in one spot covers little and a pour along the whole
+// cake covers it all.
+export function cakeCoverage(cake) {
+  const n = cake.target.bins.length;
   let sum = 0;
-  for (const b of t.bins) sum += Math.min(1, b / per);
-  return sum / t.bins.length;
+  for (let i = 0; i < n; i++) sum += stripCover(cake, i);
+  return sum / n;
 }

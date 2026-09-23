@@ -2,10 +2,12 @@
 // (watch a level play itself with the current tuning) and by tools/bot.mjs
 // (headless level checks). Like a player, it rides just under the estimated
 // pour threshold while a cake that still needs sprinkles approaches, tilts in
-// over it, backs off over gaps, and lifts when the stream gets too heavy.
+// over it, keeps a steady stream along the whole cake, backs off over gaps,
+// and lifts when the stream gets too heavy.
 import { D, toWorld } from './jar.js';
+import { cakeCoverage } from './cakes.js';
 
-export function botHold(game, { depth = 30, edge = -2, safe = 14, lead = 0.12, margin = 1, approach = 0.7, flowCap = 90 } = {}) {
+export function botHold(game, { depth = 30, edge = -2, safe = 14, lead = 0.12, margin = 1, approach = 0.7, flowCap = 60 } = {}) {
   if (game.state === 'ready') return true; // press to start
   const { jar, P, shape } = game;
   const [mx, my] = toWorld(jar, shape.ihw - 0.3, shape.top);
@@ -13,13 +15,14 @@ export function botHold(game, { depth = 30, edge = -2, safe = 14, lead = 0.12, m
   let mode = -safe;
   for (const c of game.cakes) {
     const tg = c.target;
-    if (tg.received >= tg.required * 1.25) continue; // margin for pieces that bounce off
     const drop = Math.max(0.5, my - (c.pos.y + c.top));
     const t = Math.sqrt((2 * drop) / P.world.gravity);
     const lx = mx + (vx - c.vel.x) * t; // landing x in the cake's moving frame
     const x0 = c.pos.x + tg.x0 + margin;
     const x1 = c.pos.x + tg.x1 - margin;
-    if (lx >= x0 && lx <= x1) mode = Math.max(mode, depth);
+    // keep a steady stream along any cake that isn't fully covered yet
+    const needs = cakeCoverage(c) < 0.98;
+    if (lx >= x0 && lx <= x1 && needs) mode = Math.max(mode, depth);
     else if (lx < x0 && lx > x0 - (vx - c.vel.x) * approach) mode = Math.max(mode, -edge);
   }
   // Like a player watching the stream: lift when it gets heavier than wanted.

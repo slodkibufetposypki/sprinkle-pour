@@ -257,7 +257,8 @@ export class Panel {
     add('hand.heightCoupling', 'Holding raises hand', 0, 12, 0.5, 'cm', 'Brief §37: the same press also gains clearance.');
     add('hand.startX', 'Start position', -70, 0, 1, 'cm', '');
     for (const t of TYPE_IDS) add(`mix.${t}`, `${TYPE_LABELS[t]} in jar`, 0, t === 'bead' ? 600 : 120, 1, 'pcs', '');
-    level.cakes.forEach((c, i) => add(`cakes.${i}.required`, `Cake ${i + 1} needs`, 0, 400, 1, '', ''));
+    level.cakes.forEach((c, i) => add(`cakes.${i}.required`, `Cake ${i + 1}: full cover`, 1, 400, 1, '', i ? '' : 'Sprinkle mass that covers a cake completely (spread evenly).'));
+    add('coverGoal', 'Cover goal (pass)', 0.1, 1, 0.01, '', 'Share of each cake that must be covered.');
     add('allowedWaste', 'Waste allowance', 0, 1, 0.01, '', 'Share of the jar. Clean-pour points reach zero at 1.5× this.');
     const actions = el(
       'div',
@@ -448,12 +449,10 @@ export function showResult(r, nextLabel, nextName) {
   $('res-points').textContent = r.score;
 
   // Where the points came from, so the stars make sense.
-  const worst = r.cakes.reduce((a, c) => (c.ratio > a.ratio ? c : a), r.cakes[0]);
   const rows = [
-    ['Decorated', `${r.cakes.filter((c) => c.met).length} of ${r.cakes.length} cakes`, r.parts.decorated, POINTS.decorated],
-    ['Even spread', `${pct(r.coverage)} covered`, r.parts.spread, POINTS.spread],
-    ['Clean pour', `${pct(r.waste)} wasted`, r.parts.clean, POINTS.clean],
-    ['Portions', worst ? `up to ${worst.ratio.toFixed(1)}× needed` : '', r.parts.portion, POINTS.portion],
+    ['Coverage', `${pct(r.coverage)} of the frosting`, r.parts.coverage, POINTS.coverage],
+    ['Clean pour', `${pct(r.waste)} spilled`, r.parts.clean, POINTS.clean],
+    ['On the cakes', `${pct(r.onCakes)} of the jar`, r.parts.used, POINTS.used],
   ];
   const parts = $('res-parts');
   parts.textContent = '';
@@ -486,13 +485,12 @@ export function showResult(r, nextLabel, nextName) {
   const cakes = $('res-cakes');
   cakes.textContent = '';
   for (const c of r.cakes) {
-    if (!c.required) continue;
     cakes.append(
       el(
         'li',
         { class: c.met ? 'met' : '' },
         el('span', { text: `${c.met ? '✓' : '✗'} ${c.name}` }),
-        el('span', { class: 'amt', text: `${Math.round(c.received)} / ${c.required}` }),
+        el('span', { class: 'amt', text: `${pct(c.coverage)} covered` }),
       ),
     );
   }

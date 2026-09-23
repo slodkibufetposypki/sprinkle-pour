@@ -18,10 +18,10 @@ export const LEVELS = [
     hand: { speed: 14, y: 30, startX: -40, heightCoupling: 0 },
     mix: { bead: 160, rod: 30, heart: 12, pearl: 6 },
     cakes: [
-      { kind: 'sheet', x: 0, w: 44, h: 8, required: 60 },
-      { kind: 'cupcake', x: 62, w: 13, h: 11, required: 20, frost: 'mint' },
-      { kind: 'dome', x: 90, w: 22, h: 10, required: 20 },
-      { kind: 'donut', x: 128, w: 13, h: 5, required: 10 },
+      { kind: 'sheet', x: 0, w: 44, h: 8, required: 30 },
+      { kind: 'cupcake', x: 62, w: 13, h: 11, required: 10, frost: 'mint' },
+      { kind: 'dome', x: 90, w: 22, h: 10, required: 10 },
+      { kind: 'donut', x: 128, w: 13, h: 5, required: 5 },
     ],
     allowedWaste: 0.5,
   },
@@ -32,7 +32,7 @@ export const LEVELS = [
     hint: 'Hold to lift',
     hand: { speed: 14, y: 30, startX: -46 },
     mix: HOUSE_MIX,
-    cakes: [{ kind: 'sheet', x: 0, w: 80, h: 7, required: 100 }],
+    cakes: [{ kind: 'sheet', x: 0, w: 80, h: 7, required: 50 }],
     allowedWaste: 0.4,
   },
   {
@@ -41,7 +41,7 @@ export const LEVELS = [
     blurb: 'Smaller target, same jar.',
     hand: { speed: 14, y: 30, startX: -36 },
     mix: { bead: 190, rod: 36, heart: 12 },
-    cakes: [{ kind: 'round', x: 8, w: 38, h: 12, required: 110, frost: 'white', drip: 'pink' }],
+    cakes: [{ kind: 'round', x: 8, w: 38, h: 12, required: 55, frost: 'white', drip: 'pink' }],
     allowedWaste: 0.35,
   },
   {
@@ -50,7 +50,7 @@ export const LEVELS = [
     blurb: 'A small target passes quickly.',
     hand: { speed: 13, y: 30, startX: -30 },
     mix: { bead: 170, rod: 34, heart: 12 },
-    cakes: [{ kind: 'cupcake', x: 12, w: 13, h: 11, required: 28 }],
+    cakes: [{ kind: 'cupcake', x: 12, w: 13, h: 11, required: 14 }],
     allowedWaste: 0.55,
   },
   {
@@ -60,8 +60,8 @@ export const LEVELS = [
     hand: { speed: 14, y: 30, startX: -37 },
     mix: { bead: 170, rod: 34, heart: 12 },
     cakes: [
-      { kind: 'cupcake', x: 10, w: 13, h: 11, required: 26 },
-      { kind: 'cupcake', x: 64, w: 13, h: 11, required: 26, frost: 'mint' },
+      { kind: 'cupcake', x: 10, w: 13, h: 11, required: 13 },
+      { kind: 'cupcake', x: 64, w: 13, h: 11, required: 13, frost: 'mint' },
     ],
     allowedWaste: 0.5,
   },
@@ -72,9 +72,9 @@ export const LEVELS = [
     hand: { speed: 14, y: 30, startX: -36 },
     mix: { bead: 150, rod: 30, heart: 10 },
     cakes: [
-      { kind: 'cupcake', x: 10, w: 13, h: 11, required: 20 },
-      { kind: 'cupcake', x: 52, w: 13, h: 11, required: 20, frost: 'lilac' },
-      { kind: 'cupcake', x: 94, w: 13, h: 11, required: 20, frost: 'mint' },
+      { kind: 'cupcake', x: 10, w: 13, h: 11, required: 10 },
+      { kind: 'cupcake', x: 52, w: 13, h: 11, required: 10, frost: 'lilac' },
+      { kind: 'cupcake', x: 94, w: 13, h: 11, required: 10, frost: 'mint' },
     ],
     allowedWaste: 0.3,
   },
@@ -85,8 +85,8 @@ export const LEVELS = [
     hand: { speed: 15, y: 30, startX: -38 },
     mix: { bead: 190, rod: 36, heart: 12 },
     cakes: [
-      { kind: 'sheet', x: 8, w: 28, h: 8, required: 68, filling: 'mint' },
-      { kind: 'sheet', x: 78, w: 28, h: 8, required: 68, frost: 'pink', filling: 'lemon' },
+      { kind: 'sheet', x: 8, w: 28, h: 8, required: 34, filling: 'mint' },
+      { kind: 'sheet', x: 78, w: 28, h: 8, required: 34, frost: 'pink', filling: 'lemon' },
     ],
     allowedWaste: 0.3,
   },
@@ -96,7 +96,7 @@ export const LEVELS = [
     blurb: 'Big pieces leave late and bounce.',
     hand: { speed: 14, y: 30, startX: -36 },
     mix: { bead: 130, rod: 20, heart: 6, pearl: 12 },
-    cakes: [{ kind: 'round', x: 8, w: 42, h: 11, required: 100, frost: 'lemon', drip: 'choc' }],
+    cakes: [{ kind: 'round', x: 8, w: 42, h: 11, required: 50, frost: 'lemon', drip: 'choc' }],
     allowedWaste: 0.35,
   },
   {
@@ -105,7 +105,7 @@ export const LEVELS = [
     blurb: 'The hole in the middle eats sprinkles.',
     hand: { speed: 13, y: 30, startX: -33 },
     mix: { bead: 170, rod: 40, heart: 10 },
-    cakes: [{ kind: 'bundt', x: 10, w: 42, h: 11, hole: 11, required: 58, sidesValid: true }],
+    cakes: [{ kind: 'bundt', x: 10, w: 42, h: 11, hole: 11, required: 29, sidesValid: true }],
     allowedWaste: 0.4,
   },
   {
@@ -118,8 +118,8 @@ export const LEVELS = [
     // One cupcake drifts away (hand catches up slowly), then one comes to meet
     // the hand (passes fast), with ~2 s between them.
     cakes: [
-      { kind: 'cupcake', x: 10, w: 13, h: 11, required: 30, vx: 6, frost: 'lilac' },
-      { kind: 'cupcake', x: 132, w: 13, h: 11, required: 26, vx: -4, frost: 'mint' },
+      { kind: 'cupcake', x: 10, w: 13, h: 11, required: 15, vx: 6, frost: 'lilac' },
+      { kind: 'cupcake', x: 132, w: 13, h: 11, required: 13, vx: -4, frost: 'mint' },
     ],
     allowedWaste: 0.5,
   },
@@ -129,7 +129,7 @@ export const LEVELS = [
     blurb: 'Tip too deep and the jar hits the cake.',
     hand: { speed: 13, y: 30, startX: -28 },
     mix: { bead: 170, rod: 24, heart: 8, pearl: 6 },
-    cakes: [{ kind: 'tiered', x: 10, w: 44, h: 24, h1: 12.5, w2: 26, required: 100, drip: 'pink' }],
+    cakes: [{ kind: 'tiered', x: 10, w: 44, h: 24, h1: 12.5, w2: 26, required: 50, drip: 'pink' }],
     allowedWaste: 0.4,
   },
 ];

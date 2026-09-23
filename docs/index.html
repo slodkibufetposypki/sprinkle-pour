@@ -1236,10 +1236,10 @@ const LEVELS = [
     hand: { speed: 14, y: 30, startX: -40, heightCoupling: 0 },
     mix: { bead: 160, rod: 30, heart: 12, pearl: 6 },
     cakes: [
-      { kind: 'sheet', x: 0, w: 44, h: 8, required: 60 },
-      { kind: 'cupcake', x: 62, w: 13, h: 11, required: 20, frost: 'mint' },
-      { kind: 'dome', x: 90, w: 22, h: 10, required: 20 },
-      { kind: 'donut', x: 128, w: 13, h: 5, required: 10 },
+      { kind: 'sheet', x: 0, w: 44, h: 8, required: 30 },
+      { kind: 'cupcake', x: 62, w: 13, h: 11, required: 10, frost: 'mint' },
+      { kind: 'dome', x: 90, w: 22, h: 10, required: 10 },
+      { kind: 'donut', x: 128, w: 13, h: 5, required: 5 },
     ],
     allowedWaste: 0.5,
   },
@@ -1250,7 +1250,7 @@ const LEVELS = [
     hint: 'Hold to lift',
     hand: { speed: 14, y: 30, startX: -46 },
     mix: HOUSE_MIX,
-    cakes: [{ kind: 'sheet', x: 0, w: 80, h: 7, required: 100 }],
+    cakes: [{ kind: 'sheet', x: 0, w: 80, h: 7, required: 50 }],
     allowedWaste: 0.4,
   },
   {
@@ -1259,7 +1259,7 @@ const LEVELS = [
     blurb: 'Smaller target, same jar.',
     hand: { speed: 14, y: 30, startX: -36 },
     mix: { bead: 190, rod: 36, heart: 12 },
-    cakes: [{ kind: 'round', x: 8, w: 38, h: 12, required: 110, frost: 'white', drip: 'pink' }],
+    cakes: [{ kind: 'round', x: 8, w: 38, h: 12, required: 55, frost: 'white', drip: 'pink' }],
     allowedWaste: 0.35,
   },
   {
@@ -1268,7 +1268,7 @@ const LEVELS = [
     blurb: 'A small target passes quickly.',
     hand: { speed: 13, y: 30, startX: -30 },
     mix: { bead: 170, rod: 34, heart: 12 },
-    cakes: [{ kind: 'cupcake', x: 12, w: 13, h: 11, required: 28 }],
+    cakes: [{ kind: 'cupcake', x: 12, w: 13, h: 11, required: 14 }],
     allowedWaste: 0.55,
   },
   {
@@ -1278,8 +1278,8 @@ const LEVELS = [
     hand: { speed: 14, y: 30, startX: -37 },
     mix: { bead: 170, rod: 34, heart: 12 },
     cakes: [
-      { kind: 'cupcake', x: 10, w: 13, h: 11, required: 26 },
-      { kind: 'cupcake', x: 64, w: 13, h: 11, required: 26, frost: 'mint' },
+      { kind: 'cupcake', x: 10, w: 13, h: 11, required: 13 },
+      { kind: 'cupcake', x: 64, w: 13, h: 11, required: 13, frost: 'mint' },
     ],
     allowedWaste: 0.5,
   },
@@ -1290,9 +1290,9 @@ const LEVELS = [
     hand: { speed: 14, y: 30, startX: -36 },
     mix: { bead: 150, rod: 30, heart: 10 },
     cakes: [
-      { kind: 'cupcake', x: 10, w: 13, h: 11, required: 20 },
-      { kind: 'cupcake', x: 52, w: 13, h: 11, required: 20, frost: 'lilac' },
-      { kind: 'cupcake', x: 94, w: 13, h: 11, required: 20, frost: 'mint' },
+      { kind: 'cupcake', x: 10, w: 13, h: 11, required: 10 },
+      { kind: 'cupcake', x: 52, w: 13, h: 11, required: 10, frost: 'lilac' },
+      { kind: 'cupcake', x: 94, w: 13, h: 11, required: 10, frost: 'mint' },
     ],
     allowedWaste: 0.3,
   },
@@ -1303,8 +1303,8 @@ const LEVELS = [
     hand: { speed: 15, y: 30, startX: -38 },
     mix: { bead: 190, rod: 36, heart: 12 },
     cakes: [
-      { kind: 'sheet', x: 8, w: 28, h: 8, required: 68, filling: 'mint' },
-      { kind: 'sheet', x: 78, w: 28, h: 8, required: 68, frost: 'pink', filling: 'lemon' },
+      { kind: 'sheet', x: 8, w: 28, h: 8, required: 34, filling: 'mint' },
+      { kind: 'sheet', x: 78, w: 28, h: 8, required: 34, frost: 'pink', filling: 'lemon' },
     ],
     allowedWaste: 0.3,
   },
@@ -1314,7 +1314,7 @@ const LEVELS = [
     blurb: 'Big pieces leave late and bounce.',
     hand: { speed: 14, y: 30, startX: -36 },
     mix: { bead: 130, rod: 20, heart: 6, pearl: 12 },
-    cakes: [{ kind: 'round', x: 8, w: 42, h: 11, required: 100, frost: 'lemon', drip: 'choc' }],
+    cakes: [{ kind: 'round', x: 8, w: 42, h: 11, required: 50, frost: 'lemon', drip: 'choc' }],
     allowedWaste: 0.35,
   },
   {
@@ -1323,7 +1323,7 @@ const LEVELS = [
     blurb: 'The hole in the middle eats sprinkles.',
     hand: { speed: 13, y: 30, startX: -33 },
     mix: { bead: 170, rod: 40, heart: 10 },
-    cakes: [{ kind: 'bundt', x: 10, w: 42, h: 11, hole: 11, required: 58, sidesValid: true }],
+    cakes: [{ kind: 'bundt', x: 10, w: 42, h: 11, hole: 11, required: 29, sidesValid: true }],
     allowedWaste: 0.4,
   },
   {
@@ -1336,8 +1336,8 @@ const LEVELS = [
     // One cupcake drifts away (hand catches up slowly), then one comes to meet
     // the hand (passes fast), with ~2 s between them.
     cakes: [
-      { kind: 'cupcake', x: 10, w: 13, h: 11, required: 30, vx: 6, frost: 'lilac' },
-      { kind: 'cupcake', x: 132, w: 13, h: 11, required: 26, vx: -4, frost: 'mint' },
+      { kind: 'cupcake', x: 10, w: 13, h: 11, required: 15, vx: 6, frost: 'lilac' },
+      { kind: 'cupcake', x: 132, w: 13, h: 11, required: 13, vx: -4, frost: 'mint' },
     ],
     allowedWaste: 0.5,
   },
@@ -1347,7 +1347,7 @@ const LEVELS = [
     blurb: 'Tip too deep and the jar hits the cake.',
     hand: { speed: 13, y: 30, startX: -28 },
     mix: { bead: 170, rod: 24, heart: 8, pearl: 6 },
-    cakes: [{ kind: 'tiered', x: 10, w: 44, h: 24, h1: 12.5, w2: 26, required: 100, drip: 'pink' }],
+    cakes: [{ kind: 'tiered', x: 10, w: 44, h: 24, h1: 12.5, w2: 26, required: 50, drip: 'pink' }],
     allowedWaste: 0.4,
   },
 ];
@@ -1862,19 +1862,33 @@ function buildCake(spec, index) {
   };
 }
 
-// How evenly the frosting is covered, 0–1. Each ~3 cm strip counts as full
-// once it holds half its fair share of the requirement; less gives partial
-// credit, so a pile in one spot scores low even when the amount is right.
-function cakeCoverage(cake) {
+// How much of a strip's frosting is covered, 0–1: full once it holds its
+// fair share of the cake's full-cover amount (`required`). Half of each
+// neighbour's sprinkles count too, the way the eye reads a cake: a one-strip
+// gap between sprinkled patches doesn't look bare, a wider one does.
+function stripCover(cake, i) {
   const t = cake.target;
   if (!t.required) return 1;
-  const per = (t.required / t.bins.length) * 0.5;
-  let sum = 0;
-  for (const b of t.bins) sum += Math.min(1, b / per);
-  return sum / t.bins.length;
+  const b = t.bins;
+  const n = b.length;
+  const here = b[i];
+  const left = i > 0 ? b[i - 1] : here;
+  const right = i < n - 1 ? b[i + 1] : here;
+  const blended = 0.5 * here + 0.25 * (left + right);
+  return Math.min(1, blended / (0.5 * (t.required / n)));
 }
 
-return { PLATE_H, SPONGE, FROST, pointInPoly, nearestEdge, buildCake, cakeCoverage };
+// How much of the whole frosting is covered, 0–1 (~3 cm strips, partial
+// credit), so a pile in one spot covers little and a pour along the whole
+// cake covers it all.
+function cakeCoverage(cake) {
+  const n = cake.target.bins.length;
+  let sum = 0;
+  for (let i = 0; i < n; i++) sum += stripCover(cake, i);
+  return sum / n;
+}
+
+return { PLATE_H, SPONGE, FROST, pointInPoly, nearestEdge, buildCake, stripCover, cakeCoverage };
 })();
 
 __mods['physics.js'] = (() => {
@@ -2707,8 +2721,8 @@ const { D, createJar, stepJar, toWorld, toLocal, pointVel, pourStartEstimate } =
 const { LARGE_R, jarShape, createGrains, stepGrains } = __mods['grains.js'];
 const HISTORY = 420; // samples kept for the debug graph (7 s at 60 Hz)
 // Score out of 100 and the points needed for stars 2–5 (the first star is
-// decorating every cake).
-const POINTS = { decorated: 30, spread: 20, clean: 25, portion: 25 };
+// covering every cake to its goal).
+const POINTS = { coverage: 50, clean: 30, used: 20 };
 const STAR_POINTS = [65, 76, 86, 94];
 const tmp = { d2: 0, qx: 0, qy: 0, e: 0 };
 
@@ -3043,46 +3057,42 @@ class Game {
     }
   }
 
-  // Scoring: 100 points turned into 0–5 stars. Decorating every cake earns
-  // the first star; the rest come from how cleanly and evenly it was done.
+  get coverGoal() {
+    return this.level.coverGoal ?? 0.6;
+  }
+
+  // Scoring: 100 points turned into 0–5 stars. Covering every cake to its
+  // goal earns the first star; the rest reward covering them completely,
+  // not spilling, and getting the jar onto the cakes. Pouring a lot is never
+  // punished; the jar running out is the only limit.
   finish() {
     const lv = this.level;
     const NAMES = { sheet: 'Sheet cake', round: 'Layer cake', cupcake: 'Cupcake', dome: 'Dome cake', bundt: 'Bundt', tiered: 'Tiered cake', donut: 'Donut', eclair: 'Éclair' };
     const sameKind = (c) => this.cakes.filter((o) => o.kind === c.kind);
+    const goal = this.coverGoal;
     const cakes = this.cakes.map((c) => {
-      const tg = c.target;
-      const ratio = tg.required ? tg.received / tg.required : 1;
+      const coverage = cakeCoverage(c);
       return {
         name: sameKind(c).length > 1 ? `${NAMES[c.kind]} ${sameKind(c).indexOf(c) + 1}` : NAMES[c.kind],
-        received: tg.received,
-        required: tg.required,
-        ratio,
-        met: ratio >= 1 - 1e-6,
-        coverage: cakeCoverage(c),
+        received: c.target.received,
+        coverage,
+        met: coverage >= goal - 1e-6,
       };
     });
     const start = Math.max(1, this.startMass);
-    // Waste = spilled on the table/plates, plus anything piled on a cake
-    // beyond twice what it needed (that is product thrown away too).
-    const buried = cakes.reduce((s, c) => s + Math.max(0, c.received - 2 * c.required), 0);
-    const waste = (this.stats.wasted + buried) / start;
+    const waste = this.stats.wasted / start;
+    const onCakes = this.stats.onTarget / start;
     const left = this.jarMass;
     const n = Math.max(1, cakes.length);
-    const mean = (f) => cakes.reduce((s, c) => s + f(c), 0) / n;
+    const coverage = cakes.reduce((s, c) => s + c.coverage, 0) / n;
     const allowed = lv.allowedWaste ?? 0.35;
-    const coverage = mean((c) => c.coverage);
-    // Up to 1.5× the requirement is a generous, fair helping; beyond that a
-    // cake is getting buried and portion points reach zero at 2.5×.
-    const portion = (k) => (k <= 1.5 ? Math.min(1, k) : Math.max(0, 1 - (k - 1.5)));
     const parts = {
-      decorated: POINTS.decorated * mean((c) => Math.min(1, c.ratio)),
-      spread: POINTS.spread * coverage,
+      coverage: POINTS.coverage * coverage,
       clean: POINTS.clean * Math.max(0, Math.min(1, 1 - waste / (allowed * 1.5))),
-      portion: POINTS.portion * mean((c) => portion(c.ratio)),
+      used: POINTS.used * Math.min(1, onCakes / 0.8), // 80% of the jar on cakes = full marks
     };
     const bumpPenalty = Math.min(24, 8 * this.stats.bumps);
-    const raw = parts.decorated + parts.spread + parts.clean + parts.portion - bumpPenalty;
-    const score = Math.max(0, Math.round(raw));
+    const score = Math.max(0, Math.round(parts.coverage + parts.clean + parts.used - bumpPenalty));
     const pass = cakes.every((c) => c.met);
     let stars = 0;
     if (pass) {
@@ -3093,21 +3103,19 @@ class Game {
     // Plain-language reasons, so a run reads as "I know what to do better".
     const notes = [];
     for (const c of cakes.filter((c) => !c.met)) {
-      notes.push(`${c.name} was ${Math.round(100 - 100 * c.ratio)}% short`);
+      notes.push(`${c.name} is only ${Math.round(c.coverage * 100)}% covered (needs ${Math.round(goal * 100)}%)`);
     }
     if (!pass && left < 1) notes.push('The jar ran dry before the end');
     if (pass && stars < 5) {
       const next = STAR_POINTS[stars - 1];
+      const thin = cakes.reduce((a, c) => (c.coverage < a.coverage ? c : a), cakes[0]);
       const gaps = [
-        ['spread', POINTS.spread - parts.spread, 'Pour along the whole cake to cover it evenly'],
-        ['clean', POINTS.clean - parts.clean, 'Waste less: catch the jar before the stream reaches the table'],
-        ['portion', POINTS.portion - parts.portion, (() => {
-          const worst = cakes.reduce((a, c) => (c.ratio > a.ratio ? c : a), cakes[0]);
-          return worst ? `Don't bury the cakes: ${worst.name.toLowerCase()} got ${worst.ratio.toFixed(1)}× what it needed` : '';
-        })()],
-        ['bumps', bumpPenalty, 'Keep the jar off the cakes'],
-      ].sort((a, b) => b[1] - a[1]);
-      notes.push(`${gaps[0][2]}. ${next - score} more points for ${stars + 1} stars.`);
+        [POINTS.coverage - parts.coverage, thin ? `Pour along the whole cake: ${thin.name.toLowerCase()} is ${Math.round(thin.coverage * 100)}% covered` : ''],
+        [POINTS.clean - parts.clean, 'Spill less: stop the stream before it reaches the table'],
+        [POINTS.used - parts.used, `Don't hold back: ${Math.round((left / start) * 100)}% of the jar is still unused`],
+        [bumpPenalty, 'Keep the jar off the cakes'],
+      ].sort((a, b) => b[0] - a[0]);
+      notes.push(`${gaps[0][1]}. ${next - score} more points for ${stars + 1} stars.`);
     }
 
     this.result = {
@@ -3117,10 +3125,11 @@ class Game {
       parts,
       bumpPenalty,
       coverage,
+      goal,
       waste,
+      onCakes,
       left: left / start,
       leftCount: this.grains.n,
-      onTarget: this.stats.onTarget / start,
       bumps: this.stats.bumps,
       cakes,
       notes,
@@ -3139,6 +3148,7 @@ __mods['render.js'] = (() => {
 // space from cached sprites so thousands stay cheap.
 const { D, toWorld } = __mods['jar.js'];
 const { TYPE_IDS } = __mods['params.js'];
+const { cakeCoverage, stripCover } = __mods['cakes.js'];
 // Sweet Buffet style mix: pastel pink, mint/teal, lilac, cream and white,
 // with metallic gold. Eight looks per piece type; a piece keeps its look
 // from the jar to the cake. `metal` = shiny gold, `disc` = flat sequin,
@@ -3917,46 +3927,51 @@ class Renderer {
     }
   }
 
-  // Tiny per-cake progress pill: amount toward the requirement.
+  // Coverage ribbon on the mat under each cake: one segment per ~3 cm strip
+  // of frosting, filling as sprinkles land above it; green with a tick once
+  // the cake is covered enough to count.
   drawMeters(game) {
     const { ctx } = this;
     this.screenTransform();
+    const goal = game.coverGoal;
+    const y = this.sy(-0.75);
+    const h = Math.max(4, Math.min(7, this.s * 0.45));
     for (const c of game.cakes) {
       const tg = c.target;
-      if (!tg.required) continue;
-      const cxw = c.pos.x + (tg.x0 + tg.x1) / 2;
-      const x = this.sx(cxw);
-      if (x < -60 || x > this.w + 60) continue;
-      const y = this.sy(c.pos.y + c.top) - Math.max(18, this.s * 2.2);
-      const w = clamp(this.s * 5, 36, 64);
-      const h = 6;
-      const k = tg.received / tg.required;
-      const met = k >= 1;
-      ctx.fillStyle = 'rgba(255,255,255,0.85)';
-      pill(ctx, x - w / 2 - 2, y - h / 2 - 2, w + 4, h + 4);
-      ctx.fill();
-      ctx.fillStyle = 'rgba(43,30,42,0.12)';
-      pill(ctx, x - w / 2, y - h / 2, w, h);
-      ctx.fill();
-      ctx.fillStyle = met ? '#3FAE86' : '#E8456F';
-      pill(ctx, x - w / 2, y - h / 2, Math.max(h, w * Math.min(1, k)), h);
-      ctx.fill();
+      const n = tg.bins.length;
+      const x0 = this.sx(c.pos.x + tg.x0);
+      const x1 = this.sx(c.pos.x + tg.x1);
+      if (x1 < -20 || x0 > this.w + 20) continue;
+      const met = cakeCoverage(c) >= goal;
+      const seg = (x1 - x0) / n;
+      const gap = Math.min(3, seg * 0.18);
+      for (let i = 0; i < n; i++) {
+        const sx = x0 + i * seg + gap / 2;
+        const w = seg - gap;
+        ctx.fillStyle = 'rgba(43,30,42,0.10)';
+        pill(ctx, sx, y - h / 2, w, h);
+        ctx.fill();
+        const k = stripCover(c, i);
+        if (k > 0.02) {
+          ctx.fillStyle = met ? '#3FAE86' : k >= 1 ? '#E0A93A' : 'rgba(224,169,58,0.75)';
+          pill(ctx, sx, y - h / 2, Math.max(h, w * k), h);
+          ctx.fill();
+        }
+      }
       if (met) {
+        const cx = x1 + 10;
+        ctx.fillStyle = '#3FAE86';
+        ctx.beginPath();
+        ctx.arc(cx, y, 7, 0, Math.PI * 2);
+        ctx.fill();
         ctx.strokeStyle = '#FFFFFF';
-        ctx.lineWidth = 1.6;
+        ctx.lineWidth = 1.8;
         ctx.lineCap = 'round';
         ctx.beginPath();
-        ctx.moveTo(x - 3, y);
-        ctx.lineTo(x - 1, y + 2);
-        ctx.lineTo(x + 3, y - 2);
+        ctx.moveTo(cx - 3, y);
+        ctx.lineTo(cx - 1, y + 2.2);
+        ctx.lineTo(cx + 3.2, y - 2.2);
         ctx.stroke();
-      }
-      if (k > 1.02) {
-        ctx.fillStyle = INK;
-        ctx.font = '600 10px "JetBrains Mono", ui-monospace, monospace';
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(`×${k.toFixed(1)}`, x + w / 2 + 5, y + 0.5);
       }
     }
   }
@@ -4470,7 +4485,8 @@ class Panel {
     add('hand.heightCoupling', 'Holding raises hand', 0, 12, 0.5, 'cm', 'Brief §37: the same press also gains clearance.');
     add('hand.startX', 'Start position', -70, 0, 1, 'cm', '');
     for (const t of TYPE_IDS) add(`mix.${t}`, `${TYPE_LABELS[t]} in jar`, 0, t === 'bead' ? 600 : 120, 1, 'pcs', '');
-    level.cakes.forEach((c, i) => add(`cakes.${i}.required`, `Cake ${i + 1} needs`, 0, 400, 1, '', ''));
+    level.cakes.forEach((c, i) => add(`cakes.${i}.required`, `Cake ${i + 1}: full cover`, 1, 400, 1, '', i ? '' : 'Sprinkle mass that covers a cake completely (spread evenly).'));
+    add('coverGoal', 'Cover goal (pass)', 0.1, 1, 0.01, '', 'Share of each cake that must be covered.');
     add('allowedWaste', 'Waste allowance', 0, 1, 0.01, '', 'Share of the jar. Clean-pour points reach zero at 1.5× this.');
     const actions = el(
       'div',
@@ -4661,12 +4677,10 @@ function showResult(r, nextLabel, nextName) {
   $('res-points').textContent = r.score;
 
   // Where the points came from, so the stars make sense.
-  const worst = r.cakes.reduce((a, c) => (c.ratio > a.ratio ? c : a), r.cakes[0]);
   const rows = [
-    ['Decorated', `${r.cakes.filter((c) => c.met).length} of ${r.cakes.length} cakes`, r.parts.decorated, POINTS.decorated],
-    ['Even spread', `${pct(r.coverage)} covered`, r.parts.spread, POINTS.spread],
-    ['Clean pour', `${pct(r.waste)} wasted`, r.parts.clean, POINTS.clean],
-    ['Portions', worst ? `up to ${worst.ratio.toFixed(1)}× needed` : '', r.parts.portion, POINTS.portion],
+    ['Coverage', `${pct(r.coverage)} of the frosting`, r.parts.coverage, POINTS.coverage],
+    ['Clean pour', `${pct(r.waste)} spilled`, r.parts.clean, POINTS.clean],
+    ['On the cakes', `${pct(r.onCakes)} of the jar`, r.parts.used, POINTS.used],
   ];
   const parts = $('res-parts');
   parts.textContent = '';
@@ -4699,13 +4713,12 @@ function showResult(r, nextLabel, nextName) {
   const cakes = $('res-cakes');
   cakes.textContent = '';
   for (const c of r.cakes) {
-    if (!c.required) continue;
     cakes.append(
       el(
         'li',
         { class: c.met ? 'met' : '' },
         el('span', { text: `${c.met ? '✓' : '✗'} ${c.name}` }),
-        el('span', { class: 'amt', text: `${Math.round(c.received)} / ${c.required}` }),
+        el('span', { class: 'amt', text: `${pct(c.coverage)} covered` }),
       ),
     );
   }
@@ -4729,9 +4742,11 @@ __mods['bot.js'] = (() => {
 // (watch a level play itself with the current tuning) and by tools/bot.mjs
 // (headless level checks). Like a player, it rides just under the estimated
 // pour threshold while a cake that still needs sprinkles approaches, tilts in
-// over it, backs off over gaps, and lifts when the stream gets too heavy.
+// over it, keeps a steady stream along the whole cake, backs off over gaps,
+// and lifts when the stream gets too heavy.
 const { D, toWorld } = __mods['jar.js'];
-function botHold(game, { depth = 30, edge = -2, safe = 14, lead = 0.12, margin = 1, approach = 0.7, flowCap = 90 } = {}) {
+const { cakeCoverage } = __mods['cakes.js'];
+function botHold(game, { depth = 30, edge = -2, safe = 14, lead = 0.12, margin = 1, approach = 0.7, flowCap = 60 } = {}) {
   if (game.state === 'ready') return true; // press to start
   const { jar, P, shape } = game;
   const [mx, my] = toWorld(jar, shape.ihw - 0.3, shape.top);
@@ -4739,13 +4754,14 @@ function botHold(game, { depth = 30, edge = -2, safe = 14, lead = 0.12, margin =
   let mode = -safe;
   for (const c of game.cakes) {
     const tg = c.target;
-    if (tg.received >= tg.required * 1.25) continue; // margin for pieces that bounce off
     const drop = Math.max(0.5, my - (c.pos.y + c.top));
     const t = Math.sqrt((2 * drop) / P.world.gravity);
     const lx = mx + (vx - c.vel.x) * t; // landing x in the cake's moving frame
     const x0 = c.pos.x + tg.x0 + margin;
     const x1 = c.pos.x + tg.x1 - margin;
-    if (lx >= x0 && lx <= x1) mode = Math.max(mode, depth);
+    // keep a steady stream along any cake that isn't fully covered yet
+    const needs = cakeCoverage(c) < 0.98;
+    if (lx >= x0 && lx <= x1 && needs) mode = Math.max(mode, depth);
     else if (lx < x0 && lx > x0 - (vx - c.vel.x) * approach) mode = Math.max(mode, -edge);
   }
   // Like a player watching the stream: lift when it gets heavier than wanted.

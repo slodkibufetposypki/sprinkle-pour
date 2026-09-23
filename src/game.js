@@ -15,8 +15,8 @@ import { LARGE_R, jarShape, createGrains, stepGrains } from './grains.js';
 
 const HISTORY = 420; // samples kept for the debug graph (7 s at 60 Hz)
 // Score out of 100 and the points needed for stars 2–5 (the first star is
-// decorating every cake).
-export const POINTS = { decorated: 30, spread: 20, clean: 25, portion: 25 };
+// covering every cake to its goal).
+export const POINTS = { coverage: 50, clean: 30, used: 20 };
 export const STAR_POINTS = [65, 76, 86, 94];
 const tmp = { d2: 0, qx: 0, qy: 0, e: 0 };
 
@@ -351,46 +351,42 @@ export class Game {
     }
   }
 
-  // Scoring: 100 points turned into 0–5 stars. Decorating every cake earns
-  // the first star; the rest come from how cleanly and evenly it was done.
+  get coverGoal() {
+    return this.level.coverGoal ?? 0.6;
+  }
+
+  // Scoring: 100 points turned into 0–5 stars. Covering every cake to its
+  // goal earns the first star; the rest reward covering them completely,
+  // not spilling, and getting the jar onto the cakes. Pouring a lot is never
+  // punished; the jar running out is the only limit.
   finish() {
     const lv = this.level;
     const NAMES = { sheet: 'Sheet cake', round: 'Layer cake', cupcake: 'Cupcake', dome: 'Dome cake', bundt: 'Bundt', tiered: 'Tiered cake', donut: 'Donut', eclair: 'Éclair' };
     const sameKind = (c) => this.cakes.filter((o) => o.kind === c.kind);
+    const goal = this.coverGoal;
     const cakes = this.cakes.map((c) => {
-      const tg = c.target;
-      const ratio = tg.required ? tg.received / tg.required : 1;
+      const coverage = cakeCoverage(c);
       return {
         name: sameKind(c).length > 1 ? `${NAMES[c.kind]} ${sameKind(c).indexOf(c) + 1}` : NAMES[c.kind],
-        received: tg.received,
-        required: tg.required,
-        ratio,
-        met: ratio >= 1 - 1e-6,
-        coverage: cakeCoverage(c),
+        received: c.target.received,
+        coverage,
+        met: coverage >= goal - 1e-6,
       };
     });
     const start = Math.max(1, this.startMass);
-    // Waste = spilled on the table/plates, plus anything piled on a cake
-    // beyond twice what it needed (that is product thrown away too).
-    const buried = cakes.reduce((s, c) => s + Math.max(0, c.received - 2 * c.required), 0);
-    const waste = (this.stats.wasted + buried) / start;
+    const waste = this.stats.wasted / start;
+    const onCakes = this.stats.onTarget / start;
     const left = this.jarMass;
     const n = Math.max(1, cakes.length);
-    const mean = (f) => cakes.reduce((s, c) => s + f(c), 0) / n;
+    const coverage = cakes.reduce((s, c) => s + c.coverage, 0) / n;
     const allowed = lv.allowedWaste ?? 0.35;
-    const coverage = mean((c) => c.coverage);
-    // Up to 1.5× the requirement is a generous, fair helping; beyond that a
-    // cake is getting buried and portion points reach zero at 2.5×.
-    const portion = (k) => (k <= 1.5 ? Math.min(1, k) : Math.max(0, 1 - (k - 1.5)));
     const parts = {
-      decorated: POINTS.decorated * mean((c) => Math.min(1, c.ratio)),
-      spread: POINTS.spread * coverage,
+      coverage: POINTS.coverage * coverage,
       clean: POINTS.clean * Math.max(0, Math.min(1, 1 - waste / (allowed * 1.5))),
-      portion: POINTS.portion * mean((c) => portion(c.ratio)),
+      used: POINTS.used * Math.min(1, onCakes / 0.8), // 80% of the jar on cakes = full marks
     };
     const bumpPenalty = Math.min(24, 8 * this.stats.bumps);
-    const raw = parts.decorated + parts.spread + parts.clean + parts.portion - bumpPenalty;
-    const score = Math.max(0, Math.round(raw));
+    const score = Math.max(0, Math.round(parts.coverage + parts.clean + parts.used - bumpPenalty));
     const pass = cakes.every((c) => c.met);
     let stars = 0;
     if (pass) {
@@ -401,21 +397,19 @@ export class Game {
     // Plain-language reasons, so a run reads as "I know what to do better".
     const notes = [];
     for (const c of cakes.filter((c) => !c.met)) {
-      notes.push(`${c.name} was ${Math.round(100 - 100 * c.ratio)}% short`);
+      notes.push(`${c.name} is only ${Math.round(c.coverage * 100)}% covered (needs ${Math.round(goal * 100)}%)`);
     }
     if (!pass && left < 1) notes.push('The jar ran dry before the end');
     if (pass && stars < 5) {
       const next = STAR_POINTS[stars - 1];
+      const thin = cakes.reduce((a, c) => (c.coverage < a.coverage ? c : a), cakes[0]);
       const gaps = [
-        ['spread', POINTS.spread - parts.spread, 'Pour along the whole cake to cover it evenly'],
-        ['clean', POINTS.clean - parts.clean, 'Waste less: catch the jar before the stream reaches the table'],
-        ['portion', POINTS.portion - parts.portion, (() => {
-          const worst = cakes.reduce((a, c) => (c.ratio > a.ratio ? c : a), cakes[0]);
-          return worst ? `Don't bury the cakes: ${worst.name.toLowerCase()} got ${worst.ratio.toFixed(1)}× what it needed` : '';
-        })()],
-        ['bumps', bumpPenalty, 'Keep the jar off the cakes'],
-      ].sort((a, b) => b[1] - a[1]);
-      notes.push(`${gaps[0][2]}. ${next - score} more points for ${stars + 1} stars.`);
+        [POINTS.coverage - parts.coverage, thin ? `Pour along the whole cake: ${thin.name.toLowerCase()} is ${Math.round(thin.coverage * 100)}% covered` : ''],
+        [POINTS.clean - parts.clean, 'Spill less: stop the stream before it reaches the table'],
+        [POINTS.used - parts.used, `Don't hold back: ${Math.round((left / start) * 100)}% of the jar is still unused`],
+        [bumpPenalty, 'Keep the jar off the cakes'],
+      ].sort((a, b) => b[0] - a[0]);
+      notes.push(`${gaps[0][1]}. ${next - score} more points for ${stars + 1} stars.`);
     }
 
     this.result = {
@@ -425,10 +419,11 @@ export class Game {
       parts,
       bumpPenalty,
       coverage,
+      goal,
       waste,
+      onCakes,
       left: left / start,
       leftCount: this.grains.n,
-      onTarget: this.stats.onTarget / start,
       bumps: this.stats.bumps,
       cakes,
       notes,

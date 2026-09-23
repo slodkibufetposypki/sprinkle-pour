@@ -3,6 +3,7 @@
 // space from cached sprites so thousands stay cheap.
 import { D, toWorld } from './jar.js';
 import { TYPE_IDS } from './params.js';
+import { cakeCoverage, stripCover } from './cakes.js';
 
 // Sweet Buffet style mix: pastel pink, mint/teal, lilac, cream and white,
 // with metallic gold. Eight looks per piece type; a piece keeps its look
@@ -782,46 +783,51 @@ export class Renderer {
     }
   }
 
-  // Tiny per-cake progress pill: amount toward the requirement.
+  // Coverage ribbon on the mat under each cake: one segment per ~3 cm strip
+  // of frosting, filling as sprinkles land above it; green with a tick once
+  // the cake is covered enough to count.
   drawMeters(game) {
     const { ctx } = this;
     this.screenTransform();
+    const goal = game.coverGoal;
+    const y = this.sy(-0.75);
+    const h = Math.max(4, Math.min(7, this.s * 0.45));
     for (const c of game.cakes) {
       const tg = c.target;
-      if (!tg.required) continue;
-      const cxw = c.pos.x + (tg.x0 + tg.x1) / 2;
-      const x = this.sx(cxw);
-      if (x < -60 || x > this.w + 60) continue;
-      const y = this.sy(c.pos.y + c.top) - Math.max(18, this.s * 2.2);
-      const w = clamp(this.s * 5, 36, 64);
-      const h = 6;
-      const k = tg.received / tg.required;
-      const met = k >= 1;
-      ctx.fillStyle = 'rgba(255,255,255,0.85)';
-      pill(ctx, x - w / 2 - 2, y - h / 2 - 2, w + 4, h + 4);
-      ctx.fill();
-      ctx.fillStyle = 'rgba(43,30,42,0.12)';
-      pill(ctx, x - w / 2, y - h / 2, w, h);
-      ctx.fill();
-      ctx.fillStyle = met ? '#3FAE86' : '#E8456F';
-      pill(ctx, x - w / 2, y - h / 2, Math.max(h, w * Math.min(1, k)), h);
-      ctx.fill();
+      const n = tg.bins.length;
+      const x0 = this.sx(c.pos.x + tg.x0);
+      const x1 = this.sx(c.pos.x + tg.x1);
+      if (x1 < -20 || x0 > this.w + 20) continue;
+      const met = cakeCoverage(c) >= goal;
+      const seg = (x1 - x0) / n;
+      const gap = Math.min(3, seg * 0.18);
+      for (let i = 0; i < n; i++) {
+        const sx = x0 + i * seg + gap / 2;
+        const w = seg - gap;
+        ctx.fillStyle = 'rgba(43,30,42,0.10)';
+        pill(ctx, sx, y - h / 2, w, h);
+        ctx.fill();
+        const k = stripCover(c, i);
+        if (k > 0.02) {
+          ctx.fillStyle = met ? '#3FAE86' : k >= 1 ? '#E0A93A' : 'rgba(224,169,58,0.75)';
+          pill(ctx, sx, y - h / 2, Math.max(h, w * k), h);
+          ctx.fill();
+        }
+      }
       if (met) {
+        const cx = x1 + 10;
+        ctx.fillStyle = '#3FAE86';
+        ctx.beginPath();
+        ctx.arc(cx, y, 7, 0, Math.PI * 2);
+        ctx.fill();
         ctx.strokeStyle = '#FFFFFF';
-        ctx.lineWidth = 1.6;
+        ctx.lineWidth = 1.8;
         ctx.lineCap = 'round';
         ctx.beginPath();
-        ctx.moveTo(x - 3, y);
-        ctx.lineTo(x - 1, y + 2);
-        ctx.lineTo(x + 3, y - 2);
+        ctx.moveTo(cx - 3, y);
+        ctx.lineTo(cx - 1, y + 2.2);
+        ctx.lineTo(cx + 3.2, y - 2.2);
         ctx.stroke();
-      }
-      if (k > 1.02) {
-        ctx.fillStyle = INK;
-        ctx.font = '600 10px "JetBrains Mono", ui-monospace, monospace';
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(`×${k.toFixed(1)}`, x + w / 2 + 5, y + 0.5);
       }
     }
   }
