@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Sprinkle Pour</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="app" class="app">
+  <main id="stage" class="stage">
+    <canvas id="view" aria-label="Sprinkle Pour. Hold anywhere to lift the jar, release to let it tip."></canvas>
+
+    <div class="progress" aria-hidden="true"><div id="progress-fill" class="progress-fill"></div></div>
+
+    <header class="hud">
+      <div class="hud-left">
+        <label class="chip level-chip">
+          <span class="sr-only">Level</span>
+          <select id="level-select"></select>
+        </label>
+        <div id="jar-count" class="jar-count" aria-live="off"></div>
+      </div>
+      <div class="hud-right">
+        <button id="btn-retry" class="chip icon" type="button" title="Retry (R)" aria-label="Retry level">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M15.5 10a5.5 5.5 0 1 1-1.6-3.9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M14.6 2.8v3.9h-3.9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button id="btn-sound" class="chip icon" type="button" title="Sound (M)" aria-label="Sound on" aria-pressed="true">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 8h3l4-3.5v11L6 12H3z" fill="currentColor"/><path class="wave" d="M13 7.2a4 4 0 0 1 0 5.6M15.2 5a7 7 0 0 1 0 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+        <button id="btn-tune" class="chip" type="button" title="Tuning panel (T)" aria-controls="panel" aria-expanded="false">Tune</button>
+      </div>
+    </header>
+
+    <div id="banner" class="banner" aria-live="polite">
+      <div id="banner-num" class="banner-num"></div>
+      <div id="banner-name" class="banner-name"></div>
+      <div id="banner-hint" class="banner-hint"></div>
+    </div>
+
+    <div id="paused" class="paused" hidden>Paused · <kbd>P</kbd></div>
+
+    <section id="result" class="result" hidden aria-live="polite">
+      <div class="result-card">
+        <div id="res-stars" class="res-stars" aria-hidden="true"></div>
+        <h2 id="res-title" class="res-title"></h2>
+        <div class="res-figures">
+          <div class="fig"><span id="res-cov" class="fig-num"></span><span class="fig-label">coverage</span></div>
+          <div class="fig"><span id="res-waste" class="fig-num"></span><span class="fig-label">waste</span></div>
+          <div class="fig"><span id="res-left" class="fig-num"></span><span class="fig-label">still in jar</span></div>
+        </div>
+        <ul id="res-cakes" class="res-cakes"></ul>
+        <ul id="res-notes" class="res-notes"></ul>
+        <div class="res-actions">
+          <button id="res-retry" class="btn" type="button">Retry <kbd>R</kbd></button>
+          <button id="res-next" class="btn primary" type="button">Next level <kbd>N</kbd></button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <aside id="panel" class="panel" aria-label="Tuning panel">
+    <div class="panel-head">
+      <div>
+        <div class="panel-kicker">Grey-box sandbox</div>
+        <div class="panel-title">Tuning</div>
+      </div>
+      <button id="panel-close" class="panel-x" type="button" aria-label="Close tuning panel">×</button>
+    </div>
+    <div class="panel-scroll">
+      <section class="pane">
+        <canvas id="graph" class="graph" height="130" aria-label="Jar angle and flow over the last seven seconds"></canvas>
+        <div class="legend">
+          <span><i class="sw sw-theta"></i>jar angle</span>
+          <span><i class="sw sw-start"></i>pour start (estimate)</span>
+          <span><i class="sw sw-flow"></i>flow</span>
+          <span><i class="sw sw-held"></i>held</span>
+        </div>
+        <dl id="readouts" class="readouts"></dl>
+      </section>
+
+      <section class="pane">
+        <h3 class="pane-title">View &amp; run</h3>
+        <div id="toggles" class="toggles"></div>
+      </section>
+
+      <section class="pane">
+        <h3 class="pane-title">Presets &amp; export</h3>
+        <div class="row-actions">
+          <select id="preset-select" aria-label="Preset"></select>
+          <button id="preset-apply" class="pbtn" type="button">Apply</button>
+        </div>
+        <div class="row-actions">
+          <button id="json-copy" class="pbtn" type="button">Copy tuning JSON</button>
+          <button id="json-load" class="pbtn" type="button">Paste JSON…</button>
+          <button id="reset-all" class="pbtn warn" type="button">Reset all</button>
+        </div>
+        <div id="json-wrap" class="json-wrap" hidden>
+          <textarea id="json-box" class="json-box" spellcheck="false" aria-label="Tuning JSON"></textarea>
+          <div class="row-actions">
+            <button id="json-apply" class="pbtn" type="button">Apply JSON</button>
+            <button id="json-cancel" class="pbtn" type="button">Close</button>
+          </div>
+        </div>
+        <p id="panel-msg" class="panel-msg" role="status"></p>
+      </section>
+
+      <div id="level-controls"></div>
+      <div id="param-groups"></div>
+
+      <section class="pane keys">
+        <h3 class="pane-title">Keys</h3>
+        <dl>
+          <dt><kbd>Space</kbd> / hold screen</dt><dd>lift the jar</dd>
+          <dt><kbd>R</kbd></dt><dd>retry</dd>
+          <dt><kbd>N</kbd> <kbd>[</kbd> <kbd>]</kbd></dt><dd>next / prev / next level</dd>
+          <dt><kbd>P</kbd> <kbd>S</kbd></dt><dd>pause / slow motion</dd>
+          <dt><kbd>G</kbd> <kbd>T</kbd> <kbd>M</kbd></dt><dd>pour gauge / panel / sound</dd>
+          <dt><kbd>A</kbd></dt><dd>autopilot: watch the level play itself</dd>
+        </dl>
+        <p class="panel-note">Double-click a slider label to reset just that value. A dot marks values changed from the defaults.</p>
+      </section>
+    </div>
+  </aside>
+</div>
+<script type="module" src="src/main.js"></script>
+</body>
+</html>

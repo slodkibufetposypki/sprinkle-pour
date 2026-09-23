@@ -1,0 +1,5 @@
+# generated sandbox bundle (docs/ is the committed public build)
+dist/
+.claude/
+.DS_Store
+node_modules/
