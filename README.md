@@ -40,7 +40,7 @@ the URL. `warp` fast-forwards the sim that many seconds.
 | Falling sprinkles | `src/physics.js` | Circles against cake polygons. Frosting grabs them through adhesion, and a piece freezes only once it has come to rest, so pearls bounce, roll and settle. |
 | Cakes | `src/cakes.js` | Closed polygons. Each edge has a material (buttercream, fondant, glaze…) and a scoring zone (target or waste). |
 | Level run + scoring | `src/game.js` | States go ready → play → settle → result. A level ends as soon as the hand is past the last cake or the jar is empty. |
-| Levels | `src/levels.js` | The ten brief levels plus a sandbox, all as data. Each starts ~52 cm before the first cake: a stream lands ~35–40 cm after you let go, so letting go at once pours too early and a well-timed release lands on the front edge. |
+| Levels | `src/levels.js` | The ten brief levels plus a sandbox, all as data. Each level's run-up (35–47 cm) is fitted so that letting go at once brings the stream down ~5 cm before the first cake (pouring too early is possible), while a well-timed release lands on the front edge. |
 
 Rendering is Canvas 2D (`src/render.js`). The look follows the Sweet Buffet
 retail jar and mixes: a clear, squat jar with the lid off (just the open,
