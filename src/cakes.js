@@ -444,7 +444,7 @@ export function buildCake(spec, index) {
       tx1 = Math.max(tx1, a[0], b[0]);
     });
   }
-  const bins = Math.max(3, Math.round((tx1 - tx0) / 4));
+  const bins = Math.max(4, Math.round((tx1 - tx0) / 3)); // ~3 cm strips
   return {
     i: index,
     spec,
@@ -467,11 +467,14 @@ export function buildCake(spec, index) {
   };
 }
 
+// How evenly the frosting is covered, 0–1. Each ~3 cm strip counts as full
+// once it holds half its fair share of the requirement; less gives partial
+// credit, so a pile in one spot scores low even when the amount is right.
 export function cakeCoverage(cake) {
   const t = cake.target;
   if (!t.required) return 1;
-  const per = (t.required / t.bins.length) * 0.35;
-  let n = 0;
-  for (const b of t.bins) if (b >= per) n++;
-  return n / t.bins.length;
+  const per = (t.required / t.bins.length) * 0.5;
+  let sum = 0;
+  for (const b of t.bins) sum += Math.min(1, b / per);
+  return sum / t.bins.length;
 }

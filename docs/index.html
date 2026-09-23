@@ -333,13 +333,13 @@ kbd {
 .res-stars {
   display: flex;
   justify-content: center;
-  gap: 6px;
-  height: 44px;
+  gap: 4px;
+  height: 38px;
 }
 
 .res-stars svg {
-  width: 42px;
-  height: 42px;
+  width: 36px;
+  height: 36px;
 }
 
 .res-title {
@@ -348,39 +348,82 @@ kbd {
   text-wrap: balance;
 }
 
-.res-figures {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  padding: 12px 0;
-  border-top: 1px solid rgba(43, 30, 42, 0.08);
-  border-bottom: 1px solid rgba(43, 30, 42, 0.08);
-}
-
-.fig {
+.res-score {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  justify-content: center;
+  align-items: baseline;
+  gap: 6px;
+  margin: -6px 0 12px;
 }
 
-.fig-num {
-  font: 600 26px/1 var(--display);
+.score-num {
+  font: 600 34px/1 var(--display);
   font-variant-numeric: tabular-nums;
 }
 
-.fig-label {
-  font: 600 11px/1 var(--ui);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+.score-of {
+  font: 600 12px/1 var(--ui);
+  letter-spacing: 0.06em;
   color: var(--ink-soft);
+}
+
+.res-parts {
+  list-style: none;
+  margin: 0;
+  padding: 12px 0;
+  display: grid;
+  gap: 9px;
+  border-top: 1px solid rgba(43, 30, 42, 0.08);
+  border-bottom: 1px solid rgba(43, 30, 42, 0.08);
+  text-align: left;
+}
+
+.res-parts li {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: baseline;
+  gap: 3px 8px;
+}
+
+.part-label {
+  font: 600 13px/1.2 var(--ui);
+}
+
+.part-detail {
+  font: 500 12px/1.2 var(--ui);
+  color: var(--ink-soft);
+}
+
+.part-pts {
+  font: 600 12px/1.2 var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.res-parts .bar {
+  grid-column: 1 / -1;
+  height: 5px;
+  border-radius: 99px;
+  background: rgba(43, 30, 42, 0.08);
+  overflow: hidden;
+}
+
+.res-parts .bar i {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: var(--gold);
+}
+
+.res-parts .penalty .part-pts {
+  color: var(--berry-deep);
 }
 
 .res-cakes {
   list-style: none;
-  margin: 14px 0 0;
+  margin: 12px 0 0;
   padding: 0;
   display: grid;
-  gap: 8px;
+  gap: 4px;
   text-align: left;
 }
 
@@ -395,25 +438,6 @@ kbd {
   font-family: var(--mono);
   font-size: 12px;
   color: var(--ink-soft);
-}
-
-.res-cakes .bar {
-  grid-column: 1 / -1;
-  height: 6px;
-  border-radius: 99px;
-  background: rgba(43, 30, 42, 0.08);
-  overflow: hidden;
-}
-
-.res-cakes .bar i {
-  display: block;
-  height: 100%;
-  border-radius: 99px;
-  background: var(--berry);
-}
-
-.res-cakes .met .bar i {
-  background: var(--mint);
 }
 
 .res-notes {
@@ -834,6 +858,13 @@ details.group[open] > summary::after {
   }
 }
 
+/* Portrait phones: the jar sits high, so the start hint goes below it. */
+@media (max-aspect-ratio: 4/5) {
+  .banner {
+    top: 50%;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .banner,
   .toggle input,
@@ -885,11 +916,8 @@ details.group[open] > summary::after {
       <div class="result-card">
         <div id="res-stars" class="res-stars" aria-hidden="true"></div>
         <h2 id="res-title" class="res-title"></h2>
-        <div class="res-figures">
-          <div class="fig"><span id="res-cov" class="fig-num"></span><span class="fig-label">coverage</span></div>
-          <div class="fig"><span id="res-waste" class="fig-num"></span><span class="fig-label">waste</span></div>
-          <div class="fig"><span id="res-left" class="fig-num"></span><span class="fig-label">still in jar</span></div>
-        </div>
+        <div class="res-score"><span id="res-points" class="score-num"></span><span class="score-of">/ 100 points</span></div>
+        <ul id="res-parts" class="res-parts"></ul>
         <ul id="res-cakes" class="res-cakes"></ul>
         <ul id="res-notes" class="res-notes"></ul>
         <div class="res-actions">
@@ -1207,57 +1235,52 @@ const LEVELS = [
       { kind: 'donut', x: 128, w: 13, h: 5, required: 10 },
     ],
     allowedWaste: 0.5,
-    coverageGoal: 0.6,
   },
   {
     id: 1,
     name: 'Big Sheet Cake',
     blurb: 'Learn to pour. Lots of room.',
     hint: 'Hold to lift',
-    hand: { speed: 14, y: 30, startX: -26 },
+    hand: { speed: 14, y: 30, startX: -19 },
     mix: HOUSE_MIX,
     cakes: [{ kind: 'sheet', x: 0, w: 80, h: 7, required: 100 }],
     allowedWaste: 0.4,
-    coverageGoal: 0.7,
   },
   {
     id: 2,
     name: 'Layer Cake',
     blurb: 'Smaller target, same jar.',
-    hand: { speed: 14, y: 30, startX: -22 },
+    hand: { speed: 14, y: 30, startX: -11 },
     mix: { bead: 190, rod: 36, heart: 12 },
     cakes: [{ kind: 'round', x: 8, w: 38, h: 12, required: 110, frost: 'white', drip: 'pink' }],
     allowedWaste: 0.35,
-    coverageGoal: 0.7,
   },
   {
     id: 3,
     name: 'One Cupcake',
     blurb: 'A small target passes quickly.',
-    hand: { speed: 13, y: 30, startX: -22 },
+    hand: { speed: 13, y: 30, startX: -7 },
     mix: { bead: 170, rod: 34, heart: 12 },
     cakes: [{ kind: 'cupcake', x: 12, w: 13, h: 11, required: 28 }],
     allowedWaste: 0.55,
-    coverageGoal: 0.67,
   },
   {
     id: 4,
     name: 'Two Cupcakes',
     blurb: 'Pour, catch, pour again.',
-    hand: { speed: 14, y: 30, startX: -22 },
+    hand: { speed: 14, y: 30, startX: -9 },
     mix: { bead: 170, rod: 34, heart: 12 },
     cakes: [
       { kind: 'cupcake', x: 10, w: 13, h: 11, required: 26 },
       { kind: 'cupcake', x: 55, w: 13, h: 11, required: 26, frost: 'mint' },
     ],
     allowedWaste: 0.5,
-    coverageGoal: 0.67,
   },
   {
     id: 5,
     name: 'Three Cupcakes',
     blurb: 'Not a full jar. Make it last.',
-    hand: { speed: 14, y: 30, startX: -22 },
+    hand: { speed: 14, y: 30, startX: -9 },
     mix: { bead: 150, rod: 30, heart: 10 },
     cakes: [
       { kind: 'cupcake', x: 10, w: 13, h: 11, required: 20 },
@@ -1265,77 +1288,82 @@ const LEVELS = [
       { kind: 'cupcake', x: 78, w: 13, h: 11, required: 20, frost: 'mint' },
     ],
     allowedWaste: 0.3,
-    coverageGoal: 0.67,
   },
   {
     id: 6,
     name: 'Mind the Gap',
     blurb: 'Stop the stream over the table.',
-    hand: { speed: 15, y: 30, startX: -22 },
+    hand: { speed: 15, y: 30, startX: -11 },
     mix: { bead: 190, rod: 36, heart: 12 },
     cakes: [
       { kind: 'sheet', x: 8, w: 28, h: 8, required: 75, filling: 'mint' },
       { kind: 'sheet', x: 78, w: 28, h: 8, required: 75, frost: 'pink', filling: 'lemon' },
     ],
     allowedWaste: 0.3,
-    coverageGoal: 0.7,
   },
   {
     id: 7,
     name: 'Big Pearls',
     blurb: 'Big pieces leave late and bounce.',
-    hand: { speed: 14, y: 30, startX: -22 },
+    hand: { speed: 14, y: 30, startX: -11 },
     mix: { bead: 130, rod: 20, heart: 6, pearl: 12 },
     cakes: [{ kind: 'round', x: 8, w: 42, h: 11, required: 110, frost: 'lemon', drip: 'choc' }],
     allowedWaste: 0.35,
-    coverageGoal: 0.7,
   },
   {
     id: 8,
     name: 'Bundt',
     blurb: 'The hole in the middle eats sprinkles.',
-    hand: { speed: 13, y: 30, startX: -22 },
+    hand: { speed: 13, y: 30, startX: -9 },
     mix: { bead: 170, rod: 40, heart: 10 },
     cakes: [{ kind: 'bundt', x: 10, w: 42, h: 11, hole: 11, required: 68, sidesValid: true }],
     allowedWaste: 0.4,
-    coverageGoal: 0.67,
   },
   {
     id: 9,
     name: 'Conveyor',
     blurb: 'The cupcakes move too.',
-    hand: { speed: 15, y: 30, startX: -22 },
+    hand: { speed: 15, y: 30, startX: -9 },
     mix: { bead: 170, rod: 34, heart: 12 },
     conveyor: true,
+    // One cupcake drifts away (hand catches up slowly), then one comes to meet
+    // the hand (passes fast), with ~2 s between them.
     cakes: [
-      { kind: 'cupcake', x: 14, w: 13, h: 11, required: 30, vx: 8, frost: 'lilac' },
-      { kind: 'cupcake', x: 96, w: 13, h: 11, required: 30, vx: -5, frost: 'mint' },
+      { kind: 'cupcake', x: 10, w: 13, h: 11, required: 30, vx: 6, frost: 'lilac' },
+      { kind: 'cupcake', x: 104, w: 13, h: 11, required: 26, vx: -4, frost: 'mint' },
     ],
     allowedWaste: 0.5,
-    coverageGoal: 0.67,
   },
   {
     id: 10,
     name: 'Tall Tiers',
     blurb: 'Tip too deep and the jar hits the cake.',
-    hand: { speed: 13, y: 30, startX: -24 },
+    hand: { speed: 13, y: 30, startX: -9 },
     mix: { bead: 170, rod: 24, heart: 8, pearl: 6 },
     cakes: [{ kind: 'tiered', x: 10, w: 44, h: 24, h1: 12.5, w2: 26, required: 110, drip: 'pink' }],
     allowedWaste: 0.4,
-    coverageGoal: 0.6,
   },
 ];
 
+// Where the hand has just passed every cake (moving cakes included). Past
+// this point nothing poured can land on a cake, so the level ends. The game
+// also checks this live, in case a bumped cake slid along the table.
+const END_MARGIN = 3;
+
 function levelEndX(level) {
-  let x = 0;
+  if (level.endX != null) return level.endX;
+  const { speed, startX } = level.hand;
+  let x = startX;
   for (const c of level.cakes) {
-    const travel = Math.max(0, c.vx || 0) * 12;
-    x = Math.max(x, c.x + c.w + travel);
+    const right = c.x + c.w + END_MARGIN;
+    const vx = c.vx || 0;
+    const t = speed > vx ? Math.max(0, (right - startX) / (speed - vx)) : 0;
+    x = Math.max(x, startX + speed * t);
   }
-  return level.endX ?? x + 40;
+  return x;
 }
 
-return { LEVELS, levelEndX };
+return { LEVELS, END_MARGIN, levelEndX };
 })();
 
 __mods['rng.js'] = (() => {
@@ -1804,7 +1832,7 @@ function buildCake(spec, index) {
       tx1 = Math.max(tx1, a[0], b[0]);
     });
   }
-  const bins = Math.max(3, Math.round((tx1 - tx0) / 4));
+  const bins = Math.max(4, Math.round((tx1 - tx0) / 3)); // ~3 cm strips
   return {
     i: index,
     spec,
@@ -1827,13 +1855,16 @@ function buildCake(spec, index) {
   };
 }
 
+// How evenly the frosting is covered, 0–1. Each ~3 cm strip counts as full
+// once it holds half its fair share of the requirement; less gives partial
+// credit, so a pile in one spot scores low even when the amount is right.
 function cakeCoverage(cake) {
   const t = cake.target;
   if (!t.required) return 1;
-  const per = (t.required / t.bins.length) * 0.35;
-  let n = 0;
-  for (const b of t.bins) if (b >= per) n++;
-  return n / t.bins.length;
+  const per = (t.required / t.bins.length) * 0.5;
+  let sum = 0;
+  for (const b of t.bins) sum += Math.min(1, b / per);
+  return sum / t.bins.length;
 }
 
 return { PLATE_H, SPONGE, FROST, pointInPoly, nearestEdge, buildCake, cakeCoverage };
@@ -2663,11 +2694,15 @@ __mods['game.js'] = (() => {
 const { TYPE_IDS } = __mods['params.js'];
 const { makeRng } = __mods['rng.js'];
 const { buildCake, cakeCoverage, pointInPoly, nearestEdge } = __mods['cakes.js'];
-const { levelEndX } = __mods['levels.js'];
+const { levelEndX, END_MARGIN } = __mods['levels.js'];
 const { stepParticles } = __mods['physics.js'];
 const { D, createJar, stepJar, toWorld, toLocal, pointVel, pourStartEstimate } = __mods['jar.js'];
 const { LARGE_R, jarShape, createGrains, stepGrains } = __mods['grains.js'];
 const HISTORY = 420; // samples kept for the debug graph (7 s at 60 Hz)
+// Score out of 100 and the points needed for stars 2–5 (the first star is
+// decorating every cake).
+const POINTS = { decorated: 30, spread: 20, clean: 25, portion: 25 };
+const STAR_POINTS = [65, 76, 86, 94];
 const tmp = { d2: 0, qx: 0, qy: 0, e: 0 };
 
 // Points on the jar outline used for jar-vs-cake contact.
@@ -2851,7 +2886,10 @@ class Game {
       h.n = Math.min(HISTORY, h.n + 1);
     }
 
-    if (playing && jar.x >= this.endX) {
+    // Done once the hand is past every cake (nothing poured can land on one
+    // any more) or the jar is empty; then the jar lifts and the pile settles.
+    const pastCakes = this.cakes.every((c) => jar.x > c.pos.x + c.aabb[2] + END_MARGIN);
+    if (playing && (pastCakes || this.grains.n === 0 || jar.x >= this.endX + 40)) {
       this.state = 'settle';
       this.events.push({ type: 'end' });
     }
@@ -2998,48 +3036,79 @@ class Game {
     }
   }
 
+  // Scoring: 100 points turned into 0–5 stars. Decorating every cake earns
+  // the first star; the rest come from how cleanly and evenly it was done.
   finish() {
     const lv = this.level;
     const NAMES = { sheet: 'Sheet cake', round: 'Layer cake', cupcake: 'Cupcake', dome: 'Dome cake', bundt: 'Bundt', tiered: 'Tiered cake', donut: 'Donut', eclair: 'Éclair' };
     const sameKind = (c) => this.cakes.filter((o) => o.kind === c.kind);
-    const cakes = this.cakes.map((c) => ({
-      name: sameKind(c).length > 1 ? `${NAMES[c.kind]} ${sameKind(c).indexOf(c) + 1}` : NAMES[c.kind],
-      received: c.target.received,
-      required: c.target.required,
-      met: c.target.received >= c.target.required - 1e-6,
-      coverage: cakeCoverage(c),
-    }));
+    const cakes = this.cakes.map((c) => {
+      const tg = c.target;
+      const ratio = tg.required ? tg.received / tg.required : 1;
+      return {
+        name: sameKind(c).length > 1 ? `${NAMES[c.kind]} ${sameKind(c).indexOf(c) + 1}` : NAMES[c.kind],
+        received: tg.received,
+        required: tg.required,
+        ratio,
+        met: ratio >= 1 - 1e-6,
+        coverage: cakeCoverage(c),
+      };
+    });
     const start = Math.max(1, this.startMass);
-    const waste = this.stats.wasted / start;
+    // Waste = spilled on the table/plates, plus anything piled on a cake
+    // beyond twice what it needed (that is product thrown away too).
+    const buried = cakes.reduce((s, c) => s + Math.max(0, c.received - 2 * c.required), 0);
+    const waste = (this.stats.wasted + buried) / start;
     const left = this.jarMass;
-    const coverage = cakes.reduce((s, c) => s + c.coverage, 0) / Math.max(1, cakes.length);
-    const pass = cakes.every((c) => c.met);
+    const n = Math.max(1, cakes.length);
+    const mean = (f) => cakes.reduce((s, c) => s + f(c), 0) / n;
     const allowed = lv.allowedWaste ?? 0.35;
-    const goal = lv.coverageGoal ?? 0.7;
+    const coverage = mean((c) => c.coverage);
+    // Up to 1.5× the requirement is a generous, fair helping; beyond that a
+    // cake is getting buried and portion points reach zero at 2.5×.
+    const portion = (k) => (k <= 1.5 ? Math.min(1, k) : Math.max(0, 1 - (k - 1.5)));
+    const parts = {
+      decorated: POINTS.decorated * mean((c) => Math.min(1, c.ratio)),
+      spread: POINTS.spread * coverage,
+      clean: POINTS.clean * Math.max(0, Math.min(1, 1 - waste / (allowed * 1.5))),
+      portion: POINTS.portion * mean((c) => portion(c.ratio)),
+    };
+    const bumpPenalty = Math.min(24, 8 * this.stats.bumps);
+    const raw = parts.decorated + parts.spread + parts.clean + parts.portion - bumpPenalty;
+    const score = Math.max(0, Math.round(raw));
+    const pass = cakes.every((c) => c.met);
     let stars = 0;
     if (pass) {
       stars = 1;
-      if (waste <= allowed) stars = 2;
-      if (waste <= allowed * 0.5 && coverage >= goal && this.stats.bumps === 0) stars = 3;
+      for (const at of STAR_POINTS) if (score >= at) stars++;
     }
 
-    // Plain-language reasons, so a failed run reads as "I know what I did".
+    // Plain-language reasons, so a run reads as "I know what to do better".
     const notes = [];
-    const short = cakes.filter((c) => !c.met);
-    for (const c of short) {
-      notes.push(`${c.name} was ${Math.round(100 - (100 * c.received) / c.required)}% short`);
+    for (const c of cakes.filter((c) => !c.met)) {
+      notes.push(`${c.name} was ${Math.round(100 - 100 * c.ratio)}% short`);
     }
-    if (short.length && left < 1) notes.push('The jar ran dry before the end');
-    if (pass && waste > allowed) notes.push(`Waste ${Math.round(waste * 100)}% is over the ${Math.round(allowed * 100)}% limit`);
-    if (pass && waste <= allowed && stars < 3) {
-      if (waste > allowed * 0.5) notes.push(`Waste under ${Math.round(allowed * 50)}% earns the third star`);
-      else if (coverage < goal) notes.push('Spread it more evenly for the third star');
+    if (!pass && left < 1) notes.push('The jar ran dry before the end');
+    if (pass && stars < 5) {
+      const next = STAR_POINTS[stars - 1];
+      const gaps = [
+        ['spread', POINTS.spread - parts.spread, 'Pour along the whole cake to cover it evenly'],
+        ['clean', POINTS.clean - parts.clean, 'Waste less: catch the jar before the stream reaches the table'],
+        ['portion', POINTS.portion - parts.portion, (() => {
+          const worst = cakes.reduce((a, c) => (c.ratio > a.ratio ? c : a), cakes[0]);
+          return `Don't bury the cakes: ${worst.name.toLowerCase()} got ${worst.ratio.toFixed(1)}× what it needed`;
+        })()],
+        ['bumps', bumpPenalty, 'Keep the jar off the cakes'],
+      ].sort((a, b) => b[1] - a[1]);
+      notes.push(`${gaps[0][2]}. ${next - score} more points for ${stars + 1} stars.`);
     }
-    if (this.stats.bumps) notes.push(`The jar hit the cake ${this.stats.bumps}×`);
 
     this.result = {
       pass,
       stars,
+      score,
+      parts,
+      bumpPenalty,
       coverage,
       waste,
       left: left / start,
@@ -3054,7 +3123,7 @@ class Game {
   }
 }
 
-return { Game };
+return { POINTS, STAR_POINTS, Game };
 })();
 
 __mods['render.js'] = (() => {
@@ -3178,9 +3247,18 @@ class Renderer {
     this.h = cssH;
     this.canvas.width = Math.round(cssW * this.dpr);
     this.canvas.height = Math.round(cssH * this.dpr);
-    // Fit roughly 60 cm across on phones and 50 cm of height everywhere.
-    this.s = Math.max(4, Math.min(cssW / 58, cssH / 52));
-    this.oy = cssH / 2 + 17 * this.s;
+    // Frame the useful band of the world (table to just above the hand)
+    // in the space under the HUD. Wide screens show ~58 cm across; a portrait
+    // phone zooms in to ~32 cm so the jar and sprinkles stay a readable size.
+    const hud = 56;
+    const yMin = -4;
+    const yMax = 38;
+    const avail = Math.max(1, cssH - hud);
+    const band = yMax - yMin;
+    const visW = Math.max(32, Math.min(58, (cssW / avail) * band * 1.25));
+    this.s = Math.max(4, Math.min(cssW / visW, avail / band));
+    this.oy = hud + yMax * this.s + (avail - band * this.s) / 2;
+    this.anchor = cssW < avail ? 0.2 : 0.3; // hand position across the screen
     this.spriteKey = '';
   }
 
@@ -3202,7 +3280,7 @@ class Renderer {
 
   cameraTarget(game) {
     const x = Math.min(game.jar.x, game.endX - 6);
-    return x - this.viewW * 0.3;
+    return x - this.viewW * (this.anchor ?? 0.3);
   }
 
   worldTransform(ox = 0, oy = 0) {
@@ -4077,7 +4155,7 @@ class Sfx {
   chime(stars) {
     if (!this.ctx) return;
     const ctx = this.ctx;
-    const notes = stars ? [523.25, 659.25, 783.99, 1046.5].slice(0, stars + 1) : [392, 329.63];
+    const notes = stars ? [523.25, 587.33, 659.25, 783.99, 880, 1046.5].slice(0, stars + 1) : [392, 329.63];
     notes.forEach((f, i) => {
       const t = ctx.currentTime + i * 0.11;
       const o = ctx.createOscillator();
@@ -4102,6 +4180,7 @@ __mods['ui.js'] = (() => {
 // the level banner and the result card.
 const { SCHEMA, PRESETS, DEFAULT_PARAMS, TYPE_IDS, TYPE_LABELS, getPath, diffFromDefaults } = __mods['params.js'];
 const { D } = __mods['jar.js'];
+const { POINTS } = __mods['game.js'];
 const $ = (id) => document.getElementById(id);
 
 function el(tag, attrs = {}, ...kids) {
@@ -4344,8 +4423,7 @@ class Panel {
     add('hand.startX', 'Start position', -70, 0, 1, 'cm', '');
     for (const t of TYPE_IDS) add(`mix.${t}`, `${TYPE_LABELS[t]} in jar`, 0, t === 'bead' ? 600 : 120, 1, 'pcs', '');
     level.cakes.forEach((c, i) => add(`cakes.${i}.required`, `Cake ${i + 1} needs`, 0, 400, 1, '', ''));
-    add('allowedWaste', 'Waste limit (2★)', 0, 1, 0.01, '', 'Share of the jar. Half of this is the 3★ limit.');
-    add('coverageGoal', 'Coverage goal (3★)', 0, 1, 0.01, '', '');
+    add('allowedWaste', 'Waste allowance', 0, 1, 0.01, '', 'Share of the jar. Clean-pour points reach zero at 1.5× this.');
     const actions = el(
       'div',
       { class: 'row-actions' },
@@ -4526,27 +4604,60 @@ function hideBanner() {
 const STAR = (on) =>
   `<svg viewBox="0 0 24 24"><path d="M12 2.8l2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 16.6l-5.4 2.9 1.1-6.1-4.5-4.2 6.1-.8z" fill="${on ? '#F2B544' : 'none'}" stroke="${on ? '#D9962A' : 'rgba(43,30,42,0.22)'}" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
 
+const TITLES = ['Not quite', 'Cakes decorated', 'Getting there', 'Nicely poured', 'Lovely work', 'Perfect pour!'];
+
 function showResult(r, nextLabel, nextName) {
-  const titles = ['Not quite', 'Cakes decorated', 'Nicely poured', 'Perfect pour!'];
-  $('res-stars').innerHTML = [0, 1, 2].map((i) => STAR(i < r.stars)).join('');
-  $('res-title').textContent = titles[r.stars];
-  $('res-cov').textContent = pct(r.coverage);
-  $('res-waste').textContent = pct(r.waste);
-  $('res-left').textContent = pct(r.left);
+  $('res-stars').innerHTML = [0, 1, 2, 3, 4].map((i) => STAR(i < r.stars)).join('');
+  $('res-stars').setAttribute('aria-label', `${r.stars} of 5 stars`);
+  $('res-title').textContent = TITLES[r.stars];
+  $('res-points').textContent = r.score;
+
+  // Where the points came from, so the stars make sense.
+  const worst = r.cakes.reduce((a, c) => (c.ratio > a.ratio ? c : a), r.cakes[0]);
+  const rows = [
+    ['Decorated', `${r.cakes.filter((c) => c.met).length} of ${r.cakes.length} cakes`, r.parts.decorated, POINTS.decorated],
+    ['Even spread', `${pct(r.coverage)} covered`, r.parts.spread, POINTS.spread],
+    ['Clean pour', `${pct(r.waste)} wasted`, r.parts.clean, POINTS.clean],
+    ['Portions', worst ? `up to ${worst.ratio.toFixed(1)}× needed` : '', r.parts.portion, POINTS.portion],
+  ];
+  const parts = $('res-parts');
+  parts.textContent = '';
+  for (const [label, detail, got, max] of rows) {
+    const bar = el('span', { class: 'bar' }, el('i'));
+    bar.firstChild.style.width = `${Math.round((100 * got) / max)}%`;
+    parts.append(
+      el(
+        'li',
+        {},
+        el('span', { class: 'part-label', text: label }),
+        el('span', { class: 'part-detail', text: detail }),
+        el('span', { class: 'part-pts', text: `${Math.round(got)}/${max}` }),
+        bar,
+      ),
+    );
+  }
+  if (r.bumpPenalty) {
+    parts.append(
+      el(
+        'li',
+        { class: 'penalty' },
+        el('span', { class: 'part-label', text: 'Jar bumps' }),
+        el('span', { class: 'part-detail', text: `${r.bumps}×` }),
+        el('span', { class: 'part-pts', text: `−${r.bumpPenalty}` }),
+      ),
+    );
+  }
+
   const cakes = $('res-cakes');
   cakes.textContent = '';
   for (const c of r.cakes) {
     if (!c.required) continue;
-    const k = c.received / c.required;
-    const bar = el('span', { class: 'bar' }, el('i'));
-    bar.firstChild.style.width = `${Math.min(100, k * 100)}%`;
     cakes.append(
       el(
         'li',
         { class: c.met ? 'met' : '' },
         el('span', { text: `${c.met ? '✓' : '✗'} ${c.name}` }),
         el('span', { class: 'amt', text: `${Math.round(c.received)} / ${c.required}` }),
-        bar,
       ),
     );
   }
@@ -4610,7 +4721,7 @@ const { botHold } = __mods['bot.js'];
 const STORE = {
   params: 'sprinklePour.params.v1',
   ui: 'sprinklePour.ui.v1',
-  best: 'sprinklePour.best.v1',
+  best: 'sprinklePour.best.v2', // v2: five-star scale
 };
 
 function load(key, fallback) {
@@ -4653,7 +4764,9 @@ class App {
       level: 1,
       ...load(STORE.ui, {}),
     };
+    // Pause and autopilot never carry over from a previous visit.
     this.ui.paused = false;
+    this.ui.autopilot = false;
     if (PLAYER) Object.assign(this.ui, { panel: false, gauge: false, autopilot: false, slowmo: false, fixedSeed: false, autoRetry: false });
     // Local dev shortcuts, e.g. ?level=7&autopilot=1&gauge=1&panel=0
     const q = new URLSearchParams(PLAYER ? '' : location.search);
@@ -4727,7 +4840,7 @@ class App {
       const label = l.id === 0 ? 'Sandbox' : `${l.id}. ${l.name}`;
       const opt = document.createElement('option');
       opt.value = i;
-      opt.textContent = `${label}  ${'★'.repeat(stars)}${'☆'.repeat(3 - stars)}`;
+      opt.textContent = `${label}  ${'★'.repeat(stars)}${'☆'.repeat(5 - stars)}`;
       sel.append(opt);
     });
     sel.value = this.levelIndex ?? 0;

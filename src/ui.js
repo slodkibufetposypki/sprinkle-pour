@@ -2,6 +2,7 @@
 // the level banner and the result card.
 import { SCHEMA, PRESETS, DEFAULT_PARAMS, TYPE_IDS, TYPE_LABELS, getPath, diffFromDefaults } from './params.js';
 import { D } from './jar.js';
+import { POINTS } from './game.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -245,8 +246,7 @@ export class Panel {
     add('hand.startX', 'Start position', -70, 0, 1, 'cm', '');
     for (const t of TYPE_IDS) add(`mix.${t}`, `${TYPE_LABELS[t]} in jar`, 0, t === 'bead' ? 600 : 120, 1, 'pcs', '');
     level.cakes.forEach((c, i) => add(`cakes.${i}.required`, `Cake ${i + 1} needs`, 0, 400, 1, '', ''));
-    add('allowedWaste', 'Waste limit (2★)', 0, 1, 0.01, '', 'Share of the jar. Half of this is the 3★ limit.');
-    add('coverageGoal', 'Coverage goal (3★)', 0, 1, 0.01, '', '');
+    add('allowedWaste', 'Waste allowance', 0, 1, 0.01, '', 'Share of the jar. Clean-pour points reach zero at 1.5× this.');
     const actions = el(
       'div',
       { class: 'row-actions' },
@@ -427,27 +427,60 @@ export function hideBanner() {
 const STAR = (on) =>
   `<svg viewBox="0 0 24 24"><path d="M12 2.8l2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 16.6l-5.4 2.9 1.1-6.1-4.5-4.2 6.1-.8z" fill="${on ? '#F2B544' : 'none'}" stroke="${on ? '#D9962A' : 'rgba(43,30,42,0.22)'}" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
 
+const TITLES = ['Not quite', 'Cakes decorated', 'Getting there', 'Nicely poured', 'Lovely work', 'Perfect pour!'];
+
 export function showResult(r, nextLabel, nextName) {
-  const titles = ['Not quite', 'Cakes decorated', 'Nicely poured', 'Perfect pour!'];
-  $('res-stars').innerHTML = [0, 1, 2].map((i) => STAR(i < r.stars)).join('');
-  $('res-title').textContent = titles[r.stars];
-  $('res-cov').textContent = pct(r.coverage);
-  $('res-waste').textContent = pct(r.waste);
-  $('res-left').textContent = pct(r.left);
+  $('res-stars').innerHTML = [0, 1, 2, 3, 4].map((i) => STAR(i < r.stars)).join('');
+  $('res-stars').setAttribute('aria-label', `${r.stars} of 5 stars`);
+  $('res-title').textContent = TITLES[r.stars];
+  $('res-points').textContent = r.score;
+
+  // Where the points came from, so the stars make sense.
+  const worst = r.cakes.reduce((a, c) => (c.ratio > a.ratio ? c : a), r.cakes[0]);
+  const rows = [
+    ['Decorated', `${r.cakes.filter((c) => c.met).length} of ${r.cakes.length} cakes`, r.parts.decorated, POINTS.decorated],
+    ['Even spread', `${pct(r.coverage)} covered`, r.parts.spread, POINTS.spread],
+    ['Clean pour', `${pct(r.waste)} wasted`, r.parts.clean, POINTS.clean],
+    ['Portions', worst ? `up to ${worst.ratio.toFixed(1)}× needed` : '', r.parts.portion, POINTS.portion],
+  ];
+  const parts = $('res-parts');
+  parts.textContent = '';
+  for (const [label, detail, got, max] of rows) {
+    const bar = el('span', { class: 'bar' }, el('i'));
+    bar.firstChild.style.width = `${Math.round((100 * got) / max)}%`;
+    parts.append(
+      el(
+        'li',
+        {},
+        el('span', { class: 'part-label', text: label }),
+        el('span', { class: 'part-detail', text: detail }),
+        el('span', { class: 'part-pts', text: `${Math.round(got)}/${max}` }),
+        bar,
+      ),
+    );
+  }
+  if (r.bumpPenalty) {
+    parts.append(
+      el(
+        'li',
+        { class: 'penalty' },
+        el('span', { class: 'part-label', text: 'Jar bumps' }),
+        el('span', { class: 'part-detail', text: `${r.bumps}×` }),
+        el('span', { class: 'part-pts', text: `−${r.bumpPenalty}` }),
+      ),
+    );
+  }
+
   const cakes = $('res-cakes');
   cakes.textContent = '';
   for (const c of r.cakes) {
     if (!c.required) continue;
-    const k = c.received / c.required;
-    const bar = el('span', { class: 'bar' }, el('i'));
-    bar.firstChild.style.width = `${Math.min(100, k * 100)}%`;
     cakes.append(
       el(
         'li',
         { class: c.met ? 'met' : '' },
         el('span', { text: `${c.met ? '✓' : '✗'} ${c.name}` }),
         el('span', { class: 'amt', text: `${Math.round(c.received)} / ${c.required}` }),
-        bar,
       ),
     );
   }

@@ -45,7 +45,7 @@ for (const level of levels) {
       const { r, time, maxFlying, ms, stuck } = run(level, seed, policy);
       const cakes = r.cakes.map((c) => `${Math.round(c.received)}/${c.required}${c.met ? '✓' : '✗'} cov${pct(c.coverage)}`).join('  ');
       console.log(
-        `  ${label.padEnd(11)} s${seed} ${'★'.repeat(r.stars).padEnd(3, '·')} waste${pct(r.waste)} left${pct(r.left)} bumps ${r.bumps}  ${cakes}  | ${time.toFixed(1)}s peak ${maxFlying} flying, ${stuck} settled, ${ms.toFixed(3)} ms/step`,
+        `  ${label.padEnd(11)} s${seed} ${'★'.repeat(r.stars).padEnd(5, '·')} ${String(r.score).padStart(3)}pt waste${pct(r.waste)} left${pct(r.left)} bumps ${r.bumps}  ${cakes}  | ${time.toFixed(1)}s peak ${maxFlying} flying, ${stuck} settled, ${ms.toFixed(3)} ms/step`,
       );
     }
   }

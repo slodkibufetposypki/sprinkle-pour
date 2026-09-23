@@ -11,7 +11,7 @@ import { botHold } from './bot.js';
 const STORE = {
   params: 'sprinklePour.params.v1',
   ui: 'sprinklePour.ui.v1',
-  best: 'sprinklePour.best.v1',
+  best: 'sprinklePour.best.v2', // v2: five-star scale
 };
 
 function load(key, fallback) {
@@ -54,7 +54,9 @@ class App {
       level: 1,
       ...load(STORE.ui, {}),
     };
+    // Pause and autopilot never carry over from a previous visit.
     this.ui.paused = false;
+    this.ui.autopilot = false;
     if (PLAYER) Object.assign(this.ui, { panel: false, gauge: false, autopilot: false, slowmo: false, fixedSeed: false, autoRetry: false });
     // Local dev shortcuts, e.g. ?level=7&autopilot=1&gauge=1&panel=0
     const q = new URLSearchParams(PLAYER ? '' : location.search);
@@ -128,7 +130,7 @@ class App {
       const label = l.id === 0 ? 'Sandbox' : `${l.id}. ${l.name}`;
       const opt = document.createElement('option');
       opt.value = i;
-      opt.textContent = `${label}  ${'★'.repeat(stars)}${'☆'.repeat(3 - stars)}`;
+      opt.textContent = `${label}  ${'★'.repeat(stars)}${'☆'.repeat(5 - stars)}`;
       sel.append(opt);
     });
     sel.value = this.levelIndex ?? 0;

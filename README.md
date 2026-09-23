@@ -39,7 +39,7 @@ the URL. `warp` fast-forwards the sim that many seconds.
 | Sprinkles in the jar | `src/grains.js` | Every piece is a grain solved in the jar's rotating frame: gravity, centrifugal, Euler and Coriolis terms, then position-based contacts with Coulomb friction. The pile has an angle of repose: it holds, then avalanches out over the rim. |
 | Falling sprinkles | `src/physics.js` | Circles against cake polygons. Frosting grabs them through adhesion, and a piece freezes only once it has come to rest, so pearls bounce, roll and settle. |
 | Cakes | `src/cakes.js` | Closed polygons. Each edge has a material (buttercream, fondant, glaze…) and a scoring zone (target or waste). |
-| Level run + scoring | `src/game.js` | States go ready → play → settle → result. Coverage is measured across the frosting, waste is a share of the jar, and a failed run lists plain-language reasons. |
+| Level run + scoring | `src/game.js` | States go ready → play → settle → result. A level ends as soon as the hand is past the last cake or the jar is empty. |
 | Levels | `src/levels.js` | The ten brief levels plus a sandbox, all as data. |
 
 Rendering is Canvas 2D (`src/render.js`). The look follows the Sweet Buffet
@@ -51,6 +51,23 @@ shimmer pearls. The look palettes are `LOOKS` in `render.js`. Levels use a
 "house mix" of pearls, rods and sequins, and big pearls arrive in level 7.
 The sound is synthesized (`src/audio.js`), and haptics work on Android only,
 since iOS Safari has no vibration API.
+
+## Rating
+
+Every run scores 100 points, shown broken down on the result card:
+
+| Part | Points | Measures |
+| --- | --- | --- |
+| Decorated | 30 | Each cake got its required amount |
+| Even spread | 20 | How evenly the frosting is covered (≈3 cm strips, partial credit) |
+| Clean pour | 25 | Little waste. Spills on the table or plate count, and so does anything piled on a cake beyond twice what it needed. At 1.5× the level's waste allowance this part is zero. |
+| Portions | 25 | No buried cakes: up to 1.5× the requirement is perfect, zero at 2.5× |
+| Jar bumps | −8 each | The jar hitting a cake |
+
+Stars: ★ for decorating every cake, then ★★ at 65 points, ★★★ at 76, ★★★★
+at 86 and ★★★★★ at 94 (`POINTS` and `STAR_POINTS` in `game.js`). The card
+also names the part that would earn the next star. Dumping the whole jar
+scores 0–1★; clean, even pours reach 4–5★.
 
 ## Tuning
 

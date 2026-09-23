@@ -8,12 +8,16 @@
 import { TYPE_IDS } from './params.js';
 import { makeRng } from './rng.js';
 import { buildCake, cakeCoverage, pointInPoly, nearestEdge } from './cakes.js';
-import { levelEndX } from './levels.js';
+import { levelEndX, END_MARGIN } from './levels.js';
 import { stepParticles } from './physics.js';
 import { D, createJar, stepJar, toWorld, toLocal, pointVel, pourStartEstimate } from './jar.js';
 import { LARGE_R, jarShape, createGrains, stepGrains } from './grains.js';
 
 const HISTORY = 420; // samples kept for the debug graph (7 s at 60 Hz)
+// Score out of 100 and the points needed for stars 2–5 (the first star is
+// decorating every cake).
+export const POINTS = { decorated: 30, spread: 20, clean: 25, portion: 25 };
+export const STAR_POINTS = [65, 76, 86, 94];
 const tmp = { d2: 0, qx: 0, qy: 0, e: 0 };
 
 // Points on the jar outline used for jar-vs-cake contact.
@@ -197,7 +201,10 @@ export class Game {
       h.n = Math.min(HISTORY, h.n + 1);
     }
 
-    if (playing && jar.x >= this.endX) {
+    // Done once the hand is past every cake (nothing poured can land on one
+    // any more) or the jar is empty; then the jar lifts and the pile settles.
+    const pastCakes = this.cakes.every((c) => jar.x > c.pos.x + c.aabb[2] + END_MARGIN);
+    if (playing && (pastCakes || this.grains.n === 0 || jar.x >= this.endX + 40)) {
       this.state = 'settle';
       this.events.push({ type: 'end' });
     }
@@ -344,48 +351,79 @@ export class Game {
     }
   }
 
+  // Scoring: 100 points turned into 0–5 stars. Decorating every cake earns
+  // the first star; the rest come from how cleanly and evenly it was done.
   finish() {
     const lv = this.level;
     const NAMES = { sheet: 'Sheet cake', round: 'Layer cake', cupcake: 'Cupcake', dome: 'Dome cake', bundt: 'Bundt', tiered: 'Tiered cake', donut: 'Donut', eclair: 'Éclair' };
     const sameKind = (c) => this.cakes.filter((o) => o.kind === c.kind);
-    const cakes = this.cakes.map((c) => ({
-      name: sameKind(c).length > 1 ? `${NAMES[c.kind]} ${sameKind(c).indexOf(c) + 1}` : NAMES[c.kind],
-      received: c.target.received,
-      required: c.target.required,
-      met: c.target.received >= c.target.required - 1e-6,
-      coverage: cakeCoverage(c),
-    }));
+    const cakes = this.cakes.map((c) => {
+      const tg = c.target;
+      const ratio = tg.required ? tg.received / tg.required : 1;
+      return {
+        name: sameKind(c).length > 1 ? `${NAMES[c.kind]} ${sameKind(c).indexOf(c) + 1}` : NAMES[c.kind],
+        received: tg.received,
+        required: tg.required,
+        ratio,
+        met: ratio >= 1 - 1e-6,
+        coverage: cakeCoverage(c),
+      };
+    });
     const start = Math.max(1, this.startMass);
-    const waste = this.stats.wasted / start;
+    // Waste = spilled on the table/plates, plus anything piled on a cake
+    // beyond twice what it needed (that is product thrown away too).
+    const buried = cakes.reduce((s, c) => s + Math.max(0, c.received - 2 * c.required), 0);
+    const waste = (this.stats.wasted + buried) / start;
     const left = this.jarMass;
-    const coverage = cakes.reduce((s, c) => s + c.coverage, 0) / Math.max(1, cakes.length);
-    const pass = cakes.every((c) => c.met);
+    const n = Math.max(1, cakes.length);
+    const mean = (f) => cakes.reduce((s, c) => s + f(c), 0) / n;
     const allowed = lv.allowedWaste ?? 0.35;
-    const goal = lv.coverageGoal ?? 0.7;
+    const coverage = mean((c) => c.coverage);
+    // Up to 1.5× the requirement is a generous, fair helping; beyond that a
+    // cake is getting buried and portion points reach zero at 2.5×.
+    const portion = (k) => (k <= 1.5 ? Math.min(1, k) : Math.max(0, 1 - (k - 1.5)));
+    const parts = {
+      decorated: POINTS.decorated * mean((c) => Math.min(1, c.ratio)),
+      spread: POINTS.spread * coverage,
+      clean: POINTS.clean * Math.max(0, Math.min(1, 1 - waste / (allowed * 1.5))),
+      portion: POINTS.portion * mean((c) => portion(c.ratio)),
+    };
+    const bumpPenalty = Math.min(24, 8 * this.stats.bumps);
+    const raw = parts.decorated + parts.spread + parts.clean + parts.portion - bumpPenalty;
+    const score = Math.max(0, Math.round(raw));
+    const pass = cakes.every((c) => c.met);
     let stars = 0;
     if (pass) {
       stars = 1;
-      if (waste <= allowed) stars = 2;
-      if (waste <= allowed * 0.5 && coverage >= goal && this.stats.bumps === 0) stars = 3;
+      for (const at of STAR_POINTS) if (score >= at) stars++;
     }
 
-    // Plain-language reasons, so a failed run reads as "I know what I did".
+    // Plain-language reasons, so a run reads as "I know what to do better".
     const notes = [];
-    const short = cakes.filter((c) => !c.met);
-    for (const c of short) {
-      notes.push(`${c.name} was ${Math.round(100 - (100 * c.received) / c.required)}% short`);
+    for (const c of cakes.filter((c) => !c.met)) {
+      notes.push(`${c.name} was ${Math.round(100 - 100 * c.ratio)}% short`);
     }
-    if (short.length && left < 1) notes.push('The jar ran dry before the end');
-    if (pass && waste > allowed) notes.push(`Waste ${Math.round(waste * 100)}% is over the ${Math.round(allowed * 100)}% limit`);
-    if (pass && waste <= allowed && stars < 3) {
-      if (waste > allowed * 0.5) notes.push(`Waste under ${Math.round(allowed * 50)}% earns the third star`);
-      else if (coverage < goal) notes.push('Spread it more evenly for the third star');
+    if (!pass && left < 1) notes.push('The jar ran dry before the end');
+    if (pass && stars < 5) {
+      const next = STAR_POINTS[stars - 1];
+      const gaps = [
+        ['spread', POINTS.spread - parts.spread, 'Pour along the whole cake to cover it evenly'],
+        ['clean', POINTS.clean - parts.clean, 'Waste less: catch the jar before the stream reaches the table'],
+        ['portion', POINTS.portion - parts.portion, (() => {
+          const worst = cakes.reduce((a, c) => (c.ratio > a.ratio ? c : a), cakes[0]);
+          return `Don't bury the cakes: ${worst.name.toLowerCase()} got ${worst.ratio.toFixed(1)}× what it needed`;
+        })()],
+        ['bumps', bumpPenalty, 'Keep the jar off the cakes'],
+      ].sort((a, b) => b[1] - a[1]);
+      notes.push(`${gaps[0][2]}. ${next - score} more points for ${stars + 1} stars.`);
     }
-    if (this.stats.bumps) notes.push(`The jar hit the cake ${this.stats.bumps}×`);
 
     this.result = {
       pass,
       stars,
+      score,
+      parts,
+      bumpPenalty,
       coverage,
       waste,
       left: left / start,

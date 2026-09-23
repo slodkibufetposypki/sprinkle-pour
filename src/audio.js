@@ -185,7 +185,7 @@ export class Sfx {
   chime(stars) {
     if (!this.ctx) return;
     const ctx = this.ctx;
-    const notes = stars ? [523.25, 659.25, 783.99, 1046.5].slice(0, stars + 1) : [392, 329.63];
+    const notes = stars ? [523.25, 587.33, 659.25, 783.99, 880, 1046.5].slice(0, stars + 1) : [392, 329.63];
     notes.forEach((f, i) => {
       const t = ctx.currentTime + i * 0.11;
       const o = ctx.createOscillator();

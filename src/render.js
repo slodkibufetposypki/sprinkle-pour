@@ -119,9 +119,18 @@ export class Renderer {
     this.h = cssH;
     this.canvas.width = Math.round(cssW * this.dpr);
     this.canvas.height = Math.round(cssH * this.dpr);
-    // Fit roughly 60 cm across on phones and 50 cm of height everywhere.
-    this.s = Math.max(4, Math.min(cssW / 58, cssH / 52));
-    this.oy = cssH / 2 + 17 * this.s;
+    // Frame the useful band of the world (table to just above the hand)
+    // in the space under the HUD. Wide screens show ~58 cm across; a portrait
+    // phone zooms in to ~32 cm so the jar and sprinkles stay a readable size.
+    const hud = 56;
+    const yMin = -4;
+    const yMax = 38;
+    const avail = Math.max(1, cssH - hud);
+    const band = yMax - yMin;
+    const visW = Math.max(32, Math.min(58, (cssW / avail) * band * 1.25));
+    this.s = Math.max(4, Math.min(cssW / visW, avail / band));
+    this.oy = hud + yMax * this.s + (avail - band * this.s) / 2;
+    this.anchor = cssW < avail ? 0.2 : 0.3; // hand position across the screen
     this.spriteKey = '';
   }
 
@@ -143,7 +152,7 @@ export class Renderer {
 
   cameraTarget(game) {
     const x = Math.min(game.jar.x, game.endX - 6);
-    return x - this.viewW * 0.3;
+    return x - this.viewW * (this.anchor ?? 0.3);
   }
 
   worldTransform(ox = 0, oy = 0) {
