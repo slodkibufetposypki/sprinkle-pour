@@ -99,6 +99,7 @@ class App {
       if (this.game.jar) this.renderer.snapCamera(this.game);
     };
     new ResizeObserver(fit).observe(stage);
+    this.linkClaude();
     fit();
     const idx = Math.max(0, this.levels.findIndex((l) => l.id === this.ui.level));
     this.loadLevel(idx);
@@ -204,6 +205,28 @@ class App {
   resetParams() {
     this.replaceParams(clone(DEFAULT_PARAMS));
     this.restart();
+  }
+
+  // Hosted on claude.ai the page can hand its tuning to Claude through the
+  // artifact's database; anywhere else (local, GitHub Pages) this is a no-op.
+  async linkClaude() {
+    if (PLAYER || !window.claude?.use) return;
+    try {
+      this.db = await window.claude.use('db');
+    } catch {
+      this.db = null;
+    }
+    if (this.db) $('json-send').hidden = false;
+  }
+
+  async sendTuning() {
+    const edited = this.levels.filter((l, i) => JSON.stringify(l) !== JSON.stringify(LEVELS[i]));
+    await this.db.doc('tuning/latest').set({
+      params: diffFromDefaults(this.P),
+      levels: JSON.parse(JSON.stringify(edited)),
+      currentLevel: this.level.id,
+      sentAt: new Date().toISOString(),
+    });
   }
 
   // ---- toggles ----------------------------------------------------------------

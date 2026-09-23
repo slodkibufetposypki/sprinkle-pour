@@ -13,7 +13,7 @@ export function botHold(game, { depth = 30, edge = -2, safe = 14, lead = 0.12, m
   let mode = -safe;
   for (const c of game.cakes) {
     const tg = c.target;
-    if (tg.received >= tg.required * 1.08) continue;
+    if (tg.received >= tg.required * 1.25) continue; // margin for pieces that bounce off
     const drop = Math.max(0.5, my - (c.pos.y + c.top));
     const t = Math.sqrt((2 * drop) / P.world.gravity);
     const lx = mx + (vx - c.vel.x) * t; // landing x in the cake's moving frame

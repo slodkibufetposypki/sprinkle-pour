@@ -114,6 +114,18 @@ export class Panel {
         this.msg(`That isn't valid JSON: ${e.message}`);
       }
     });
+    $('json-send').addEventListener('click', async () => {
+      const btn = $('json-send');
+      btn.disabled = true;
+      try {
+        await this.app.sendTuning();
+        this.msg('Sent. Tell Claude to apply your tuning.');
+      } catch (e) {
+        this.msg(`Couldn't send (${e?.code || 'error'}). Use Copy tuning JSON instead.`);
+      } finally {
+        btn.disabled = false;
+      }
+    });
     const reset = $('reset-all');
     reset.addEventListener('click', () => {
       const now = performance.now();

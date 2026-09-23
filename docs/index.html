@@ -707,6 +707,12 @@ kbd {
   color: #ffb1c4;
 }
 
+.pbtn.send {
+  background: var(--berry-deep);
+  border-color: var(--berry);
+  color: #ffffff;
+}
+
 .json-wrap {
   margin-top: 6px;
 }
@@ -963,6 +969,7 @@ details.group[open] > summary::after {
           <button id="json-copy" class="pbtn" type="button">Copy tuning JSON</button>
           <button id="json-load" class="pbtn" type="button">Paste JSON…</button>
           <button id="reset-all" class="pbtn warn" type="button">Reset all</button>
+          <button id="json-send" class="pbtn send" type="button" hidden>Send to Claude</button>
         </div>
         <div id="json-wrap" class="json-wrap" hidden>
           <textarea id="json-box" class="json-box" spellcheck="false" aria-label="Tuning JSON"></textarea>
@@ -1010,21 +1017,21 @@ const MATERIAL_IDS = ['buttercream', 'fondant', 'glaze', 'sponge', 'plate', 'tab
 
 const DEFAULT_PARAMS = {
   jar: {
-    gravityTorque: 16, // tipping torque at 90° per unit mass
-    tipBias: 0.1, // share of tipping torque present even when upright
-    liftTorque: 80, // hand torque while the screen is held
-    damping: 2, // linear wrist damping
-    dragQuad: 4, // speed-squared damping: caps how fast the jar can swing
+    gravityTorque: 20.5, // tipping torque at 90° per unit mass
+    tipBias: 0.24, // share of tipping torque present even when upright
+    liftTorque: 152, // hand torque while the screen is held
+    damping: 3, // linear wrist damping
+    dragQuad: 8.7, // speed-squared damping: caps how fast the jar can swing
     jarMass: 1,
     contentMass: 1.3, // extra mass when full: full jars tip harder
     jarInertia: 1,
     contentInertia: 1, // extra inertia when full: full jars are slower to catch
-    muscleAttack: 0.05, // s for the grip to reach full strength after press
+    muscleAttack: 0.02, // s for the grip to reach full strength after press
     muscleRelease: 0.08, // s for the grip to relax after release
     minAngle: -12,
     maxAngle: 165,
-    limitBounce: 0.25,
-    initialAngle: 6,
+    limitBounce: 0.9,
+    initialAngle: 22,
     dangerAngle: 105, // subtle buzz when tipping past this
     capacity: 300, // mass units that make a full jar (sets the tipping weight)
   },
@@ -1034,13 +1041,13 @@ const DEFAULT_PARAMS = {
     pivot: 2.8, // wrist pivot height above the jar bottom
   },
   grains: {
-    friction: 0.3, // grain-on-grain Coulomb friction: sets the angle of repose
+    friction: 0.21, // grain-on-grain Coulomb friction: sets the angle of repose
     wallFriction: 0.3, // grain-on-glass friction
     iterations: 3, // contact solver passes per physics step
     stacking: 0.3, // mass scaling by height: firmer deep piles (too high = pile won't flow)
     damping: 0.3, // velocity damping inside the jar
-    sizeVariation: 0.2, // ± share of radius per grain; breaks up crystal packing
-    tremor: 0, // random jiggle (cm/s²) from a never-quite-still hand
+    sizeVariation: 0.12, // ± share of radius per grain; breaks up crystal packing
+    tremor: 50, // random jiggle (cm/s²) from a never-quite-still hand
   },
   world: {
     gravity: 700, // cm/s² (real is 981; lower reads better)
@@ -1056,8 +1063,8 @@ const DEFAULT_PARAMS = {
   },
   types: {
     bead: { radius: 0.2, mass: 1, bounce: 0.25, friction: 0.6, stick: 0.9, drag: 0.3, gravityScale: 1 },
-    rod: { radius: 0.22, mass: 2, bounce: 0.2, friction: 0.7, stick: 0.75, drag: 0.5, gravityScale: 1 },
-    heart: { radius: 0.4, mass: 3, bounce: 0.1, friction: 0.8, stick: 0.8, drag: 3.2, gravityScale: 0.85 },
+    rod: { radius: 0.17, mass: 2, bounce: 0.2, friction: 0.7, stick: 0.75, drag: 0.5, gravityScale: 1 },
+    heart: { radius: 0.13, mass: 3, bounce: 0.1, friction: 0.8, stick: 0.8, drag: 3.2, gravityScale: 0.85 },
     pearl: { radius: 0.62, mass: 8, bounce: 0.5, friction: 0.15, stick: 0.25, drag: 0.05, gravityScale: 1 },
   },
   materials: {
@@ -1296,8 +1303,8 @@ const LEVELS = [
     hand: { speed: 15, y: 30, startX: -11 },
     mix: { bead: 190, rod: 36, heart: 12 },
     cakes: [
-      { kind: 'sheet', x: 8, w: 28, h: 8, required: 75, filling: 'mint' },
-      { kind: 'sheet', x: 78, w: 28, h: 8, required: 75, frost: 'pink', filling: 'lemon' },
+      { kind: 'sheet', x: 8, w: 28, h: 8, required: 68, filling: 'mint' },
+      { kind: 'sheet', x: 78, w: 28, h: 8, required: 68, frost: 'pink', filling: 'lemon' },
     ],
     allowedWaste: 0.3,
   },
@@ -1307,7 +1314,7 @@ const LEVELS = [
     blurb: 'Big pieces leave late and bounce.',
     hand: { speed: 14, y: 30, startX: -11 },
     mix: { bead: 130, rod: 20, heart: 6, pearl: 12 },
-    cakes: [{ kind: 'round', x: 8, w: 42, h: 11, required: 110, frost: 'lemon', drip: 'choc' }],
+    cakes: [{ kind: 'round', x: 8, w: 42, h: 11, required: 100, frost: 'lemon', drip: 'choc' }],
     allowedWaste: 0.35,
   },
   {
@@ -1316,7 +1323,7 @@ const LEVELS = [
     blurb: 'The hole in the middle eats sprinkles.',
     hand: { speed: 13, y: 30, startX: -9 },
     mix: { bead: 170, rod: 40, heart: 10 },
-    cakes: [{ kind: 'bundt', x: 10, w: 42, h: 11, hole: 11, required: 68, sidesValid: true }],
+    cakes: [{ kind: 'bundt', x: 10, w: 42, h: 11, hole: 11, required: 58, sidesValid: true }],
     allowedWaste: 0.4,
   },
   {
@@ -1340,7 +1347,7 @@ const LEVELS = [
     blurb: 'Tip too deep and the jar hits the cake.',
     hand: { speed: 13, y: 30, startX: -9 },
     mix: { bead: 170, rod: 24, heart: 8, pearl: 6 },
-    cakes: [{ kind: 'tiered', x: 10, w: 44, h: 24, h1: 12.5, w2: 26, required: 110, drip: 'pink' }],
+    cakes: [{ kind: 'tiered', x: 10, w: 44, h: 24, h1: 12.5, w2: 26, required: 100, drip: 'pink' }],
     allowedWaste: 0.4,
   },
 ];
@@ -4291,6 +4298,18 @@ class Panel {
         this.msg(`That isn't valid JSON: ${e.message}`);
       }
     });
+    $('json-send').addEventListener('click', async () => {
+      const btn = $('json-send');
+      btn.disabled = true;
+      try {
+        await this.app.sendTuning();
+        this.msg('Sent. Tell Claude to apply your tuning.');
+      } catch (e) {
+        this.msg(`Couldn't send (${e?.code || 'error'}). Use Copy tuning JSON instead.`);
+      } finally {
+        btn.disabled = false;
+      }
+    });
     const reset = $('reset-all');
     reset.addEventListener('click', () => {
       const now = performance.now();
@@ -4691,7 +4710,7 @@ function botHold(game, { depth = 30, edge = -2, safe = 14, lead = 0.12, margin =
   let mode = -safe;
   for (const c of game.cakes) {
     const tg = c.target;
-    if (tg.received >= tg.required * 1.08) continue;
+    if (tg.received >= tg.required * 1.25) continue; // margin for pieces that bounce off
     const drop = Math.max(0.5, my - (c.pos.y + c.top));
     const t = Math.sqrt((2 * drop) / P.world.gravity);
     const lx = mx + (vx - c.vel.x) * t; // landing x in the cake's moving frame
@@ -4809,6 +4828,7 @@ class App {
       if (this.game.jar) this.renderer.snapCamera(this.game);
     };
     new ResizeObserver(fit).observe(stage);
+    this.linkClaude();
     fit();
     const idx = Math.max(0, this.levels.findIndex((l) => l.id === this.ui.level));
     this.loadLevel(idx);
@@ -4914,6 +4934,28 @@ class App {
   resetParams() {
     this.replaceParams(clone(DEFAULT_PARAMS));
     this.restart();
+  }
+
+  // Hosted on claude.ai the page can hand its tuning to Claude through the
+  // artifact's database; anywhere else (local, GitHub Pages) this is a no-op.
+  async linkClaude() {
+    if (PLAYER || !window.claude?.use) return;
+    try {
+      this.db = await window.claude.use('db');
+    } catch {
+      this.db = null;
+    }
+    if (this.db) $('json-send').hidden = false;
+  }
+
+  async sendTuning() {
+    const edited = this.levels.filter((l, i) => JSON.stringify(l) !== JSON.stringify(LEVELS[i]));
+    await this.db.doc('tuning/latest').set({
+      params: diffFromDefaults(this.P),
+      levels: JSON.parse(JSON.stringify(edited)),
+      currentLevel: this.level.id,
+      sentAt: new Date().toISOString(),
+    });
   }
 
   // ---- toggles ----------------------------------------------------------------

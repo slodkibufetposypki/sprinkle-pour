@@ -13,21 +13,21 @@ export const MATERIAL_IDS = ['buttercream', 'fondant', 'glaze', 'sponge', 'plate
 
 export const DEFAULT_PARAMS = {
   jar: {
-    gravityTorque: 16, // tipping torque at 90° per unit mass
-    tipBias: 0.1, // share of tipping torque present even when upright
-    liftTorque: 80, // hand torque while the screen is held
-    damping: 2, // linear wrist damping
-    dragQuad: 4, // speed-squared damping: caps how fast the jar can swing
+    gravityTorque: 20.5, // tipping torque at 90° per unit mass
+    tipBias: 0.24, // share of tipping torque present even when upright
+    liftTorque: 152, // hand torque while the screen is held
+    damping: 3, // linear wrist damping
+    dragQuad: 8.7, // speed-squared damping: caps how fast the jar can swing
     jarMass: 1,
     contentMass: 1.3, // extra mass when full: full jars tip harder
     jarInertia: 1,
     contentInertia: 1, // extra inertia when full: full jars are slower to catch
-    muscleAttack: 0.05, // s for the grip to reach full strength after press
+    muscleAttack: 0.02, // s for the grip to reach full strength after press
     muscleRelease: 0.08, // s for the grip to relax after release
     minAngle: -12,
     maxAngle: 165,
-    limitBounce: 0.25,
-    initialAngle: 6,
+    limitBounce: 0.9,
+    initialAngle: 22,
     dangerAngle: 105, // subtle buzz when tipping past this
     capacity: 300, // mass units that make a full jar (sets the tipping weight)
   },
@@ -37,13 +37,13 @@ export const DEFAULT_PARAMS = {
     pivot: 2.8, // wrist pivot height above the jar bottom
   },
   grains: {
-    friction: 0.3, // grain-on-grain Coulomb friction: sets the angle of repose
+    friction: 0.21, // grain-on-grain Coulomb friction: sets the angle of repose
     wallFriction: 0.3, // grain-on-glass friction
     iterations: 3, // contact solver passes per physics step
     stacking: 0.3, // mass scaling by height: firmer deep piles (too high = pile won't flow)
     damping: 0.3, // velocity damping inside the jar
-    sizeVariation: 0.2, // ± share of radius per grain; breaks up crystal packing
-    tremor: 0, // random jiggle (cm/s²) from a never-quite-still hand
+    sizeVariation: 0.12, // ± share of radius per grain; breaks up crystal packing
+    tremor: 50, // random jiggle (cm/s²) from a never-quite-still hand
   },
   world: {
     gravity: 700, // cm/s² (real is 981; lower reads better)
@@ -59,8 +59,8 @@ export const DEFAULT_PARAMS = {
   },
   types: {
     bead: { radius: 0.2, mass: 1, bounce: 0.25, friction: 0.6, stick: 0.9, drag: 0.3, gravityScale: 1 },
-    rod: { radius: 0.22, mass: 2, bounce: 0.2, friction: 0.7, stick: 0.75, drag: 0.5, gravityScale: 1 },
-    heart: { radius: 0.4, mass: 3, bounce: 0.1, friction: 0.8, stick: 0.8, drag: 3.2, gravityScale: 0.85 },
+    rod: { radius: 0.17, mass: 2, bounce: 0.2, friction: 0.7, stick: 0.75, drag: 0.5, gravityScale: 1 },
+    heart: { radius: 0.13, mass: 3, bounce: 0.1, friction: 0.8, stick: 0.8, drag: 3.2, gravityScale: 0.85 },
     pearl: { radius: 0.62, mass: 8, bounce: 0.5, friction: 0.15, stick: 0.25, drag: 0.05, gravityScale: 1 },
   },
   materials: {

@@ -76,8 +76,9 @@ panel. The panel is generated from `SCHEMA`, so a new value needs only a
 default and one schema row.
 
 - **Jar feel**: tip torque, lift torque, damping and grip delays set how
-  "unruly" the jar is. The defaults were tuned numerically: a full jar
-  overshoots about 12° after a catch, an almost-empty one about 5°.
+  "unruly" the jar is. The defaults come from a hands-on tuning pass: a
+  full jar tips to 60° about half a second after letting go and overshoots
+  about 4° after a catch (an almost-empty one about 2°).
 - **Grains in the jar**: grain friction sets the angle of repose, so it
   controls when a pile lets go and how bursty the trickle is. Size variation
   stops equal discs from locking into a crystal. Solver passes and pile
@@ -87,7 +88,8 @@ default and one schema row.
 - **Pieces and surfaces**: bounce, grip, stickiness and air drag per sprinkle
   type and per frosting.
 
-To share a feel, use **Copy tuning JSON**. It copies only the values changed
+On the claude.ai sandbox page, **Send to Claude** hands the changed values
+straight to Claude to adopt as defaults. Elsewhere, use **Copy tuning JSON**. It copies only the values changed
 from the defaults; paste it back with **Paste JSON…**. Presets are defined in
 `PRESETS` in `params.js`. Tuning and best stars persist in `localStorage`.
 

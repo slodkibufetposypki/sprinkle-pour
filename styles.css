@@ -693,6 +693,12 @@ kbd {
   color: #ffb1c4;
 }
 
+.pbtn.send {
+  background: var(--berry-deep);
+  border-color: var(--berry);
+  color: #ffffff;
+}
+
 .json-wrap {
   margin-top: 6px;
 }
