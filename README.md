@@ -40,7 +40,7 @@ the URL. `warp` fast-forwards the sim that many seconds.
 | Falling sprinkles | `src/physics.js` | Circles against cake polygons. Frosting grabs them through adhesion, and a piece freezes only once it has come to rest, so pearls bounce, roll and settle. |
 | Cakes | `src/cakes.js` | Closed polygons. Each edge has a material (buttercream, fondant, glaze…) and a scoring zone (target or waste). |
 | Level run + scoring | `src/game.js` | States go ready → play → settle → result. A level ends as soon as the hand is past the last cake or the jar is empty. |
-| Levels | `src/levels.js` | The ten brief levels plus a sandbox, all as data. |
+| Levels | `src/levels.js` | The ten brief levels plus a sandbox, all as data. Each starts ~52 cm before the first cake: a stream lands ~35–40 cm after you let go, so letting go at once pours too early and a well-timed release lands on the front edge. |
 
 Rendering is Canvas 2D (`src/render.js`). The look follows the Sweet Buffet
 retail jar and mixes: a clear, squat jar with the lid off (just the open,
@@ -76,9 +76,11 @@ panel. The panel is generated from `SCHEMA`, so a new value needs only a
 default and one schema row.
 
 - **Jar feel**: tip torque, lift torque, damping and grip delays set how
-  "unruly" the jar is. The defaults come from a hands-on tuning pass: a
-  full jar tips to 60° about half a second after letting go and overshoots
-  about 4° after a catch (an almost-empty one about 2°).
+  "unruly" the jar is. The defaults keep it deliberately unruly: a full jar
+  takes ~0.8 s to tip to 60° and overshoots ~12° after a catch (an
+  almost-empty one ~6°). A snappier feel (lift 152, grip 0.02 s, speed drag
+  8.7, tip bias 0.24) was tried and set aside because it removed the
+  momentum the brief asks for.
 - **Grains in the jar**: grain friction sets the angle of repose, so it
   controls when a pile lets go and how bursty the trickle is. Size variation
   stops equal discs from locking into a crystal. Solver passes and pile

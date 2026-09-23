@@ -1017,21 +1017,21 @@ const MATERIAL_IDS = ['buttercream', 'fondant', 'glaze', 'sponge', 'plate', 'tab
 
 const DEFAULT_PARAMS = {
   jar: {
-    gravityTorque: 20.5, // tipping torque at 90° per unit mass
-    tipBias: 0.24, // share of tipping torque present even when upright
-    liftTorque: 152, // hand torque while the screen is held
-    damping: 3, // linear wrist damping
-    dragQuad: 8.7, // speed-squared damping: caps how fast the jar can swing
+    gravityTorque: 16, // tipping torque at 90° per unit mass
+    tipBias: 0.1, // share of tipping torque present even when upright
+    liftTorque: 80, // hand torque while the screen is held
+    damping: 2, // linear wrist damping
+    dragQuad: 4, // speed-squared damping: caps how fast the jar can swing
     jarMass: 1,
     contentMass: 1.3, // extra mass when full: full jars tip harder
     jarInertia: 1,
     contentInertia: 1, // extra inertia when full: full jars are slower to catch
-    muscleAttack: 0.02, // s for the grip to reach full strength after press
+    muscleAttack: 0.05, // s for the grip to reach full strength after press
     muscleRelease: 0.08, // s for the grip to relax after release
     minAngle: -12,
     maxAngle: 165,
-    limitBounce: 0.9,
-    initialAngle: 22,
+    limitBounce: 0.25,
+    initialAngle: 6,
     dangerAngle: 105, // subtle buzz when tipping past this
     capacity: 300, // mass units that make a full jar (sets the tipping weight)
   },
@@ -1041,13 +1041,13 @@ const DEFAULT_PARAMS = {
     pivot: 2.8, // wrist pivot height above the jar bottom
   },
   grains: {
-    friction: 0.21, // grain-on-grain Coulomb friction: sets the angle of repose
+    friction: 0.3, // grain-on-grain Coulomb friction: sets the angle of repose
     wallFriction: 0.3, // grain-on-glass friction
     iterations: 3, // contact solver passes per physics step
     stacking: 0.3, // mass scaling by height: firmer deep piles (too high = pile won't flow)
     damping: 0.3, // velocity damping inside the jar
-    sizeVariation: 0.12, // ± share of radius per grain; breaks up crystal packing
-    tremor: 50, // random jiggle (cm/s²) from a never-quite-still hand
+    sizeVariation: 0.2, // ± share of radius per grain; breaks up crystal packing
+    tremor: 0, // random jiggle (cm/s²) from a never-quite-still hand
   },
   world: {
     gravity: 700, // cm/s² (real is 981; lower reads better)
@@ -1063,8 +1063,8 @@ const DEFAULT_PARAMS = {
   },
   types: {
     bead: { radius: 0.2, mass: 1, bounce: 0.25, friction: 0.6, stick: 0.9, drag: 0.3, gravityScale: 1 },
-    rod: { radius: 0.17, mass: 2, bounce: 0.2, friction: 0.7, stick: 0.75, drag: 0.5, gravityScale: 1 },
-    heart: { radius: 0.13, mass: 3, bounce: 0.1, friction: 0.8, stick: 0.8, drag: 3.2, gravityScale: 0.85 },
+    rod: { radius: 0.22, mass: 2, bounce: 0.2, friction: 0.7, stick: 0.75, drag: 0.5, gravityScale: 1 },
+    heart: { radius: 0.4, mass: 3, bounce: 0.1, friction: 0.8, stick: 0.8, drag: 3.2, gravityScale: 0.85 },
     pearl: { radius: 0.62, mass: 8, bounce: 0.5, friction: 0.15, stick: 0.25, drag: 0.05, gravityScale: 1 },
   },
   materials: {
@@ -1233,7 +1233,7 @@ const LEVELS = [
     id: 0,
     name: 'Sandbox',
     blurb: 'Free pour with every piece type. Tune anything.',
-    hand: { speed: 14, y: 30, startX: -16, heightCoupling: 0 },
+    hand: { speed: 14, y: 30, startX: -46, heightCoupling: 0 },
     mix: { bead: 160, rod: 30, heart: 12, pearl: 6 },
     cakes: [
       { kind: 'sheet', x: 0, w: 44, h: 8, required: 60 },
@@ -1248,7 +1248,7 @@ const LEVELS = [
     name: 'Big Sheet Cake',
     blurb: 'Learn to pour. Lots of room.',
     hint: 'Hold to lift',
-    hand: { speed: 14, y: 30, startX: -19 },
+    hand: { speed: 14, y: 30, startX: -52 },
     mix: HOUSE_MIX,
     cakes: [{ kind: 'sheet', x: 0, w: 80, h: 7, required: 100 }],
     allowedWaste: 0.4,
@@ -1257,7 +1257,7 @@ const LEVELS = [
     id: 2,
     name: 'Layer Cake',
     blurb: 'Smaller target, same jar.',
-    hand: { speed: 14, y: 30, startX: -11 },
+    hand: { speed: 14, y: 30, startX: -44 },
     mix: { bead: 190, rod: 36, heart: 12 },
     cakes: [{ kind: 'round', x: 8, w: 38, h: 12, required: 110, frost: 'white', drip: 'pink' }],
     allowedWaste: 0.35,
@@ -1266,7 +1266,7 @@ const LEVELS = [
     id: 3,
     name: 'One Cupcake',
     blurb: 'A small target passes quickly.',
-    hand: { speed: 13, y: 30, startX: -7 },
+    hand: { speed: 13, y: 30, startX: -40 },
     mix: { bead: 170, rod: 34, heart: 12 },
     cakes: [{ kind: 'cupcake', x: 12, w: 13, h: 11, required: 28 }],
     allowedWaste: 0.55,
@@ -1275,11 +1275,11 @@ const LEVELS = [
     id: 4,
     name: 'Two Cupcakes',
     blurb: 'Pour, catch, pour again.',
-    hand: { speed: 14, y: 30, startX: -9 },
+    hand: { speed: 14, y: 30, startX: -42 },
     mix: { bead: 170, rod: 34, heart: 12 },
     cakes: [
       { kind: 'cupcake', x: 10, w: 13, h: 11, required: 26 },
-      { kind: 'cupcake', x: 55, w: 13, h: 11, required: 26, frost: 'mint' },
+      { kind: 'cupcake', x: 64, w: 13, h: 11, required: 26, frost: 'mint' },
     ],
     allowedWaste: 0.5,
   },
@@ -1287,12 +1287,12 @@ const LEVELS = [
     id: 5,
     name: 'Three Cupcakes',
     blurb: 'Not a full jar. Make it last.',
-    hand: { speed: 14, y: 30, startX: -9 },
+    hand: { speed: 14, y: 30, startX: -42 },
     mix: { bead: 150, rod: 30, heart: 10 },
     cakes: [
       { kind: 'cupcake', x: 10, w: 13, h: 11, required: 20 },
-      { kind: 'cupcake', x: 44, w: 13, h: 11, required: 20, frost: 'lilac' },
-      { kind: 'cupcake', x: 78, w: 13, h: 11, required: 20, frost: 'mint' },
+      { kind: 'cupcake', x: 52, w: 13, h: 11, required: 20, frost: 'lilac' },
+      { kind: 'cupcake', x: 94, w: 13, h: 11, required: 20, frost: 'mint' },
     ],
     allowedWaste: 0.3,
   },
@@ -1300,7 +1300,7 @@ const LEVELS = [
     id: 6,
     name: 'Mind the Gap',
     blurb: 'Stop the stream over the table.',
-    hand: { speed: 15, y: 30, startX: -11 },
+    hand: { speed: 15, y: 30, startX: -44 },
     mix: { bead: 190, rod: 36, heart: 12 },
     cakes: [
       { kind: 'sheet', x: 8, w: 28, h: 8, required: 68, filling: 'mint' },
@@ -1312,7 +1312,7 @@ const LEVELS = [
     id: 7,
     name: 'Big Pearls',
     blurb: 'Big pieces leave late and bounce.',
-    hand: { speed: 14, y: 30, startX: -11 },
+    hand: { speed: 14, y: 30, startX: -44 },
     mix: { bead: 130, rod: 20, heart: 6, pearl: 12 },
     cakes: [{ kind: 'round', x: 8, w: 42, h: 11, required: 100, frost: 'lemon', drip: 'choc' }],
     allowedWaste: 0.35,
@@ -1321,7 +1321,7 @@ const LEVELS = [
     id: 8,
     name: 'Bundt',
     blurb: 'The hole in the middle eats sprinkles.',
-    hand: { speed: 13, y: 30, startX: -9 },
+    hand: { speed: 13, y: 30, startX: -42 },
     mix: { bead: 170, rod: 40, heart: 10 },
     cakes: [{ kind: 'bundt', x: 10, w: 42, h: 11, hole: 11, required: 58, sidesValid: true }],
     allowedWaste: 0.4,
@@ -1330,14 +1330,14 @@ const LEVELS = [
     id: 9,
     name: 'Conveyor',
     blurb: 'The cupcakes move too.',
-    hand: { speed: 15, y: 30, startX: -9 },
+    hand: { speed: 15, y: 30, startX: -42 },
     mix: { bead: 170, rod: 34, heart: 12 },
     conveyor: true,
     // One cupcake drifts away (hand catches up slowly), then one comes to meet
     // the hand (passes fast), with ~2 s between them.
     cakes: [
       { kind: 'cupcake', x: 10, w: 13, h: 11, required: 30, vx: 6, frost: 'lilac' },
-      { kind: 'cupcake', x: 104, w: 13, h: 11, required: 26, vx: -4, frost: 'mint' },
+      { kind: 'cupcake', x: 132, w: 13, h: 11, required: 26, vx: -4, frost: 'mint' },
     ],
     allowedWaste: 0.5,
   },
@@ -1345,7 +1345,7 @@ const LEVELS = [
     id: 10,
     name: 'Tall Tiers',
     blurb: 'Tip too deep and the jar hits the cake.',
-    hand: { speed: 13, y: 30, startX: -9 },
+    hand: { speed: 13, y: 30, startX: -42 },
     mix: { bead: 170, rod: 24, heart: 8, pearl: 6 },
     cakes: [{ kind: 'tiered', x: 10, w: 44, h: 24, h1: 12.5, w2: 26, required: 100, drip: 'pink' }],
     allowedWaste: 0.4,
@@ -3103,7 +3103,7 @@ class Game {
         ['clean', POINTS.clean - parts.clean, 'Waste less: catch the jar before the stream reaches the table'],
         ['portion', POINTS.portion - parts.portion, (() => {
           const worst = cakes.reduce((a, c) => (c.ratio > a.ratio ? c : a), cakes[0]);
-          return `Don't bury the cakes: ${worst.name.toLowerCase()} got ${worst.ratio.toFixed(1)}× what it needed`;
+          return worst ? `Don't bury the cakes: ${worst.name.toLowerCase()} got ${worst.ratio.toFixed(1)}× what it needed` : '';
         })()],
         ['bumps', bumpPenalty, 'Keep the jar off the cakes'],
       ].sort((a, b) => b[1] - a[1]);
@@ -3263,10 +3263,35 @@ class Renderer {
     const avail = Math.max(1, cssH - hud);
     const band = yMax - yMin;
     const visW = Math.max(32, Math.min(58, (cssW / avail) * band * 1.25));
-    this.s = Math.max(4, Math.min(cssW / visW, avail / band));
-    this.oy = hud + yMax * this.s + (avail - band * this.s) / 2;
-    this.anchor = cssW < avail ? 0.2 : 0.3; // hand position across the screen
+    // s0 = base zoom; `s` eases out from it to show the next cake (updateZoom).
+    this.s0 = Math.max(4, Math.min(cssW / visW, avail / band));
+    this.s = this.s0;
+    this.oy = hud + yMax * this.s0 + (avail - band * this.s0) / 2;
+    this.anchor = cssW < avail ? 0.14 : 0.3; // hand position across the screen
     this.spriteKey = '';
+  }
+
+  get viewW0() {
+    return this.w / this.s0;
+  }
+
+  // Look-ahead: while the next cake is still beyond the base view, ease out
+  // a little (at most 1.35×) so it comes into view about when the player has
+  // to let go (~35–40 cm before the cake); back to the base zoom once it is
+  // in view. Zooms around the table line so the cakes stay put vertically.
+  // Wide screens already see far enough ahead and never zoom.
+  updateZoom(game, dt, snap = false) {
+    const hand = Math.min(game.jar.x, game.endX - 6);
+    const left = hand - this.viewW0 * this.anchor;
+    let front = Infinity;
+    for (const c of game.cakes) {
+      const f = c.pos.x + c.aabb[0];
+      if (f > game.jar.x && f < front) front = f;
+    }
+    const need = front < Infinity ? front + 6 - left : 0;
+    const width = Math.min(this.viewW0 * 1.35, Math.max(this.viewW0, need));
+    const target = this.w / width;
+    this.s = snap ? target : this.s + (target - this.s) * (1 - Math.exp(-dt * 2.2));
   }
 
   get viewW() {
@@ -3282,12 +3307,13 @@ class Renderer {
   }
 
   snapCamera(game) {
+    this.updateZoom(game, 0, true);
     this.camX = this.cameraTarget(game);
   }
 
   cameraTarget(game) {
     const x = Math.min(game.jar.x, game.endX - 6);
-    return x - this.viewW * (this.anchor ?? 0.3);
+    return x - this.viewW0 * (this.anchor ?? 0.3);
   }
 
   worldTransform(ox = 0, oy = 0) {
@@ -3301,10 +3327,11 @@ class Renderer {
 
   // ---- sprites --------------------------------------------------------------
   ensureSprites(P) {
-    const key = `${this.s.toFixed(3)}|${this.dpr}|${TYPE_IDS.map((t) => P.types[t].radius).join(',')}`;
+    // Built at the base zoom and scaled while drawing, so zooming is free.
+    const key = `${this.s0.toFixed(3)}|${this.dpr}|${TYPE_IDS.map((t) => P.types[t].radius).join(',')}`;
     if (key === this.spriteKey) return;
     this.spriteKey = key;
-    const s = this.s;
+    const s = this.s0;
     const dpr = this.dpr;
     this.sprites = {};
     for (const t of TYPE_IDS) {
@@ -3391,10 +3418,10 @@ class Renderer {
     const r = Math.min(2.35, shape.ihw * 0.67);
     const cx = shape.ihw * 0.05;
     const cy = (shape.ibottom + shape.neckY - shape.shoulder) / 2;
-    const key = `${this.s.toFixed(3)}|${this.dpr}|${r}|${this.logo.complete && this.logo.naturalWidth > 0}`;
+    const key = `${this.s0.toFixed(3)}|${this.dpr}|${r}|${this.logo.complete && this.logo.naturalWidth > 0}`;
     if (key !== this.stickerKey) {
       this.stickerKey = key;
-      const px = r * this.s;
+      const px = r * this.s0;
       const size = Math.ceil((px * 2 + 4) * this.dpr);
       const c = document.createElement('canvas');
       c.width = size;
@@ -3440,6 +3467,8 @@ class Renderer {
     const { ctx } = this;
     const P = game.P;
     this.ensureSprites(P);
+    this.updateZoom(game, dt);
+    this.zoomK = this.s / this.s0;
     const target = this.cameraTarget(game);
     this.camX += (target - this.camX) * (1 - Math.exp(-dt * 5));
     this.shake *= Math.exp(-dt * 14);
@@ -3592,7 +3621,7 @@ class Renderer {
   drawSprite(t, ci, x, y, a, sx = 1, sy = 1, k = 1) {
     const spr = this.sprites[t][ci & 7];
     const { ctx } = this;
-    const size = spr.size * k;
+    const size = spr.size * k * (this.zoomK || 1);
     if (!a && sx === 1 && sy === 1) {
       ctx.drawImage(spr.c, x - size / 2, y - size / 2, size, size);
       return;
@@ -3791,7 +3820,7 @@ class Renderer {
       const st = this.stickerFor(S);
       ctx.save();
       ctx.translate(st.cx, st.cy);
-      ctx.scale(1 / this.s, -1 / this.s);
+      ctx.scale(1 / this.s0, -1 / this.s0); // sticker bitmap is at base zoom
       ctx.drawImage(st.c, -st.size / 2, -st.size / 2, st.size, st.size);
       ctx.restore();
 

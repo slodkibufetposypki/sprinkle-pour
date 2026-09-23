@@ -128,10 +128,35 @@ export class Renderer {
     const avail = Math.max(1, cssH - hud);
     const band = yMax - yMin;
     const visW = Math.max(32, Math.min(58, (cssW / avail) * band * 1.25));
-    this.s = Math.max(4, Math.min(cssW / visW, avail / band));
-    this.oy = hud + yMax * this.s + (avail - band * this.s) / 2;
-    this.anchor = cssW < avail ? 0.2 : 0.3; // hand position across the screen
+    // s0 = base zoom; `s` eases out from it to show the next cake (updateZoom).
+    this.s0 = Math.max(4, Math.min(cssW / visW, avail / band));
+    this.s = this.s0;
+    this.oy = hud + yMax * this.s0 + (avail - band * this.s0) / 2;
+    this.anchor = cssW < avail ? 0.14 : 0.3; // hand position across the screen
     this.spriteKey = '';
+  }
+
+  get viewW0() {
+    return this.w / this.s0;
+  }
+
+  // Look-ahead: while the next cake is still beyond the base view, ease out
+  // a little (at most 1.35×) so it comes into view about when the player has
+  // to let go (~35–40 cm before the cake); back to the base zoom once it is
+  // in view. Zooms around the table line so the cakes stay put vertically.
+  // Wide screens already see far enough ahead and never zoom.
+  updateZoom(game, dt, snap = false) {
+    const hand = Math.min(game.jar.x, game.endX - 6);
+    const left = hand - this.viewW0 * this.anchor;
+    let front = Infinity;
+    for (const c of game.cakes) {
+      const f = c.pos.x + c.aabb[0];
+      if (f > game.jar.x && f < front) front = f;
+    }
+    const need = front < Infinity ? front + 6 - left : 0;
+    const width = Math.min(this.viewW0 * 1.35, Math.max(this.viewW0, need));
+    const target = this.w / width;
+    this.s = snap ? target : this.s + (target - this.s) * (1 - Math.exp(-dt * 2.2));
   }
 
   get viewW() {
@@ -147,12 +172,13 @@ export class Renderer {
   }
 
   snapCamera(game) {
+    this.updateZoom(game, 0, true);
     this.camX = this.cameraTarget(game);
   }
 
   cameraTarget(game) {
     const x = Math.min(game.jar.x, game.endX - 6);
-    return x - this.viewW * (this.anchor ?? 0.3);
+    return x - this.viewW0 * (this.anchor ?? 0.3);
   }
 
   worldTransform(ox = 0, oy = 0) {
@@ -166,10 +192,11 @@ export class Renderer {
 
   // ---- sprites --------------------------------------------------------------
   ensureSprites(P) {
-    const key = `${this.s.toFixed(3)}|${this.dpr}|${TYPE_IDS.map((t) => P.types[t].radius).join(',')}`;
+    // Built at the base zoom and scaled while drawing, so zooming is free.
+    const key = `${this.s0.toFixed(3)}|${this.dpr}|${TYPE_IDS.map((t) => P.types[t].radius).join(',')}`;
     if (key === this.spriteKey) return;
     this.spriteKey = key;
-    const s = this.s;
+    const s = this.s0;
     const dpr = this.dpr;
     this.sprites = {};
     for (const t of TYPE_IDS) {
@@ -256,10 +283,10 @@ export class Renderer {
     const r = Math.min(2.35, shape.ihw * 0.67);
     const cx = shape.ihw * 0.05;
     const cy = (shape.ibottom + shape.neckY - shape.shoulder) / 2;
-    const key = `${this.s.toFixed(3)}|${this.dpr}|${r}|${this.logo.complete && this.logo.naturalWidth > 0}`;
+    const key = `${this.s0.toFixed(3)}|${this.dpr}|${r}|${this.logo.complete && this.logo.naturalWidth > 0}`;
     if (key !== this.stickerKey) {
       this.stickerKey = key;
-      const px = r * this.s;
+      const px = r * this.s0;
       const size = Math.ceil((px * 2 + 4) * this.dpr);
       const c = document.createElement('canvas');
       c.width = size;
@@ -305,6 +332,8 @@ export class Renderer {
     const { ctx } = this;
     const P = game.P;
     this.ensureSprites(P);
+    this.updateZoom(game, dt);
+    this.zoomK = this.s / this.s0;
     const target = this.cameraTarget(game);
     this.camX += (target - this.camX) * (1 - Math.exp(-dt * 5));
     this.shake *= Math.exp(-dt * 14);
@@ -457,7 +486,7 @@ export class Renderer {
   drawSprite(t, ci, x, y, a, sx = 1, sy = 1, k = 1) {
     const spr = this.sprites[t][ci & 7];
     const { ctx } = this;
-    const size = spr.size * k;
+    const size = spr.size * k * (this.zoomK || 1);
     if (!a && sx === 1 && sy === 1) {
       ctx.drawImage(spr.c, x - size / 2, y - size / 2, size, size);
       return;
@@ -656,7 +685,7 @@ export class Renderer {
       const st = this.stickerFor(S);
       ctx.save();
       ctx.translate(st.cx, st.cy);
-      ctx.scale(1 / this.s, -1 / this.s);
+      ctx.scale(1 / this.s0, -1 / this.s0); // sticker bitmap is at base zoom
       ctx.drawImage(st.c, -st.size / 2, -st.size / 2, st.size, st.size);
       ctx.restore();
 

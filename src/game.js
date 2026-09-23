@@ -411,7 +411,7 @@ export class Game {
         ['clean', POINTS.clean - parts.clean, 'Waste less: catch the jar before the stream reaches the table'],
         ['portion', POINTS.portion - parts.portion, (() => {
           const worst = cakes.reduce((a, c) => (c.ratio > a.ratio ? c : a), cakes[0]);
-          return `Don't bury the cakes: ${worst.name.toLowerCase()} got ${worst.ratio.toFixed(1)}× what it needed`;
+          return worst ? `Don't bury the cakes: ${worst.name.toLowerCase()} got ${worst.ratio.toFixed(1)}× what it needed` : '';
         })()],
         ['bumps', bumpPenalty, 'Keep the jar off the cakes'],
       ].sort((a, b) => b[1] - a[1]);
