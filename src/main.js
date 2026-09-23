@@ -5,7 +5,8 @@ import { LEVELS } from './levels.js';
 import { Game } from './game.js';
 import { Renderer } from './render.js';
 import { Sfx } from './audio.js';
-import { Panel, showBanner, hideBanner, showResult, hideResult, countLabel } from './ui.js';
+import { Panel, showBanner, hideBanner, showResult, hideResult, countLabel, applyStaticText } from './ui.js';
+import { t, getLang, setLang, levelName } from './i18n.js';
 import { botHold } from './bot.js';
 
 const STORE = {
@@ -83,6 +84,7 @@ class App {
   }
 
   start() {
+    applyStaticText();
     if (PLAYER) {
       $('btn-tune').hidden = true;
       $('panel').hidden = true;
@@ -128,7 +130,7 @@ class App {
     sel.textContent = '';
     this.levels.forEach((l, i) => {
       const stars = this.best[l.id] || 0;
-      const label = l.id === 0 ? 'Sandbox' : `${l.id}. ${l.name}`;
+      const label = l.id === 0 ? t('sandbox') : `${l.id}. ${levelName(l)}`;
       const opt = document.createElement('option');
       opt.value = i;
       opt.textContent = `${label}  ${'★'.repeat(stars)}${'☆'.repeat(5 - stars)}`;
@@ -255,7 +257,7 @@ class App {
   syncSoundButton() {
     const b = $('btn-sound');
     b.setAttribute('aria-pressed', String(!!this.ui.sound));
-    b.setAttribute('aria-label', this.ui.sound ? 'Sound on' : 'Sound off');
+    b.setAttribute('aria-label', this.ui.sound ? t('soundOn') : t('soundOff'));
   }
 
   // ---- input ------------------------------------------------------------------
@@ -337,6 +339,7 @@ class App {
       });
     click('btn-retry', () => this.restart());
     click('btn-sound', () => this.toggle('sound'));
+    click('btn-lang', () => this.switchLanguage());
     click('btn-tune', () => this.toggle('panel'));
     click('panel-close', () => this.setToggle('panel', false));
     click('res-retry', () => this.restart());
@@ -421,7 +424,22 @@ class App {
     g.events.length = 0;
   }
 
-  onResult(result) {
+  // PL ⇄ EN: re-word everything on screen without restarting the level.
+  switchLanguage() {
+    setLang(getLang() === 'pl' ? 'en' : 'pl');
+    applyStaticText();
+    this.buildLevelSelect();
+    this.syncSoundButton();
+    this.lastCount = -1;
+    if (this.game.state === 'ready') showBanner(this.level, true);
+    if (this.game.result && !$('result').hidden) this.onResult(this.game.result, true);
+  }
+
+  // relabel: only re-word a result already on screen (language switch).
+  onResult(result, relabel = false) {
+    const next = this.levels[(this.levelIndex + 1) % this.levels.length];
+    showResult(result, next.id === 0 ? t('sandbox') : t('nextLevel'), levelName(next));
+    if (relabel) return;
     const id = this.level.id;
     if (result.stars > (this.best[id] || 0)) {
       this.best[id] = result.stars;
@@ -429,8 +447,6 @@ class App {
       this.buildLevelSelect();
     }
     this.sfx.chime(result.stars);
-    const next = this.levels[(this.levelIndex + 1) % this.levels.length];
-    showResult(result, next.id === 0 ? 'Sandbox' : 'Next level', next.name);
     this.resultShownAt = performance.now();
     if (this.ui.autoRetry) this.retryTimer = setTimeout(() => this.restart(), 1400);
   }

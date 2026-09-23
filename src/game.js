@@ -361,13 +361,15 @@ export class Game {
   // punished; the jar running out is the only limit.
   finish() {
     const lv = this.level;
-    const NAMES = { sheet: 'Sheet cake', round: 'Layer cake', cupcake: 'Cupcake', dome: 'Dome cake', bundt: 'Bundt', tiered: 'Tiered cake', donut: 'Donut', eclair: 'Éclair' };
     const sameKind = (c) => this.cakes.filter((o) => o.kind === c.kind);
     const goal = this.coverGoal;
+    // Cakes and notes are data (kind, numbers); the UI words them in the
+    // player's language.
     const cakes = this.cakes.map((c) => {
       const coverage = cakeCoverage(c);
       return {
-        name: sameKind(c).length > 1 ? `${NAMES[c.kind]} ${sameKind(c).indexOf(c) + 1}` : NAMES[c.kind],
+        kind: c.kind,
+        kindIndex: sameKind(c).length > 1 ? sameKind(c).indexOf(c) + 1 : 0,
         received: c.target.received,
         coverage,
         met: coverage >= goal - 1e-6,
@@ -394,22 +396,21 @@ export class Game {
       for (const at of STAR_POINTS) if (score >= at) stars++;
     }
 
-    // Plain-language reasons, so a run reads as "I know what to do better".
+    // Reasons, so a run reads as "I know what to do better".
     const notes = [];
     for (const c of cakes.filter((c) => !c.met)) {
-      notes.push(`${c.name} is only ${Math.round(c.coverage * 100)}% covered (needs ${Math.round(goal * 100)}%)`);
+      notes.push({ key: 'noteShort', cake: c, cov: Math.round(c.coverage * 100), goal: Math.round(goal * 100) });
     }
-    if (!pass && left < 1) notes.push('The jar ran dry before the end');
+    if (!pass && left < 1) notes.push({ key: 'noteDry' });
     if (pass && stars < 5) {
-      const next = STAR_POINTS[stars - 1];
       const thin = cakes.reduce((a, c) => (c.coverage < a.coverage ? c : a), cakes[0]);
       const gaps = [
-        [POINTS.coverage - parts.coverage, thin ? `Pour along the whole cake: ${thin.name.toLowerCase()} is ${Math.round(thin.coverage * 100)}% covered` : ''],
-        [POINTS.clean - parts.clean, 'Spill less: stop the stream before it reaches the table'],
-        [POINTS.used - parts.used, `Don't hold back: ${Math.round((left / start) * 100)}% of the jar is still unused`],
-        [bumpPenalty, 'Keep the jar off the cakes'],
+        [POINTS.coverage - parts.coverage, { key: 'tipSpread', cake: thin, cov: Math.round((thin?.coverage ?? 1) * 100) }],
+        [POINTS.clean - parts.clean, { key: 'tipClean' }],
+        [POINTS.used - parts.used, { key: 'tipUsed', p: Math.round((left / start) * 100) }],
+        [bumpPenalty, { key: 'tipBumps' }],
       ].sort((a, b) => b[0] - a[0]);
-      notes.push(`${gaps[0][1]}. ${next - score} more points for ${stars + 1} stars.`);
+      notes.push({ ...gaps[0][1], more: STAR_POINTS[stars - 1] - score, nextStars: stars + 1 });
     }
 
     this.result = {

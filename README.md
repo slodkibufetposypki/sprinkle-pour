@@ -52,6 +52,15 @@ shimmer pearls. The look palettes are `LOOKS` in `render.js`. Levels use a
 The sound is synthesized (`src/audio.js`), and haptics work on Android only,
 since iOS Safari has no vibration API.
 
+## Languages
+
+Player-facing text is in English and Polish (`src/i18n.js`, including
+Polish plural forms for the sprinkle counter). Polish is chosen
+automatically for a Polish device language, a Polish region (e.g. `en-PL`)
+or the Europe/Warsaw time zone; the **PL/EN** button switches and is
+remembered. `?lang=pl` forces it for testing. The tuning panel stays in
+English.
+
 ## Rating
 
 The goal is to cover every cake without spilling. Pouring a lot is never

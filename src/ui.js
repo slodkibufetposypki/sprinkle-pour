@@ -3,6 +3,7 @@
 import { SCHEMA, PRESETS, DEFAULT_PARAMS, TYPE_IDS, TYPE_LABELS, getPath, diffFromDefaults } from './params.js';
 import { D } from './jar.js';
 import { POINTS } from './game.js';
+import { t, getLang, levelName, levelBlurb, cakeName, pieceCount } from './i18n.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -410,26 +411,41 @@ export class Panel {
   }
 }
 
-// "212 in jar" or "180 + 9 pearls" when the mix has more than one kind.
+// "212 in jar" or "200 beads · 40 rods · 14 sequins" when the mix has more
+// than one kind (with Polish plural forms in Polish).
 export function countLabel(game) {
   const g = game.grains;
   const counts = [0, 0, 0, 0];
   for (let i = 0; i < g.n; i++) counts[g.t[i]]++;
-  const kinds = TYPE_IDS.filter((t) => game.level.mix[t]);
-  if (kinds.length <= 1) return `${g.n} in jar`;
-  const short = { bead: 'beads', rod: 'rods', heart: 'sequins', pearl: 'pearls' };
-  return TYPE_IDS.map((t, i) => (game.level.mix[t] ? `${counts[i]} ${short[t]}` : null))
+  const kinds = TYPE_IDS.filter((type) => game.level.mix[type]);
+  if (kinds.length <= 1) return t('inJar', { n: g.n });
+  return TYPE_IDS.map((type, i) => (game.level.mix[type] ? pieceCount(type, counts[i]) : null))
     .filter(Boolean)
     .join(' · ');
+}
+
+// Fixed texts in the page markup, in the current language.
+export function applyStaticText() {
+  document.documentElement.lang = getLang();
+  $('view').setAttribute('aria-label', t('canvas'));
+  $('btn-retry').setAttribute('aria-label', t('retryLevel'));
+  $('btn-retry').title = `${t('retry')} (R)`;
+  const langBtn = $('btn-lang');
+  langBtn.textContent = getLang().toUpperCase();
+  langBtn.setAttribute('aria-label', t('language'));
+  langBtn.title = t('language');
+  $('paused').firstChild.textContent = `${t('paused')} · `;
+  $('res-retry').firstChild.textContent = `${t('retry')} `;
+  document.querySelector('.score-of').textContent = t('points');
 }
 
 // ---- banner + result --------------------------------------------------------
 // Shown while a level waits for its first press. The first visit to a level
 // gets its name; retries only get the hint, so they stay instant.
 export function showBanner(level, full) {
-  $('banner-num').textContent = full ? (level.id === 0 ? 'Sandbox' : `Level ${level.id}`) : '';
-  $('banner-name').textContent = full ? (level.id === 0 ? level.blurb : level.name) : '';
-  $('banner-hint').textContent = level.hint || 'Hold to start';
+  $('banner-num').textContent = full ? (level.id === 0 ? t('sandbox') : `${t('level')} ${level.id}`) : '';
+  $('banner-name').textContent = full ? (level.id === 0 ? levelBlurb(level) : levelName(level)) : '';
+  $('banner-hint').textContent = level.hint ? t('holdToLift') : t('holdToStart');
   $('banner').classList.add('show');
 }
 
@@ -440,19 +456,23 @@ export function hideBanner() {
 const STAR = (on) =>
   `<svg viewBox="0 0 24 24"><path d="M12 2.8l2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 16.6l-5.4 2.9 1.1-6.1-4.5-4.2 6.1-.8z" fill="${on ? '#F2B544' : 'none'}" stroke="${on ? '#D9962A' : 'rgba(43,30,42,0.22)'}" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
 
-const TITLES = ['Not quite', 'Cakes decorated', 'Getting there', 'Nicely poured', 'Lovely work', 'Perfect pour!'];
+function noteText(n) {
+  const name = n.cake ? cakeName(n.cake.kind, n.cake.kindIndex) : '';
+  const text = t(n.key, { ...n, name });
+  return n.more != null ? `${text}. ${t('tipMore', { n: n.more, s: n.nextStars })}` : text;
+}
 
 export function showResult(r, nextLabel, nextName) {
   $('res-stars').innerHTML = [0, 1, 2, 3, 4].map((i) => STAR(i < r.stars)).join('');
-  $('res-stars').setAttribute('aria-label', `${r.stars} of 5 stars`);
-  $('res-title').textContent = TITLES[r.stars];
+  $('res-stars').setAttribute('aria-label', t('starsOf', { n: r.stars }));
+  $('res-title').textContent = t('titles')[r.stars];
   $('res-points').textContent = r.score;
 
   // Where the points came from, so the stars make sense.
   const rows = [
-    ['Coverage', `${pct(r.coverage)} of the frosting`, r.parts.coverage, POINTS.coverage],
-    ['Clean pour', `${pct(r.waste)} spilled`, r.parts.clean, POINTS.clean],
-    ['On the cakes', `${pct(r.onCakes)} of the jar`, r.parts.used, POINTS.used],
+    [t('coverage'), t('coverageDetail', { p: pct(r.coverage) }), r.parts.coverage, POINTS.coverage],
+    [t('clean'), t('cleanDetail', { p: pct(r.waste) }), r.parts.clean, POINTS.clean],
+    [t('used'), t('usedDetail', { p: pct(r.onCakes) }), r.parts.used, POINTS.used],
   ];
   const parts = $('res-parts');
   parts.textContent = '';
@@ -475,7 +495,7 @@ export function showResult(r, nextLabel, nextName) {
       el(
         'li',
         { class: 'penalty' },
-        el('span', { class: 'part-label', text: 'Jar bumps' }),
+        el('span', { class: 'part-label', text: t('bumps') }),
         el('span', { class: 'part-detail', text: `${r.bumps}×` }),
         el('span', { class: 'part-pts', text: `−${r.bumpPenalty}` }),
       ),
@@ -489,14 +509,14 @@ export function showResult(r, nextLabel, nextName) {
       el(
         'li',
         { class: c.met ? 'met' : '' },
-        el('span', { text: `${c.met ? '✓' : '✗'} ${c.name}` }),
-        el('span', { class: 'amt', text: `${pct(c.coverage)} covered` }),
+        el('span', { text: `${c.met ? '✓' : '✗'} ${cakeName(c.kind, c.kindIndex)}` }),
+        el('span', { class: 'amt', text: t('covered', { p: pct(c.coverage) }) }),
       ),
     );
   }
   const notes = $('res-notes');
   notes.textContent = '';
-  for (const n of r.notes) notes.append(el('li', { text: n }));
+  for (const n of r.notes) notes.append(el('li', { text: noteText(n) }));
   $('res-next').firstChild.textContent = `${nextLabel} `;
   $('res-next').title = nextName;
   $('result').hidden = false;
