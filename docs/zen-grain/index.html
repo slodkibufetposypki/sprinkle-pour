@@ -2017,7 +2017,7 @@ const GrainSim = (() => {
     },
     // a wind chime: one to three notes of a pentatonic, long and quiet
     chime(t) {
-      roomFx.ring = 1; HutScene.fx.ring = 1;             // the chime in the room swings as it rings
+      roomFx.ring = 1; HutScene.fx.ring = 1; PixelScene.fx.ring = 1;   // the chime in the room swings as it rings
       const c = Sound.ctx, notes = [1174.7, 1318.5, 1480, 1760, 1975.5], out = this.pan((Math.random() - 0.5) * 0.8) || this.amb;
       for (let i = 0, k = 1 + Math.floor(Math.random() * 3); i < k; i++) {
         const s = t + i * (0.25 + Math.random() * 0.4), f = notes[Math.floor(Math.random() * notes.length)];
@@ -2624,14 +2624,15 @@ const GrainSim = (() => {
     return im.complete && im.naturalWidth ? im : null;
   }
   // the painting on show, and the hour the room sounds like: the painting's own
-  const roomMode = () => (/[?&]scene=drawn/.test(location.search) ? 'drawn' : 'painting');
+  const roomMode = () => { const q = /[?&]scene=(drawn|pixel)/.exec(location.search); return q ? q[1] : 'painting'; };
   const scenePlate = () => (PLATE[dayPhase(hourNow())] ? dayPhase(hourNow()) : 'night');
   function scenePhase() {
-    if (roomMode() === 'drawn') return dayPhase(hourNow());
+    if (roomMode() !== 'painting') return dayPhase(hourNow());
     const im = plateCache[PLATE[scenePlate()].file]; return im && im.failed ? dayPhase(hourNow()) : scenePlate();
   }
   // where the drawn room's board and ceiling are, as shares of its frame
   const DRAWN = { table: [0.523, 0.748], board: 0.53, ceiling: 0.19 };
+  const PIXEL = { table: [0.5, 0.705], board: 0.475, ceiling: 0.156 };
   const cam = { k: 0, to: 0 };                  // 0 = in the room, 1 = above the table
   const roomFx = { birds: [], nextBirds: 3, flies: [], steam: [], t: 0, fade: 0, ring: 0, shoot: null, nextShoot: 9, building: false };
   const easeIO = (k) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2);
@@ -2643,6 +2644,498 @@ const GrainSim = (() => {
     const dw = iw * s, dh = ih * s;
     return { wide, s, x0: (cw - dw) / 2, y0: (ch - dh) / 2, dw, dh };
   }
+  // ---------- the hut in pixel art, like an old RPG: by the hour, and everything in it moves ----------
+  // The room is drawn at 160 x 346 pixels and shown large with no smoothing. Every pixel holds a material (wood, cloth,
+  // sky...) and a shade along that material's ramp of colours, so the hour is a change of palette and the lamps' light
+  // is a change of shade, dithered at its edges like the old games did. What never moves is drawn once per hour into a
+  // layer behind the curtains and a layer in front of them; each frame the moving things are drawn between and over
+  // them: clouds, twinkling and falling stars, the lights on the lake, birds by day and fireflies by night, the voile in
+  // the breeze, the wind chime and the lantern swinging, the candle flame in its three frames, the steam off the tea.
+  const PixelScene = (() => {
+    const W = 160, H = 346, N = W * H;
+    const SKY = 1, STAR = 2, CLOUD = 3, FAR = 4, HILL = 5, FOREST = 6, LAKE = 7, VLIGHT = 8, WOOD = 9, FABRIC = 10, LEAF = 11,
+      METAL = 12, GLASS = 13, WAX = 14, FLAME = 15, CERAMIC = 16, TEA = 17, SLATE = 18, LENTIL = 19, RICE = 20, MUNG = 21,
+      SACK = 22, BAMBOO = 23, TOWEL = 24, STEAM = 25, FLY = 26, STRIPE = 27, MIST = 28, BIRD = 29, GLOW = 30, ROPE = 31;
+    const LIT = new Uint8Array(32);
+    for (const m of [WOOD, FABRIC, LEAF, METAL, CERAMIC, TEA, SLATE, LENTIL, RICE, MUNG, SACK, BAMBOO, TOWEL, STRIPE, ROPE]) LIT[m] = 1;
+    // the colours: for each material a ramp from dark to light; the sky and the land have one per hour
+    const ROOM = {
+      [WOOD]: ['#140a05', '#24120a', '#3a1e0e', '#552c12', '#74401a', '#985622', '#bd702c', '#df903c'],
+      [FABRIC]: ['#22140c', '#3e2818', '#644530', '#8c6a4a', '#b49270', '#d6b892', '#f0d8b0'],
+      [LEAF]: ['#0a1006', '#141e0c', '#223014', '#34441c', '#4c5a24', '#6c6e30', '#8c8236'],
+      [METAL]: ['#0a0604', '#1a100a', '#2e1e12', '#4e341c', '#7a5428'],
+      [CERAMIC]: ['#2a2018', '#4e4232', '#7e705a', '#ac9e82', '#d4c8a8', '#f2e8cc'],
+      [TEA]: ['#120804', '#20100a', '#341c10'],
+      [SLATE]: ['#0a0e10', '#12181a', '#1a2224', '#242e30', '#30403e'],
+      [LENTIL]: ['#3e1a08', '#6e3410', '#a85a20', '#d07c34', '#e89a4a'],
+      [RICE]: ['#4a4234', '#7a705c', '#b0a68a', '#dcd2b8', '#f4ecd8'],
+      [MUNG]: ['#1e2a0e', '#334416', '#4e6620', '#6e8a2e', '#8aa640'],
+      [SACK]: ['#2e2216', '#54402a', '#806648', '#ae9470', '#d6c098', '#f2e2c0'],
+      [BAMBOO]: ['#1a0e06', '#3a200c', '#5e3614', '#88521e', '#b0702c', '#d08e40'],
+      [TOWEL]: ['#2a2622', '#5a544a', '#928a7a', '#c4bca8', '#e8e0cc'],
+      [STRIPE]: ['#141a26', '#26304a', '#3c4a6c', '#566a90'],
+      [ROPE]: ['#2a2014', '#54442a', '#8a7448', '#bca46c', '#e0cc94'],
+      [WAX]: ['#b08048', '#d8ac6c', '#f0d098', '#fff0c8'],
+      [FLAME]: ['#b83a14', '#e8742a', '#ffbe48', '#fff2c8'],
+      [FLY]: ['#6a8a2a', '#c8f070', '#f0ffc0'],
+      [GLOW]: ['#3a2c3a', '#6a4436', '#9a6034', '#c88038'],
+    };
+    const HOUR = {
+      night: {
+        [SKY]: ['#0a0f24', '#0e1632', '#131e42', '#182651', '#1f2f5e', '#2c3a6c', '#4a4676', '#7a5272', '#b0664e', '#d88044'],
+        [STAR]: ['#5a6288', '#c8ccdc', '#fff6dc'], [CLOUD]: ['#161e3e', '#222b52', '#363a66', '#5a4a6e', '#a0645a', '#d88a5a'],
+        [FAR]: ['#1e2848', '#2a3560', '#3c4a78', '#5e6c98'], [HILL]: ['#0c1424', '#121c30', '#18263e', '#22324e', '#34466a'],
+        [FOREST]: ['#070c12', '#0c141c', '#121e28', '#1a2a36'], [LAKE]: ['#141c38', '#1e2a4e', '#2e3e68', '#4a5a8a', '#d8904a'],
+        [VLIGHT]: ['#7a4020', '#d08a3a', '#ffd480'], [STEAM]: ['#7a6a64', '#9a8a80'], [MIST]: ['#3a4670', '#4a5684'], [BIRD]: ['#101420'],
+        [GLASS]: ['#7a3a14', '#c8661e', '#f0a03c', '#ffd47a', '#fff2c0'],
+        ambient: -2.9, lamp: 1, window: 0.35, stars: 1, flies: 1, village: 1, lit: 'below',
+      },
+      evening: {
+        [SKY]: ['#26285a', '#323872', '#464886', '#5e5592', '#7c6298', '#a06c94', '#c8788a', '#e48c80', '#f4a878', '#ffcc8a'],
+        [STAR]: ['#9890b0', '#e0d8e8', '#fff6e8'], [CLOUD]: ['#4a3e6e', '#6a5480', '#8e6888', '#c07c84', '#f0a07c', '#ffc890'],
+        [FAR]: ['#4e4a74', '#655c86', '#7e7098', '#a08cb0'], [HILL]: ['#25263a', '#30324a', '#3c3e58', '#4c4c68', '#6e6680'],
+        [FOREST]: ['#18181f', '#20212c', '#2a2c3a', '#363848'], [LAKE]: ['#4a4466', '#6a5a7c', '#a07484', '#d89a8a', '#ffd090'],
+        [VLIGHT]: ['#8a5028', '#e09a48', '#ffd890'], [STEAM]: ['#a89488', '#c8b4a4'], [MIST]: ['#8a7890', '#a890a4'], [BIRD]: ['#2a1c2a'],
+        [GLASS]: ['#7a3a14', '#c8661e', '#f0a03c', '#ffd47a', '#fff2c0'],
+        ambient: -1.7, lamp: 0.8, window: 0.9, stars: 0.3, flies: 0.5, village: 0.6, lit: 'below',
+      },
+      morning: {
+        [SKY]: ['#7aa0d0', '#86aad6', '#94b4dc', '#a2bee0', '#b2c8e4', '#c2d0e4', '#d4d6e2', '#e6dcdc', '#f2e0d2', '#fae8cc'],
+        [STAR]: ['#c2d0e4', '#c2d0e4', '#c2d0e4'], [CLOUD]: ['#b8b8cc', '#cccad8', '#e0dce4', '#f0ecf0', '#fff4f0', '#ffffff'],
+        [FAR]: ['#8c9cbc', '#9cacc8', '#b0bed4', '#c8d2e2'], [HILL]: ['#3e5e4e', '#4a6c58', '#567c64', '#668c72', '#88aa90'],
+        [FOREST]: ['#2a4434', '#33503e', '#3e5e48', '#4c6e56'], [LAKE]: ['#98aac0', '#b0c0d2', '#c8d4e2', '#e0e8f0', '#ffffff'],
+        [VLIGHT]: ['#c8d0dc', '#c8d0dc', '#c8d0dc'], [STEAM]: ['#e8e2dc', '#f6f2ee'], [MIST]: ['#e4e6ec', '#f4f4f6'], [BIRD]: ['#3a4450'],
+        [GLASS]: ['#5a5a5c', '#7c7e80', '#a4a6a8', '#c8cacc', '#eceeee'],
+        ambient: -0.4, lamp: 0.2, window: 1.2, stars: 0, flies: 0, village: 0, lit: 'above',
+      },
+      day: {
+        [SKY]: ['#2e6cb8', '#3676c0', '#4080c8', '#4c8ad0', '#5a96d6', '#68a2dc', '#78aee2', '#8abae8', '#a0c8ee', '#b8d8f4'],
+        [STAR]: ['#78aee2', '#78aee2', '#78aee2'], [CLOUD]: ['#a8b8d0', '#c0cee0', '#d8e2ee', '#eaf0f6', '#f8fbfd', '#ffffff'],
+        [FAR]: ['#6a88b0', '#7a96bc', '#90a8c8', '#aec0d8'], [HILL]: ['#245a30', '#2c6838', '#367842', '#448a4e', '#6cac6a'],
+        [FOREST]: ['#1a4422', '#22522a', '#2c6234', '#38723e'], [LAKE]: ['#3a78b0', '#4c8cc2', '#64a2d2', '#88bce2', '#ffffff'],
+        [VLIGHT]: ['#88b0d8', '#88b0d8', '#88b0d8'], [STEAM]: ['#eceae6', '#ffffff'], [MIST]: ['#d8e6f0', '#eef4f8'], [BIRD]: ['#2a3440'],
+        [GLASS]: ['#5a5a5c', '#7c7e80', '#a4a6a8', '#c8cacc', '#eceeee'],
+        ambient: 0.1, lamp: 0, window: 1, stars: 0, flies: 0, village: 0, lit: 'above',
+      },
+    };
+    // ordered dithering, 4 x 4, in sixteenths of a shade
+    const BAY = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+    const bay = new Uint8Array(N);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) bay[y * W + x] = BAY[(y & 3) * 4 + (x & 3)];
+    const rnd = (seed) => () => { seed = (seed + 0x6d2b79f5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+
+    // ---- drawing into a layer: material and shade per pixel ----
+    const layer = () => ({ m: new Uint8Array(N), b: new Int16Array(N) });
+    function put(L, x, y, m, s) { x = Math.round(x); y = Math.round(y); if (x < 0 || y < 0 || x >= W || y >= H) return; const i = y * W + x; L.m[i] = m; L.b[i] = Math.round(s * 16); }
+    function rect(L, x, y, w, h, m, s) { for (let yy = y; yy < y + h; yy++) for (let xx = x; xx < x + w; xx++) put(L, xx, yy, m, typeof s === 'function' ? s(xx, yy) : s); }
+    function ellipse(L, cx, cy, rx, ry, m, s) { for (let y = Math.floor(cy - ry); y <= cy + ry; y++) for (let x = Math.floor(cx - rx); x <= cx + rx; x++) { const q = ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2; if (q <= 1) put(L, x, y, m, typeof s === 'function' ? s(x, y, q) : s); } }
+    function poly(L, pts, m, s) {
+      let y0 = Infinity, y1 = -Infinity; for (const p of pts) { y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]); }
+      for (let y = Math.floor(y0); y <= y1; y++) {
+        const xs = [];
+        for (let i = 0; i < pts.length; i++) { const a = pts[i], b = pts[(i + 1) % pts.length]; if ((a[1] <= y && b[1] > y) || (b[1] <= y && a[1] > y)) xs.push(a[0] + ((y - a[1]) / (b[1] - a[1])) * (b[0] - a[0])); }
+        xs.sort((p, q) => p - q);
+        for (let k = 0; k + 1 < xs.length; k += 2) for (let x = Math.ceil(xs[k]); x <= xs[k + 1]; x++) put(L, x, y, m, typeof s === 'function' ? s(x, y) : s);
+      }
+    }
+    function line(L, x0, y0, x1, y1, m, s) { const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0), 1); for (let i = 0; i <= n; i++) put(L, x0 + ((x1 - x0) * i) / n, y0 + ((y1 - y0) * i) / n, m, s); }
+    // a sprite from rows of characters, each standing for a material and shade; '.' is clear
+    function sprite(L, x, y, rows, key, shear) {
+      rows.forEach((row, j) => { const dx = shear ? Math.round(shear(j)) : 0; for (let i = 0; i < row.length; i++) { const k = key[row[i]]; if (k) put(L, x + i + dx, y + j, k[0], k[1]); } });
+    }
+
+    // ---- where things are ----
+    const WIN = [20, 74, 138, 186];                       // the window: left, top, right, bottom
+    const LANTERN = [34, 74], CHIME = [118, 74], WICK = [19, 210], CUP = [136, 201];
+    // the hurricane lantern: k/d/l/h its metal dark to light, 1-4 the lit glass, y/w the flame in it
+    const LANTERN_ROWS = [
+      '.....kk......', '....k..k.....', '...k....k....', '..k......k...', '..k......k...', '...dllld.....', '..dllhlld....',
+      '.kdddddddk...', 'kd1222221dk..', 'kd1233321dk..', 'kd2334332dk..', 'kd23ywy32dk..', 'kd2ywwwy2dk..', 'kd23ywy32dk..',
+      'kd2334332dk..', 'kd1233321dk..', 'kd1222221dk..', '.kdddddddk...', '.kllhhhllk...', 'kdddddddddk..', 'kllllhllllk..',
+      'kdddddddddk..', '.kdddddddk...', '..kkkkkkk....'];
+    const LKEY = { k: [METAL, 0], d: [METAL, 1], l: [METAL, 2], h: [METAL, 4], 1: [GLASS, 1], 2: [GLASS, 2], 3: [GLASS, 3], 4: [GLASS, 4], y: [GLASS, 4], w: [FLAME, 3] };
+    // the candle flame, three frames; r o y w its colours from the edge in
+    const FLAMES = [
+      ['..w..', '..y..', '.yyy.', '.ywy.', 'oywyo', 'oywyo', '.oyo.', '..o..'],
+      ['...w.', '..yy.', '.yyy.', '.ywy.', 'oywyo', 'oywyo', '.oyo.', '..o..'],
+      ['.w...', '.yy..', '.yyy.', '.ywwy', 'oywyo', 'oyyyo', '.oyo.', '..o..'],
+    ];
+    const FKEY = { r: [FLAME, 0], o: [FLAME, 1], y: [FLAME, 2], w: [FLAME, 3] };
+
+    // ---- the still layers, once per hour ----
+    let built = '', back = null, front = null, Lbase = null, Lpool = null, Cpool = null, P = null, pal = null, top = null;
+    const twinkle = [], clouds = [], mist = [];
+    function build(ph) {
+      P = HOUR[ph]; back = layer(); front = layer();
+      const R = rnd(7);
+      // the palette, as 32-bit pixels
+      pal = new Uint32Array(32 * 16); top = new Uint8Array(32);
+      const set = (m, ramp) => { top[m] = ramp.length - 1; ramp.forEach((hex, s) => { const v = parseInt(hex.slice(1), 16); pal[m * 16 + s] = 0xff000000 | ((v & 0xff) << 16) | (v & 0xff00) | (v >> 16); }); };
+      for (const k in ROOM) set(+k, ROOM[k]);
+      for (const k in P) if (Array.isArray(P[k])) set(+k, P[k]);
+      paintBack(back, R); paintFront(front, R);
+      // the light: the hour's daylight, the window, and the two lamps' pools, which flicker
+      Lbase = new Float32Array(N); Lpool = new Float32Array(N); Cpool = new Float32Array(N);
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+        const i = y * W + x;
+        let l = P.ambient + P.window * Math.exp(-(((x - 80) / 70) ** 2 + ((y - 190) / 50) ** 2));
+        if (y < 56) l -= (1 - y / 56) * (P.lamp > 0.5 ? 1.4 : 0.8);                    // the ceiling falls into the dark
+        if (y > 276) l -= Math.min(1, (y - 276) / 40) * 1.6;                            // and so do the chairs nearest us
+        l -= 0.6 * Math.max(0, Math.abs(x - 80) / 80 - 0.55) / 0.45;                   // and the walls at the sides
+        Lbase[i] = l * 16;
+        Lpool[i] = 16 * 4.2 * P.lamp * Math.exp(-(((x - 34) ** 2 + ((y - 92) * 0.9) ** 2) / (50 * 50)));
+        Cpool[i] = 16 * 4.4 * Math.max(P.lamp, 0.35) * Math.exp(-(((x - 19) ** 2 + ((y - 214) * 1.1) ** 2) / (62 * 62)));
+        if (P.lamp > 0.5) Lpool[i] += 16 * 1.4 * Math.exp(-(((x - 168) ** 2 + (y - 120) ** 2) / (40 * 40)));   // a wall lamp off to the right
+      }
+      // what twinkles, and the clouds that drift
+      mist.length = 0; for (let i = 0; i < (ph === 'morning' ? 22 : 12); i++) mist.push({ x: R() * 190, y: 143 + Math.floor(R() * 15), len: 8 + Math.floor(R() * 26), sp: 1 + R() * 2, s: R() < 0.5 ? 1 : 0 });
+      twinkle.length = 0; for (let i = 0; i < 26; i++) twinkle.push([WIN[0] + 4 + Math.floor(R() * 110), 76 + Math.floor(Math.pow(R(), 1.3) * 50), R() * 6, 0.6 + R() * 1.2]);
+      clouds.length = 0;
+      for (const [y, w, sp] of [[86, 22, 0.8], [96, 34, 1.1], [104, 26, 1.4], [112, 42, 1.7], [119, 30, 2], [126, 48, 2.3], [133, 36, 2.6]]) {
+        const h = 6 + Math.floor(w / 9), mask = new Uint8Array(w * h), c = { y, w, x: R() * 220, sp, px: [] };
+        const n = 3 + Math.floor(w / 9);
+        for (let k = 0; k < n; k++) {                    // a few round puffs, the biggest in the middle, cut flat underneath
+          const px = 3 + ((k + 0.5) / n) * (w - 6) + (R() - 0.5) * 3, mid = 1 - Math.abs(px - w / 2) / (w / 2), r = 2 + mid * (h - 3) * (0.6 + 0.4 * R());
+          for (let yy = 0; yy < h; yy++) for (let xx = 0; xx < w; xx++) if ((xx - px) ** 2 + ((yy - (h - 1)) * 1.15) ** 2 <= r * r) mask[yy * w + xx] = 1;
+        }
+        const on = (xx, yy) => xx >= 0 && yy >= 0 && xx < w && yy < h && mask[yy * w + xx];
+        for (let yy = 0; yy < h; yy++) for (let xx = 0; xx < w; xx++) {
+          if (!on(xx, yy)) continue;
+          const edgeTop = !on(xx, yy - 1), edgeBot = yy === h - 1 || !on(xx, yy + 1), side = !on(xx - 1, yy) || !on(xx + 1, yy), v = yy / (h - 1);
+          let sh = P.lit === 'below' ? 1.2 + v * 2 + (edgeBot ? 1.8 : 0) - (edgeTop ? 0.8 : 0) : 4.4 - v * 2.2 + (edgeTop ? 0.8 : 0) - (edgeBot ? 0.6 : 0);
+          if (side) sh -= 0.4;
+          c.px.push([xx, yy - h + 1, Math.max(0, Math.min(5, sh))]);
+        }
+        clouds.push(c);
+      }
+      built = ph;
+    }
+    function paintBack(L, R) {
+      const [x0, y0, x1, y1] = WIN;
+      // the sky, its colours dithered into one another, the milky way across it, the stars
+      for (let y = 60; y < 192; y++) for (let x = 0; x < W; x++) {
+        let s = Math.max(0, Math.min(9, ((y - 74) / 66) * 9));
+        if (P.stars) { const d = Math.abs((x - 118) * 0.93 + (y - 74) * 0.37) / 1; s += 1.6 * Math.exp(-((d / 7) ** 2)) * P.stars * Math.max(0, 1 - (y - 74) / 70); }
+        put(L, x, y, SKY, Math.min(9, s));
+      }
+      if (P.stars) for (let i = 0; i < 230 * P.stars; i++) {
+        const band = R() < 0.35, x = band ? 118 - (R() - 0.5) * 20 - (R() * 56) * 0.4 : x0 + R() * (x1 - x0), y = band ? 74 + R() * 56 : 74 + Math.pow(R(), 1.5) * 58;
+        put(L, x, y, STAR, R() < 0.2 ? 2 : R() < 0.5 ? 1 : 0);
+      }
+      // the far blue range on the right, the big hill, the rolling hills, all edged with the last light
+      const ridge = (f, xa, xb, m, shade, rim, tex) => {
+        for (let x = xa; x <= xb; x++) {
+          const top = Math.round(f(x));
+          for (let y = top; y < 200; y++) put(L, x, y, m, y === top ? rim : tex ? tex(x, y, top) : shade);
+        }
+      };
+      const wob = (x, k, a) => a * (Math.sin(x * k) * 0.6 + Math.sin(x * k * 2.3 + 1.7) * 0.3 + Math.sin(x * k * 5.1 + 0.4) * 0.1);
+      ridge((x) => 136 - 7 * Math.exp(-(((x - 104) / 9) ** 2)) - 5 * Math.exp(-(((x - 126) / 8) ** 2)) + wob(x, 0.4, 0.8), 80, 140, FAR, 1, 3, (x, y, t) => (y - t < 3 ? 2 : 1));
+      ridge((x) => (x < 58 ? 121 + ((58 - x) / 38) ** 2 * 11 : 121 + ((x - 58) / 52) ** 1.5 * 22) + wob(x, 0.3, 1.2), 18, 140, HILL, 2, 4,
+        (x, y, t) => { const d = y - t; return d < 2 && x > 58 ? 3 : R() < 0.12 ? 1 : R() < 0.05 ? 3 : 2 - (d > 20 ? 1 : 0); });
+      ridge((x) => 150 + wob(x, 0.09, 3) + wob(x + 9, 0.35, 0.8), 18, 140, HILL, 1, 2, (x, y, t) => (R() < 0.15 ? 0 : R() < 0.05 ? 2 : 1));
+      // the lake, and the village on its far shore
+      for (let y = 158; y < 165; y++) for (let x = 72; x < 140; x++) if (y > 158 + Math.max(0, (90 - x) * 0.25)) put(L, x, y, LAKE, y === 159 ? 2 : R() < 0.15 ? 3 : 1);
+      if (P.village) for (let i = 0; i < 34; i++) { const x = 66 + Math.floor(R() * 72), y = 153 + Math.floor(R() * 5) + (x > 100 ? 1 : 0); put(L, x, y, VLIGHT, R() < 0.4 ? 2 : 1); if (x > 76 && R() < 0.6) { put(L, x, 160 + Math.floor(R() * 2), LAKE, 4); put(L, x, 162, LAKE, 3); } }
+      // dark trees between us and the lake: firs and round crowns
+      for (let i = 0; i < 40; i++) {
+        const x = 16 + R() * 126, base = 186, h = 10 + R() * 14, round = R() < 0.4;
+        if (round) { ellipse(L, x, base - h * 0.6, h * 0.36, h * 0.42, FOREST, (xx, yy) => (yy < base - h * 0.9 ? 2 : 1)); }
+        else for (let k = 0; k < h; k++) { const w = Math.round((k / h) * h * 0.32 + (k % 4 === 3 ? -1 : 0)); for (let dx = -w; dx <= w; dx++) put(L, x + dx, base - h + k, FOREST, k < 2 ? 2 : dx < 0 ? 0 : 1); }
+      }
+      rect(L, 16, 176, 126, 12, FOREST, 0);
+      // the porch: leaves behind the right curtain and below the rail, the rail and its posts
+      leaves(L, R, [[128, 186, 136, 82, 60], [122, 186, 134, 130, 30]], 0);
+      leaves(L, R, [[0, 214, 160, 196, 140], [0, 204, 160, 210, 120]], -1);
+      rect(L, 0, 194, W, 22, LEAF, (x, y) => (R() < 0.5 ? 1 : 0));
+      leaves(L, R, [[0, 214, 160, 196, 160]], -1);
+      log(L, 0, 186, W, 8, 4);
+      for (const [x, w] of [[62, 6], [82, 7]]) for (let y = 194; y < 216; y++) for (let k = 0; k < w; k++) put(L, x + k, y, WOOD, k === 0 ? 4 : k === w - 1 ? 1 : R() < 0.2 ? 2 : 3);
+    }
+    // a log or a beam: rounded, lit along its lower half, grain in short dark runs
+    function log(L, x, y, w, h, base, R2) {
+      const R = R2 || rnd(x * 7 + y * 13);
+      for (let yy = 0; yy < h; yy++) {
+        const v = yy / (h - 1), s = base + (v < 0.15 ? -2 : v < 0.4 ? -0.5 : v < 0.8 ? 0.5 : -1);
+        for (let xx = 0; xx < w; xx++) put(L, x + xx, y + yy, WOOD, s);
+      }
+      for (let k = 0; k < (w * h) / 14; k++) { const gx = x + Math.floor(R() * w), gy = y + 1 + Math.floor(R() * (h - 2)), len = 2 + Math.floor(R() * 6), d = R() < 0.75 ? -1 : 1; for (let j = 0; j < len; j++) put(L, gx + j, gy, WOOD, base + d + (gy - y < h * 0.4 ? -0.5 : 0.5)); }
+    }
+    // leaves along stems: each leaf a few pixels, lighter on top
+    const LEAF_SHAPES = [['.##', '##.'], ['##', '##'], ['#.', '##', '.#'], ['.#.', '###'], ['##.', '.##']];
+    function leaves(L, R, stems, dk) {
+      for (const [xa, ya, xb, yb, n] of stems) {
+        for (let i = 0; i < n; i++) {
+          const k = R(), x = xa + (xb - xa) * k + (R() - 0.5) * 9, y = ya + (yb - ya) * k + (R() - 0.5) * 9;
+          const sh = LEAF_SHAPES[Math.floor(R() * LEAF_SHAPES.length)], s0 = 2.5 + R() * 1.5 + dk;
+          sh.forEach((row, j) => { for (let q = 0; q < row.length; q++) if (row[q] === '#') put(L, x + q, y + j, LEAF, s0 + (j === 0 ? 0.8 : -0.4)); });
+        }
+      }
+    }
+    function paintFront(L, R) {
+      // the vine climbing the left side of the window
+      for (let y = 90; y < 190; y++) { const x = 22 + Math.round(Math.sin(y * 0.09) * 2 - (y - 90) * 0.12); put(L, x, y, WOOD, 1); }
+      leaves(L, R, [[24, 92, 14, 186, 46], [4, 186, 30, 140, 46], [0, 170, 22, 120, 30], [0, 190, 46, 178, 34], [20, 150, 40, 128, 14]], 0);
+      // the ceiling: logs side by side, into the dark; the eave; the lintel over the window, its rope ties
+      for (let k = 0; k < 4; k++) log(L, 0, k * 13 + (k ? 1 : 0), W, 13, 3, R);
+      log(L, 0, 54, W, 14, 4, R);
+      log(L, WIN[0] - 2, 68, WIN[2] - WIN[0] + 4, 6, 4, R);
+      for (const x of [36, 80, 118]) for (let y = 68; y < 74; y++) for (let k = 0; k < 3; k++) put(L, x - 1 + k, y, ROPE, (y + k) % 2 ? 3 : 2);
+      // the post on the right
+      for (let y = 54; y < 278; y++) for (let k = 0; k < 6; k++) put(L, 154 + k, y, WOOD, k === 0 ? 1 : k === 1 ? 3.6 : R() < 0.2 ? 2 : 2.8);
+      // the table: planks across, nearer ones taller, a dark line between, grain and knots
+      const seams = [214, 221, 229, 238, 248, 259, 270];
+      for (let p = 0; p < seams.length - 1; p++) {
+        const ya = seams[p], yb = seams[p + 1], base = 4 + (p % 2 ? 0.4 : 0);
+        for (let y = ya; y < yb; y++) for (let x = 0; x < W; x++) put(L, x, y, WOOD, y === ya ? 1 : y === ya + 1 ? base + 0.8 : base);
+        for (let k = 0; k < 60; k++) { const gx = Math.floor(R() * W), gy = ya + 2 + Math.floor(R() * (yb - ya - 2)), len = 3 + Math.floor(R() * 10), d = R() < 0.7 ? -1 : 1; for (let j = 0; j < len; j++) put(L, gx + j, gy, WOOD, base + d); }
+        if (R() < 0.8) { const kx = Math.floor(R() * W), ky = ya + Math.floor((yb - ya) / 2); ellipse(L, kx, ky, 2, 1, WOOD, base - 1.5); }
+      }
+      log(L, 0, 270, W, 6, 3, R);
+      board(L, R);
+      sack(L, R);
+      // the candle's dish and the candle itself (its wax lit by its own flame)
+      ellipse(L, 21, 238, 20, 3, WOOD, 1);
+      ellipse(L, 19, 234, 17, 4, CERAMIC, (x, y, q) => (y < 233 ? 3 : 2));
+      ellipse(L, 19, 233, 14, 2.5, CERAMIC, 1.5);
+      for (let y = 212; y < 234; y++) for (let x = 13; x < 25; x++) put(L, x, y, WAX, x < 15 ? 1 : x > 22 ? 1.2 : y < 216 ? 3 : 2.2);
+      ellipse(L, 19, 212, 6, 1.5, WAX, 3);
+      for (const [dx, h] of [[14, 4], [17, 2], [21, 5], [23, 3]]) for (let k = 0; k < h; k++) put(L, dx, 213 + k, WAX, 3);
+      put(L, 19, 211, METAL, 0); put(L, 19, 210, METAL, 0);
+      mug(L, R);
+      // the chairs nearest us, in shadow, a towel over the right one
+      for (let y = 276; y < H; y++) for (let x = 0; x < W; x++) put(L, x, y, WOOD, 0.4);
+      log(L, -2, 280, 122, 8, 4, R);
+      for (const sx of [4, 28, 52, 76, 100]) for (let y = 288; y < H; y++) for (let k = 0; k < 14; k++) put(L, sx + k, y, WOOD, (k === 0 ? 3.4 : k > 11 ? 1.4 : 2.6) - (y - 288) / 40 + (R() < 0.1 ? -0.5 : 0));
+      towel(L, R);
+    }
+    function board(L, R) {
+      const tl = [48, 226], tr = [112, 226], br = [124, 262], bl = [36, 262];
+      poly(L, [[tl[0] - 1, tl[1] + 2], [tr[0] + 3, tr[1] + 2], [br[0] + 4, br[1] + 3], [bl[0] + 1, bl[1] + 3]], WOOD, 1.5);   // its shadow
+      poly(L, [tl, tr, br, bl], WOOD, (x, y) => (y < 228 ? 5.6 : 4.4));
+      const I = [[tl[0] + 3, tl[1] + 2], [tr[0] - 3, tr[1] + 2], [br[0] - 4, br[1] - 3], [bl[0] + 4, bl[1] - 3]];
+      poly(L, I, SLATE, (x, y) => 2.2 + (R() < 0.08 ? 0.8 : 0) - (y - 228) / 60);
+      for (let i = 0; i < 46; i++) { const y = 231 + Math.floor(R() * 26), half = (y - 228) * 0.3, x = 52 + half * -0.9 + Math.floor(R() * (60 + half * 1.8)); grain(L, x, y, R); }
+    }
+    function grain(L, x, y, R) { const r = R(); const m = r < 0.45 ? LENTIL : r < 0.8 ? RICE : MUNG; put(L, x, y, m, 3); if (R() < 0.5) put(L, x + 1, y, m, 2); }
+    // the cloth sack on its side, its mouth open to the right, lentils running out across the table
+    function sack(L, R) {
+      const body = [[-4, 200], [8, 193], [30, 190], [46, 194], [54, 200], [60, 198], [66, 204], [66, 216], [60, 224], [52, 222], [30, 227], [-4, 226]];
+      poly(L, body, SACK, (x, y) => 3.3 - Math.max(0, (y - 198) / 12) + (x < 22 ? 0.5 : 0) - (x > 46 ? 0.6 : 0) + (y < 196 ? 0.7 : 0));
+      for (const [xa, ya, xb, yb] of [[6, 198, 44, 196], [2, 212, 48, 204], [10, 222, 50, 214], [46, 196, 50, 220], [20, 192, 36, 210], [30, 224, 54, 206]]) { line(L, xa, ya, xb, yb, SACK, 1.6); line(L, xa, ya - 1, xb, yb - 1, SACK, 4.2); }
+      for (let i = 0; i < 6; i++) { const x = 4 + Math.floor(R() * 36), y = 200 + Math.floor(R() * 18); put(L, x, y, LENTIL, 1); put(L, x + 1, y, LENTIL, 2); put(L, x, y + 1, LENTIL, 2); }   // the print on it
+      for (let y = 197; y < 225; y++) { put(L, 53, y, ROPE, 2.5 + ((y & 1) ? 0.8 : 0)); put(L, 54, y, ROPE, 1.8); }
+      ellipse(L, 60, 211, 5, 10, SACK, 1);
+      ellipse(L, 60, 211, 4, 9, TEA, 1);
+      for (let i = 0; i < 40; i++) { const x = 56 + R() * 8, y = 203 + R() * 17; put(L, x, y, LENTIL, 2 + R() * 2); }
+      for (let y = 201; y < 222; y++) put(L, 65 - Math.abs(y - 211) * 0.25, y, SACK, 5);
+      for (let i = 0; i < 70; i++) { const k = R(), x = 60 + k * 56 + (R() - 0.5) * 6, y = 220 + k * 4 + (R() - 0.5) * (2 + k * 4); grain(L, x, y, R); }
+      for (let i = 0; i < 24; i++) grain(L, 30 + R() * 120, 228 + R() * 38, R);
+    }
+    function mug(L, R) {
+      const [cx, top] = CUP;
+      ellipse(L, cx + 2, 226, 13, 2, WOOD, 1.5);
+      for (let y = 205; y < 222; y++) for (const dx of [10, 11, 12, 13]) { const x = cx + dx + (y < 208 || y > 219 ? -1 : 0); if ((dx === 10 || dx === 13) || y === 205 || y === 221) put(L, x, y, CERAMIC, dx === 13 ? 2 : 4); }
+      for (let y = top; y < 226; y++) {
+        const w = 10 - (y > 222 ? y - 222 : 0);
+        for (let dx = -w; dx < w; dx++) { const u = (dx + w) / (2 * w), s = u < 0.12 ? 1.6 : u < 0.3 ? 3.4 : u < 0.55 ? 4.4 : u < 0.85 ? 3.6 : 2.2; put(L, cx + dx, y, CERAMIC, s); }
+      }
+      ellipse(L, cx, top, 10, 2, CERAMIC, 5);
+      ellipse(L, cx, top + 0.3, 8, 1.3, TEA, 1);
+      for (const [sx, h] of [[cx - 6, 12], [cx + 1, 14], [cx + 6, 9]]) {               // green sprigs painted on it
+        for (let k = 0; k < h; k++) put(L, sx, 222 - k, LEAF, 3);
+        for (let k = 1; k < h; k += 3) { put(L, sx - 1, 222 - k, LEAF, 4); put(L, sx - 2, 221 - k, LEAF, 4); put(L, sx + 1, 220 - k, LEAF, 3); put(L, sx + 2, 219 - k, LEAF, 4); }
+      }
+    }
+    function towel(L, R) {
+      for (let y = 279; y < H; y++) {
+        const x0 = 120 + Math.round(Math.sin((y - 279) * 0.05) * 2);
+        for (let x = x0; x < W; x++) { const u = (x - x0) / (W - x0), fold = Math.sin(u * 14 + (y - 279) * 0.02); put(L, x, y, (x - x0 > 10 && x - x0 < 13) || (x - x0 > 24 && x - x0 < 27) ? STRIPE : TOWEL, 2.6 + fold * 0.7 - (y - 279) / 90); }
+      }
+    }
+
+    // ---- per frame ----
+    const work = layer(), img = { cv: null, ctx: null, data: null, px: null };
+    const fx = { t: 0, ring: 0, lan: { a: 0, v: 0 }, chi: { a: 0, v: 0 }, steam: [], acc: 0, flies: [], birds: [], nextBirds: 3, shoot: null, nextShoot: 6 };
+    function breeze(t) {
+      const gust = Math.max(0, Math.sin(t * 0.19) * Math.sin(t * 0.083 + 1.3)) * 0.9 + 0.22 * (0.5 + 0.5 * Math.sin(t * 0.43 + 0.6));
+      return 0.22 + gust + 0.05 * Math.sin(t * 1.9) * Math.sin(t * 0.7 + 2);
+    }
+    function swing(p, dt, period, damp, push) {
+      const w0 = 6.2832 / period, n = Math.max(1, Math.ceil(dt * 120)), h = dt / n;
+      for (let i = 0; i < n; i++) { const acc = -w0 * w0 * p.a - 2 * damp * w0 * p.v + push; p.v += acc * h; p.a += p.v * h; }
+      return p.a;
+    }
+    function curtain(L, side, t, still) {
+      const top = 68, bot = side < 0 ? 186 : 214, tie = 152;
+      for (let y = top; y < bot; y++) {
+        const v = (y - top) / (bot - top);
+        let a, b;
+        if (side < 0) { a = 0; b = 25 - Math.round(v * 3); }
+        else if (y < tie) { const k = (y - top) / (tie - top); a = 132 + Math.round(9 * k * k); b = 156 - Math.round(2 * k); }
+        else { const k = (y - tie) / (bot - tie); a = 141 - Math.round(7 * k); b = 154 + Math.round(2 * k); }
+        const env = side < 0 ? Math.pow(v, 1.3) : y < tie ? Math.sin(Math.PI * (y - top) / (tie - top)) * 0.5 : Math.min(1, (y - tie) / 30) * 1.2;
+        const push = still ? 0 : breeze(t - v * 0.7) - 0.2, flut = still ? 0 : 0.35 * push * Math.sin(t * 2.2 + v * 6 + side) + 0.15 * Math.sin(t * 0.8 + v * 2);
+        const dx = Math.round(-side * 2.2 * env * (push * 0.9 + flut));
+        for (let x = a; x < b; x++) {
+          const u = (x - a) / Math.max(1, b - a), fold = Math.sin(u * Math.PI * 2 * (side < 0 ? 3.5 : 3) + (side < 0 ? 0 : 1));
+          const s = 3.6 + fold * 1.3 + (y < top + 3 ? -1.2 : 0) + (y === bot - 1 ? -0.8 : 0);
+          put(L, x + dx, y, FABRIC, s);
+        }
+      }
+      if (side > 0) for (let y = tie - 2; y < tie + 2; y++) for (let x = 140; x < 156; x++) put(L, x, y, FABRIC, y === tie - 2 ? 5 : 4);
+    }
+    function render(t, dt, ph, still) {
+      if (built !== ph) build(ph);
+      const L = work; L.m.set(back.m); L.b.set(back.b);
+      // clouds, only where there is sky
+      for (const c of clouds) {
+        if (!still) c.x += c.sp * dt;
+        const ox = Math.round(((c.x % 230) + 230) % 230) - 60;
+        for (const [x, y, s] of c.px) { const X = ox + x, Y = c.y + y, i = Y * W + X; if (X >= 0 && X < W && Y >= 0 && (L.m[i] === SKY || L.m[i] === STAR)) { L.m[i] = CLOUD; L.b[i] = Math.round(s * 16) - 8; } }
+      }
+      if (P.stars && !still) {
+        for (const [x, y, p, sp] of twinkle) { const a = Math.pow(0.5 + 0.5 * Math.sin(t * sp + p), 6); const i = y * W + x; if (a > 0.3 && L.m[i] === SKY) { L.m[i] = STAR; L.b[i] = a > 0.75 ? 32 : 16; } }
+        fx.nextShoot -= dt;
+        if (!fx.shoot && fx.nextShoot <= 0) { fx.shoot = { k: 0, x: 40 + Math.random() * 70, y: 78 + Math.random() * 20, dir: Math.random() < 0.5 ? 1 : -1 }; fx.nextShoot = 14 + Math.random() * 26; }
+        const s = fx.shoot;
+        if (s) {
+          s.k += dt / 0.7;
+          for (let j = 0; j < 6; j++) { const k = s.k - j * 0.04; if (k < 0) continue; const x = Math.round(s.x + s.dir * 34 * k), y = Math.round(s.y + 10 * k), i = y * W + x; if (x >= 0 && x < W && (L.m[i] === SKY || L.m[i] === STAR)) { L.m[i] = STAR; L.b[i] = j < 2 ? 32 : j < 4 ? 16 : 0; } }
+          if (s.k >= 1) fx.shoot = null;
+        }
+      }
+      if (P.village && !still) for (let i = 0; i < 10; i++) { const a = Math.sin(t * (1.2 + i * 0.3) + i * 2); if (a > 0.6) put(L, 78 + ((i * 37) % 58), 160 + (i % 3), LAKE, 4); }
+      if (!P.stars && !still) {                        // birds crossing by day
+        fx.nextBirds -= dt;
+        if (fx.nextBirds <= 0) { const n = 1 + Math.floor(Math.random() * 3), y = 82 + Math.random() * 30, dir = Math.random() < 0.5 ? 1 : -1; for (let k = 0; k < n; k++) fx.birds.push({ x: dir > 0 ? 10 - k * 6 : 150 + k * 6, y: y + (Math.random() - 0.5) * 6, dir, sp: 14 + Math.random() * 6, p: Math.random() * 6 }); fx.nextBirds = 6 + Math.random() * 10; }
+        for (const b of fx.birds) {
+          b.x += b.dir * b.sp * dt; const up = Math.sin(t * 9 + b.p) > 0, x = Math.round(b.x), y = Math.round(b.y);
+          for (const [dx, dy] of up ? [[-2, -1], [-1, 0], [0, 0], [1, 0], [2, -1]] : [[-2, 1], [-1, 0], [0, 0], [1, 0], [2, 1]]) { const X = x + dx, Y = y + dy, i = Y * W + X; if (X >= 0 && X < W && (L.m[i] === SKY || L.m[i] === CLOUD || L.m[i] === STAR)) { L.m[i] = BIRD; L.b[i] = 0; } }
+        }
+        fx.birds = fx.birds.filter((b) => b.x > -10 && b.x < 170);
+      }
+      if (ph === 'morning' || ph === 'evening') {          // mist lying in the valley: long streaks drifting slowly along it
+        for (const m of mist) {
+          if (!still) m.x += m.sp * dt;
+          const x0 = Math.round(((m.x % 190) + 190) % 190) - 30;
+          for (let k = 0; k < m.len; k++) {
+            const X = x0 + k, i = m.y * W + X, edge = k < 2 || k >= m.len - 2;
+            if (X < WIN[0] || X >= WIN[2] || (edge && (X + m.y) % 2)) continue;
+            if (L.m[i] === HILL || L.m[i] === FOREST || L.m[i] === LAKE || L.m[i] === FAR) { L.m[i] = MIST; L.b[i] = m.s * 16; }
+          }
+        }
+      }
+      // fireflies by night
+      if (P.flies) {
+        while (fx.flies.length < 9) fx.flies.push({ x: 10 + Math.random() * 120, y: 130 + Math.random() * 60, a: Math.random() * 6, p: Math.random() * 6 });
+        for (const q of fx.flies) {
+          if (!still) { q.a += (Math.random() - 0.5) * 2 * dt; q.x = Math.min(136, Math.max(4, q.x + Math.cos(q.a) * 4 * dt)); q.y = Math.min(200, Math.max(120, q.y + Math.sin(q.a) * 3 * dt)); }
+          const g = Math.sin(t * 1.3 + q.p);
+          if (g > 0.2) { const x = Math.round(q.x), y = Math.round(q.y); put(L, x, y, FLY, g > 0.75 ? 2 : 1); if (g > 0.7) for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const i = (y + dy) * W + x + dx; if (L.m[i] !== FLY) { L.m[i] = FLY; L.b[i] = 0; } } }
+        }
+      }
+      // the wind chime: a quick pendulum, the gusts pushing it
+      const w = (lag) => (still ? 0.3 : breeze(t - lag));
+      const cth = still ? 0 : swing(fx.chi, dt, 1.6, 0.07, 1.4 * (w(0.5) - 0.45)) + fx.ring * 0.05 * Math.sin(t * 4.4);
+      fx.ring *= Math.exp(-dt / 1.8);
+      const [cx, cy] = CHIME, sh = (j) => Math.sin(cth) * j;
+      for (const ex of [-5, 0, 5]) line(L, cx + sh(0), cy, cx + ex + sh(12), cy + 12, METAL, 1);
+      for (let x = -6; x <= 6; x++) put(L, cx + x + sh(13), cy + 13, BAMBOO, 3);
+      for (const [ex, len] of [[-4, 18], [0, 20], [4, 17]]) {
+        line(L, cx + ex + sh(13), cy + 13, cx + ex + sh(18), cy + 18, METAL, 1);
+        for (let j = 0; j < len; j++) { const y = cy + 18 + j, x = cx + ex + sh(18 + j); put(L, x - 1, y, BAMBOO, 1.5); put(L, x, y, BAMBOO, 3.2); put(L, x + 1, y, BAMBOO, 4.5); if (j === 8) { put(L, x - 1, y, BAMBOO, 0); put(L, x, y, BAMBOO, 1); put(L, x + 1, y, BAMBOO, 2); } }
+      }
+      line(L, cx + sh(38), cy + 38, cx + sh(44), cy + 44, METAL, 1);
+      for (let j = 0; j < 13; j++) { const y = cy + 44 + j, x = cx + sh(44 + j); for (let k = -2; k <= 2; k++) put(L, x + k, y, BAMBOO, k === -2 ? 1.2 : k === 2 ? 2 : k === 1 ? 4.6 : 3.2); }
+      // the voile, pushed into the room by the breeze
+      curtain(L, -1, t, still); curtain(L, 1, t, still);
+      // the room in front
+      const fm = front.m, fb = front.b, wm = L.m, wb = L.b;
+      for (let i = 0; i < N; i++) if (fm[i]) { wm[i] = fm[i]; wb[i] = fb[i]; }
+      // the lantern on its hook, heavier and slower
+      const lth = still ? 0 : swing(fx.lan, dt, 2.4, 0.12, 0.42 * (w(0.9) - 0.45));
+      if (P.lamp > 0.5) {
+        const gx = LANTERN[0] + 1 + Math.round(Math.sin(lth) * 12), gy = LANTERN[1] + 12;
+        for (let y = gy - 16; y <= gy + 16; y++) for (let x = gx - 16; x <= gx + 16; x++) {
+          if (x < 0 || x >= W || y < 0) continue;
+          const i = y * W + x, d = Math.hypot(x - gx, (y - gy) * 0.9) / 16, m = L.m[i];
+          if (d < 1 && (m === SKY || m === STAR || m === CLOUD) && bay[i] < 16 * (1 - d) * 1.1) { L.m[i] = GLOW; L.b[i] = Math.round(16 * (3 * (1 - d) * (1 - d))); }
+        }
+      }
+      sprite(L, LANTERN[0] - 5, LANTERN[1], LANTERN_ROWS, LKEY, (j) => Math.sin(lth) * j);
+      // the candle flame: three frames, leaning from the breeze
+      const wc = w(1.4), frame = still ? 0 : Math.floor(t * (7 + 5 * wc)) % 3, lean = still ? 0 : 0.18 * (wc - 0.3) + 0.08 * Math.sin(t * 2.1);
+      sprite(L, WICK[0] - 2, WICK[1] - 8, FLAMES[frame], FKEY, (j) => lean * (8 - j));
+      // steam off the tea: pixels rising in two thin streams, thinning out, bent by the breeze
+      if (!still) {
+        fx.acc += dt * 18;
+        while (fx.acc >= 1) { fx.acc -= 1; fx.steam.push({ k: Math.random() < 0.5 ? -1 : 1, t: 0, born: t, life: 2 + Math.random() * 1.2, sp: 9 + Math.random() * 4 }); }
+        const ws = w(1);
+        for (const s of fx.steam) {
+          s.t += dt; const q = s.t / s.life;
+          const x = Math.round(CUP[0] + s.k * 3 + 4 * q * Math.sin(s.born * 1.3 + q * 3 + s.k) - (ws - 0.25) * 10 * q * q), y = Math.round(CUP[1] - 2 - s.sp * s.t);
+          const i = y * W + x;
+          if (x >= 0 && x < W && y >= 0 && bay[i] < 16 * (1 - q) * 0.9) { wm[i] = STEAM; wb[i] = q < 0.4 ? 16 : 0; }
+        }
+        fx.steam = fx.steam.filter((s) => s.t < s.life);
+      }
+      // the light, and the colours
+      const fl = still ? 1 : 0.92 + 0.06 * Math.sin(t * 11) * Math.sin(t * 6.3) + 0.03 * Math.sin(t * 23.7) + 0.03 * (wc - 0.4);
+      const fl2 = still ? 1 : 0.9 + 0.07 * Math.sin(t * 9.3 + 1) * Math.sin(t * 5.1) + 0.04 * Math.sin(t * 19.1);
+      const px = img.px;
+      for (let i = 0; i < N; i++) {
+        const m = wm[i];
+        let s = wb[i] + bay[i];
+        if (LIT[m]) s += Lbase[i] + Lpool[i] * fl2 + Cpool[i] * fl;
+        s >>= 4;
+        px[i] = pal[(m << 4) | (s < 0 ? 0 : s > top[m] ? top[m] : s)];
+      }
+      img.ctx.putImageData(img.data, 0, 0);
+    }
+    // the room drawn over the frame f the caller gives (the camera's transform already set)
+    function draw(ctx, f, dt, ph, still) {
+      if (!img.cv) { img.cv = document.createElement('canvas'); img.cv.width = W; img.cv.height = H; img.ctx = img.cv.getContext('2d'); img.data = img.ctx.createImageData(W, H); img.px = new Uint32Array(img.data.data.buffer); }
+      fx.t += dt;
+      render(fx.t, dt, ph, still);
+      const was = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(img.cv, f.x0, f.y0, f.dw, f.dh);
+      ctx.imageSmoothingEnabled = was;
+    }
+    let tableL = null, tableKey = '';
+    const timg = { cv: null, ctx: null, data: null, px: null };
+    function drawTable(ctx, cw, ch, dt, ph, still) {
+      if (built !== ph) build(ph);
+      const TW = 160, TH = Math.round((160 * ch) / cw), TN = TW * TH, key = ph + ':' + TH;
+      if (tableKey !== key) {
+        tableKey = key; const R = rnd(31); tableL = { m: new Uint8Array(TN), b: new Int16Array(TN), L: new Float32Array(TN), C: new Float32Array(TN) };
+        const T = tableL, tp = (x, y, m, s) => { if (x < 0 || y < 0 || x >= TW || y >= TH) return; const i = y * TW + x; T.m[i] = m; T.b[i] = Math.round(s * 16); };
+        let y = 0, p = 0;
+        while (y < TH) {
+          const h = 16 + Math.floor(R() * 6), base = 4 + (p % 2 ? 0.35 : 0) + (R() - 0.5) * 0.4;
+          for (let yy = y; yy < y + h; yy++) for (let x = 0; x < TW; x++) tp(x, yy, WOOD, yy === y ? 1 : yy === y + 1 ? base + 0.8 : yy === y + h - 1 ? base - 0.7 : base);
+          for (let k = 0; k < 90; k++) { const gx = Math.floor(R() * TW), gy = y + 2 + Math.floor(R() * (h - 3)), len = 3 + Math.floor(R() * 14), d = R() < 0.7 ? -1 : 1; for (let j = 0; j < len; j++) tp(gx + j, gy, WOOD, base + d); }
+          for (let k = 0; k < 2; k++) if (R() < 0.6) { const kx = Math.floor(R() * TW), ky = y + Math.floor(h / 2); for (let dy = -1; dy <= 1; dy++) for (let dx = -3; dx <= 3; dx++) if (dx * dx / 9 + dy * dy <= 1) tp(kx + dx, ky + dy, WOOD, base - 1.6 + (Math.abs(dx) > 1 ? 0.6 : 0)); }
+          if (R() < 0.5) { const jx = Math.floor(R() * TW); for (let yy = y + 1; yy < y + h; yy++) tp(jx, yy, WOOD, 1); }     // a butt joint
+          y += h; p++;
+        }
+        for (let k = 0; k < 60; k++) { const x = Math.floor(R() * TW), yy = Math.floor(R() * TH), r = R(), m = r < 0.45 ? LENTIL : r < 0.8 ? RICE : MUNG; tp(x, yy, m, 3); if (R() < 0.5) tp(x + 1, yy, m, 2); }   // grains spilled here and there
+        for (let yy = 0; yy < TH; yy++) for (let x = 0; x < TW; x++) {
+          const i = yy * TW + x, ex = Math.abs(x - 80) / 80, ey = Math.abs(yy - TH * 0.47) / (TH * 0.53);
+          T.L[i] = 16 * (P.ambient + 0.5 - 1.4 * Math.max(0, ex * ex + ey * ey - 0.35));
+          T.C[i] = 16 * 4 * Math.max(P.lamp, 0.35) * Math.exp(-(((x + 20) ** 2 + (yy - TH * 0.32) ** 2) / ((TH * 0.42) ** 2)));
+        }
+      }
+      if (!timg.cv || timg.cv.height !== TH) { timg.cv = document.createElement('canvas'); timg.cv.width = TW; timg.cv.height = TH; timg.ctx = timg.cv.getContext('2d'); timg.data = timg.ctx.createImageData(TW, TH); timg.px = new Uint32Array(timg.data.data.buffer); }
+      const t = fx.t, fl = still ? 1 : 0.92 + 0.06 * Math.sin(t * 11) * Math.sin(t * 6.3) + 0.03 * Math.sin(t * 23.7), T = tableL, px = timg.px;
+      for (let i = 0; i < TN; i++) { const m = T.m[i]; let s = (T.b[i] + BAY[((Math.floor(i / TW)) & 3) * 4 + ((i % TW) & 3)] + T.L[i] + T.C[i] * fl) >> 4; px[i] = pal[(m << 4) | (s < 0 ? 0 : s > top[m] ? top[m] : s)]; }
+      timg.ctx.putImageData(timg.data, 0, 0);
+      const was = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(timg.cv, 0, 0, cw, ch); ctx.imageSmoothingEnabled = was;
+    }
+    return { W, H, draw, drawTable, fx, breeze };
+  })();
+
   // ---------- the hut, drawn in code, after the night painting: by the hour, and everything in it can move ----------
   // A tall frame like the painting's, in its own units (645 wide, 1290 high). What never moves is painted once per hour
   // and screen size onto layers: the sky, the land, the porch, each curtain and the room in front. The room's layers
@@ -3292,10 +3785,16 @@ const GrainSim = (() => {
     roomFx.t += dt;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.fillStyle = '#120c08'; ctx.fillRect(0, 0, cw, ch);
-    const painting = roomMode() === 'painting', im = painting ? plateFile(P.file) : null, drawn = !painting || plateCache[P.file].failed;
+    const painting = roomMode() === 'painting', im = painting ? plateFile(P.file) : null, drawn = roomMode() === 'drawn' || (painting && plateCache[P.file].failed);
     if (im && P.top) plateFile(P.top);
     let f = null, A = P;
-    if (drawn) {
+    if (roomMode() === 'pixel') {
+      f = frameFit(PixelScene.W, PixelScene.H); A = PIXEL;
+      if (f.wide) { const g = ctx.createRadialGradient(cw / 2, ch * 0.6, 0, cw / 2, ch * 0.6, cw * 0.6); g.addColorStop(0, '#2a1a10'); g.addColorStop(1, '#0a0604'); ctx.fillStyle = g; ctx.fillRect(0, 0, cw, ch); }
+      roomFx.fade = 1;
+      roomCamera(f, A, e);
+      PixelScene.draw(ctx, f, dt, dayPhase(hourNow()), still);
+    } else if (drawn) {
       f = frameFit(HutScene.FW, HutScene.FH); A = DRAWN;
       const ph = dayPhase(hourNow());
       if (HutScene.ready(f, ph)) {
@@ -3314,7 +3813,7 @@ const GrainSim = (() => {
     if (roomFx.fade < 1) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = 'rgba(18,12,8,' + (1 - roomFx.fade) + ')'; ctx.fillRect(0, 0, cw, ch); }
     roomTitle(true, f, A);
     // over the last stretch of the move the room gives way to the table seen from above
-    if (e > 0.45) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = Math.min(1, (e - 0.45) / 0.5); drawTableTop(); ctx.globalAlpha = 1; }
+    if (e > 0.45) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = Math.min(1, (e - 0.45) / 0.5); drawTableTop(0); ctx.globalAlpha = 1; }
   }
   // the camera: down over the board until it fills the screen, never so far that an edge of the room comes into view
   function cameraAt(f, P, e) {
@@ -3508,9 +4007,11 @@ const GrainSim = (() => {
   // and laid plank by plank (zen-table.jpg), the candle's light still breathing on it from the left. While that loads,
   // the room's painting where the camera's move ends, the focus gone soft; without the painting, warm wood.
   let tableSoft = null;
-  function drawTableTop() {
+  function drawTableTop(dt) {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     const cw = canvas.width, ch = canvas.height, P = PLATE[scenePlate()], painting = roomMode() === 'painting';
+    roomFx.t += dt;
+    if (roomMode() === 'pixel') { PixelScene.fx.t += dt; PixelScene.drawTable(ctx, cw, ch, dt, dayPhase(hourNow()), reducedMotion()); return; }
     const top = painting && P.top ? plateFile(P.top) : null, im = painting ? plateFile(P.file) : null;
     if (top) {
       const s = Math.max(cw / top.naturalWidth, ch / top.naturalHeight);
@@ -4139,7 +4640,7 @@ const GrainSim = (() => {
   function render(dt) {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     if (screen === 'title') { drawRoom(dt); return; }
-    if (screen === 'table' || screen === 'sticks') { drawTableTop(); return; }
+    if (screen === 'table' || screen === 'sticks') { drawTableTop(dt); return; }
     ctx.drawImage(backgroundFor(GS.boardOf(levelIndex).id), 0, 0);
     const s = sim;
     if (!s || !sprites) return;
