@@ -1,0 +1,1635 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1b1e22">
+<title>Chopstick Catch — Cake Hero feel prototype</title>
+<style>
+  :root { --ink:#f1ece2; --dim:#9aa1a9; --panel:#16191dee; --accent:#ef7a3c; }
+  html, body { margin:0; height:100%; background:#1b1e22; overflow:hidden; overscroll-behavior:none;
+    -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; -webkit-tap-highlight-color:transparent;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color:var(--ink); }
+  #game { position:fixed; inset:0; width:100%; height:100%; display:block; touch-action:none; }
+  #safe { position:fixed; inset:0; visibility:hidden; pointer-events:none;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+  .hudbtn { position:fixed; top:calc(env(safe-area-inset-top) + 10px); height:34px; min-width:34px; border-radius:17px;
+    border:1px solid #ffffff22; background:#00000040; color:var(--ink); font:600 13px system-ui, sans-serif; letter-spacing:.06em;
+    display:flex; align-items:center; justify-content:center; padding:0 10px; touch-action:manipulation; cursor:pointer; }
+  .hudbtn:active { background:#ffffff22; }
+  #gearBtn { right:calc(env(safe-area-inset-right) + 10px); padding:0; width:34px; font-size:18px; }
+  #zenBtn { right:calc(env(safe-area-inset-right) + 52px); }
+  #zenBtn.on { background:#7fb59a55; border-color:#a9e0c399; }
+  #panel { position:fixed; inset:0; background:var(--panel); display:none; overflow-y:auto; -webkit-overflow-scrolling:touch;
+    touch-action:pan-y; padding: calc(env(safe-area-inset-top) + 12px) calc(env(safe-area-inset-right) + 14px)
+    calc(env(safe-area-inset-bottom) + 24px) calc(env(safe-area-inset-left) + 14px); box-sizing:border-box; font-size:13px; }
+  #panel.open { display:block; }
+  #panel h2 { margin:0 0 6px; font-size:16px; display:flex; justify-content:space-between; align-items:center; }
+  #panel h3 { margin:16px 0 6px; font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); }
+  #panel .row { display:grid; grid-template-columns: 9.5em 1fr 4.2em; gap:8px; align-items:center; min-height:30px; }
+  #panel .row label { color:#d6d0c6; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #panel .row output { text-align:right; font-variant-numeric:tabular-nums; color:var(--dim); }
+  #panel input[type=range] { width:100%; accent-color:var(--accent); }
+  #panel select { background:#22262b; color:var(--ink); border:1px solid #ffffff22; border-radius:6px; padding:4px; }
+  #panel .btns { display:flex; flex-wrap:wrap; gap:8px; margin:10px 0; position:sticky; top:-12px; background:var(--panel); padding:8px 0; z-index:1; }
+  #panel button { background:#2a2f35; color:var(--ink); border:1px solid #ffffff22; border-radius:8px; padding:8px 12px; font:600 13px system-ui; }
+  #panel button.primary { background:var(--accent); color:#1b1e22; border-color:transparent; }
+  #panel textarea { width:100%; box-sizing:border-box; height:150px; background:#101215; color:#cfd6dd; border:1px solid #ffffff1a;
+    border-radius:6px; font:11px ui-monospace, Menlo, monospace; }
+  #stats { color:var(--dim); font-variant-numeric:tabular-nums; }
+  #toast { position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom) + 20px); transform:translateX(-50%);
+    background:#000c; padding:8px 14px; border-radius:16px; font-size:13px; opacity:0; transition:opacity .25s; pointer-events:none; z-index:5; }
+  #toast.show { opacity:1; }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="safe"></div>
+<button id="zenBtn" class="hudbtn" aria-label="Toggle Zen mode">ZEN</button>
+<button id="gearBtn" class="hudbtn" aria-label="Open tuning panel">⚙</button>
+<div id="panel" role="dialog" aria-label="Tuning panel"></div>
+<div id="toast"></div>
+
+<script>
+// ===== CHOPSTICK-SIM BEGIN =====
+// Pure simulation: no DOM, no Math.random, no Date. Deterministic given (config, seed, worldH, input sequence).
+// Extracted verbatim by test/sim.test.mjs — keep everything the sim needs between these markers.
+const ChopSim = (() => {
+  'use strict';
+
+  const DT = 1 / 120;          // fixed simulation step (s)
+  const WHIP_T = 0.2;          // stick flick animation length (s)
+
+  // Every feel number lives here. Host-only keys (input, juice, audio, haptics) share the object so one JSON
+  // blob describes the whole feel. All values are illustrative starting points, not tuned product values.
+  const DEFAULTS = Object.freeze({
+    // physics
+    gravity: 2600,             // world units / s^2 (world is 1000 units wide)
+    // spawning
+    spawnInterval: 0.9,        // s between grains at run start
+    spawnIntervalMin: 0.5,     // s, floor after ramp
+    spawnRamp: 0.005,          // s shaved off the interval per second of play
+    spawnJitter: 0.25,         // +/- fraction of interval
+    arcTimeMin: 1.0,           // s flight time to the catch line
+    arcTimeMax: 1.5,
+    targetShare: 0.65,         // probability a spawned grain is the current target type
+    landMinX: 150,             // landing x range at the catch line
+    landMaxX: 850,
+    // sticks
+    stickYFrac: 0.74,          // column base as a fraction of world height
+    stickLen: 320,             // visible stick length above the base (units)
+    stickGap: 42,              // inner gap between the sticks
+    stickMinX: 110,
+    stickMaxX: 890,
+    stickFollow: 55,           // critically damped follow spring (rad/s); higher = snappier
+    dragMode: 'relative',      // 'relative' (thumb anywhere) | 'absolute' (sticks under the finger)
+    dragGain: 1.25,            // relative-drag multiplier
+    catchTolerance: 16,        // extra catch half-width beyond the gap edge
+    perfectFrac: 0.3,          // |offset| / halfWidth below this = perfect catch
+    nearMissFrac: 0.86,        // |offset| / halfWidth above this = near-miss catch (slow-mo)
+    // snap
+    snapStiffness: 900,        // caught-grain spring (k)
+    snapDamping: 24,           // (c); c < 2*sqrt(k) overshoots
+    // sway
+    swayStiffness: 30,         // restoring spring on the column lean
+    swayDamping: 3.2,
+    swayDrive: 0.00025,        // lean per unit stick acceleration
+    swayAccelClamp: 60000,
+    swayLenRef: 8,             // column length where lenFactor = 1 (bigger grains: same count, taller column)
+    swayLenExp: 1.3,           // lenFactor = (n / swayLenRef) ^ swayLenExp
+    swayBendAbove: 0.6,        // extra curvature of the part sticking out above the stick tips
+    swayImpulse: 0.5,          // lean kick from an off-centre catch
+    spillAngle: 0.42,          // rad; lean beyond this spills the column
+    spillMinLength: 3,         // columns shorter than this never spill
+    zenNoSpill: true,
+    // scoring and rules
+    scoreBase: 1,
+    scoreExponent: 2,          // bank score = round(scoreBase * length ^ scoreExponent)
+    wrongRule: 'lose_column',  // 'lose_column' | 'lose_top'
+    wrongTopN: 3,
+    wrongCountsAsMiss: true,
+    spillCountsAsMiss: true,
+    chainResetOnBank: true,
+    targetSwitch: 'per_bank',  // 'per_bank' | 'timer' | 'none'
+    targetSwitchSeconds: 12,
+    runMode: 'misses',         // 'misses' | 'timer' | 'both'
+    maxMisses: 5,
+    runSeconds: 90,
+    zen: false,
+    // bank
+    flickSpeed: 1500,          // host: upward swipe speed (world units / s) that counts as a flick
+    flickMinDist: 45,          // host: minimum upward travel (world units)
+    bankCascadeDelay: 0.04,    // s between grains leaving the column
+    bankFlightTime: 0.42,      // s per grain into the bowl
+    // juice (host)
+    slowmoEnabled: true,
+    slowmoScale: 0.35,
+    slowmoMs: 250,
+    shakeEnabled: true,
+    shakeAmount: 9,
+    dustCount: 7,
+    // audio (host)
+    volume: 0.7,
+    basePitch: 880,            // Hz of the first click in a chain
+    pitchStep: 1,              // semitones per caught grain
+    pitchCap: 24,              // max semitones above base
+    pitchWrap: false,          // wrap to base instead of capping
+    // haptics (host)
+    hapticsEnabled: true,
+    hapticCatchMs: 8,
+    hapticPerfectMs: 16,
+    hapticBankMs: 45,
+    hapticWrongMs: 35,
+    // debug
+    fixedSeed: 0,              // 0 = new seed every run
+    showDebug: false,
+  });
+
+  const ENUMS = Object.freeze({
+    dragMode: ['relative', 'absolute'],
+    wrongRule: ['lose_column', 'lose_top'],
+    targetSwitch: ['per_bank', 'timer', 'none'],
+    runMode: ['misses', 'timer', 'both'],
+  });
+
+  // Grain geometry in world units. slotH = height the grain takes in the column.
+  const GRAIN = Object.freeze({
+    lentil: Object.freeze({ slotH: 21, rx: 15, ry: 11 }),
+    rice: Object.freeze({ slotH: 31, rx: 7, ry: 16 }),
+  });
+  const TYPES = Object.freeze(['lentil', 'rice']);
+  const other = (t) => (t === 'lentil' ? 'rice' : 'lentil');
+  const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+  const r2 = (v) => Math.round(v * 100) / 100;
+
+  function mulberry32(seed) {
+    let a = seed >>> 0;
+    return function () {
+      a = (a + 0x6D2B79F5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function scoreFor(len, cfg) {
+    return len <= 0 ? 0 : Math.round(cfg.scoreBase * Math.pow(len, cfg.scoreExponent));
+  }
+
+  // Horizontal offset and vertical rise of a point at height hc along a column of total height H leaning by th.
+  // The column is rigid with the sticks up to the tips, and bends a little more above them.
+  function columnPoint(hc, th, cfg) {
+    const s = Math.sin(th), c = Math.cos(th), Ls = cfg.stickLen;
+    let dx = s * hc, rot = th;
+    if (hc > Ls) {
+      const e = hc - Ls;
+      dx += s * cfg.swayBendAbove * e * e / Ls;
+      rot += s * cfg.swayBendAbove * 2 * e / Ls;
+    }
+    return { dx, dy: hc * c, rot };
+  }
+
+  function validateConfig(cfg) {
+    const p = [];
+    for (const k of Object.keys(DEFAULTS)) {
+      const d = DEFAULTS[k], v = cfg[k];
+      if (typeof v !== typeof d) { p.push(`${k}: expected ${typeof d}`); continue; }
+      if (typeof d === 'number' && !Number.isFinite(v)) p.push(`${k}: not finite`);
+      if (ENUMS[k] && !ENUMS[k].includes(v)) p.push(`${k}: must be one of ${ENUMS[k].join('|')}`);
+    }
+    if (p.length) return p;
+    if (!(cfg.gravity > 0)) p.push('gravity must be > 0');
+    if (!(cfg.spawnInterval > 0) || !(cfg.spawnIntervalMin > 0)) p.push('spawn intervals must be > 0');
+    if (cfg.arcTimeMin <= 0 || cfg.arcTimeMin > cfg.arcTimeMax) p.push('arcTimeMin must be in (0, arcTimeMax]');
+    if (cfg.landMinX >= cfg.landMaxX) p.push('landMinX must be < landMaxX');
+    if (cfg.stickMinX >= cfg.stickMaxX) p.push('stickMinX must be < stickMaxX');
+    const halfW = cfg.stickGap / 2 + cfg.catchTolerance;
+    // Impossible-goal check: every landing point must be reachable by the catch window.
+    if (cfg.landMinX < cfg.stickMinX - halfW || cfg.landMaxX > cfg.stickMaxX + halfW) p.push('landing range is not fully reachable by the sticks');
+    if (cfg.targetShare <= 0 || cfg.targetShare > 1) p.push('targetShare must be in (0, 1]');
+    if (cfg.maxMisses < 1) p.push('maxMisses must be >= 1');
+    if (cfg.runSeconds <= 0) p.push('runSeconds must be > 0');
+    if (cfg.stickFollow <= 0 || cfg.stickFollow * DT > 1.5) p.push('stickFollow out of stable range');
+    if (cfg.snapStiffness <= 0 || Math.sqrt(cfg.snapStiffness) * DT > 1) p.push('snapStiffness out of stable range');
+    if (cfg.swayLenRef <= 0 || cfg.spillAngle <= 0) p.push('swayLenRef and spillAngle must be > 0');
+    if (cfg.stickYFrac <= 0.3 || cfg.stickYFrac >= 0.95) p.push('stickYFrac must be in (0.3, 0.95)');
+    return p;
+  }
+
+  function create(cfg, seed, opts) {
+    opts = opts || {};
+    const W = 1000;
+    const sim = { cfg, W, H: opts.worldH || 1700, s: null, events: [] };
+    let rng = mulberry32(1);
+    let nextId = 1;
+
+    function emit(type, data) {
+      sim.events.push(Object.assign({ type, t: r2(sim.s.time) }, data));
+    }
+
+    sim.layout = function () {
+      const H = sim.H;
+      return { stickY: H * sim.cfg.stickYFrac, bowlX: 330, bowlY: H - 150, bowlR: 120 };
+    };
+
+    function colHeight() {
+      let h = 0;
+      for (const it of sim.s.column) { const sh = GRAIN[it.type].slotH; it.hc = h + sh / 2; h += sh; }
+      return h;
+    }
+
+    sim.reset = function (seed2) {
+      const s0 = (seed2 >>> 0) || 1;
+      rng = mulberry32(s0);
+      nextId = 1;
+      sim.events = [];
+      const c = sim.cfg;
+      const x0 = (c.stickMinX + c.stickMaxX) / 2;
+      sim.s = {
+        seed: s0, time: 0, steps: 0, state: 'playing', endReason: null,
+        score: 0, banks: 0, catches: 0, misses: 0, chain: 0, bestColumn: 0,
+        target: rng() < 0.5 ? 'lentil' : 'rice', targetTimer: 0, nextSpawn: 0.55, flickQueued: false,
+        stick: { x: x0, px: x0, v: 0, a: 0, target: x0, whip: 0, pwhip: 0 },
+        sway: { th: 0, pth: 0, v: 0 },
+        column: [], grains: [], debris: [], pours: [],
+      };
+      emit('run_start', { seed: s0, target: sim.s.target, zen: !!c.zen, runMode: c.runMode });
+      return sim;
+    };
+
+    sim.drainEvents = function () { const e = sim.events; sim.events = []; return e; };
+
+    function spawn(L, H) {
+      const s = sim.s, c = sim.cfg, g = c.gravity;
+      const type = rng() < c.targetShare ? s.target : other(s.target);
+      let x0, y0;
+      if (type === 'lentil') {   // lentil heap: top-left corner, along the left edge and top edge
+        if (rng() < 0.6) { x0 = 20 + rng() * 40; y0 = 170 + rng() * sim.H * 0.22; }
+        else { x0 = 70 + rng() * 300; y0 = 60 + rng() * 40; }
+      } else {                   // rice heap: bottom-right corner, trailing up the right edge
+        if (rng() < 0.7) { x0 = 840 + rng() * 120; y0 = sim.H - 240 + rng() * 90; }
+        else { x0 = 950 + rng() * 30; y0 = sim.H * 0.5 + rng() * sim.H * 0.12; }
+      }
+      const xl = c.landMinX + rng() * (c.landMaxX - c.landMinX);
+      const yl = L.stickY - H;
+      let T = c.arcTimeMin + rng() * (c.arcTimeMax - c.arcTimeMin);
+      let vy = (yl - y0 - 0.5 * g * T * T) / T;
+      const vyMin = -Math.sqrt(2 * g * Math.max(0, y0 - 60));   // keep the apex on screen
+      if (vy < vyMin) {
+        vy = vyMin;
+        T = (-vy + Math.sqrt(vy * vy + 2 * g * (yl - y0))) / g;
+      }
+      const vx = (xl - x0) / T;
+      s.grains.push({ id: nextId++, type, x: x0, y: y0, px: x0, py: y0, vx, vy, rot: rng() * Math.PI * 2, prot: 0,
+        spin: (rng() - 0.5) * 12, missed: false, bounced: false, dead: false });
+      s.grains[s.grains.length - 1].prot = s.grains[s.grains.length - 1].rot;
+      emit('spawn', { grain: type, x: r2(x0), y: r2(y0) });
+    }
+
+    function toDebris(type, x, y, vx, vy, rot) {
+      sim.s.debris.push({ type, x, y, px: x, py: y, vx, vy, rot, prot: rot, spin: (rng() - 0.5) * 20,
+        life: 1.1 + rng() * 0.5, max: 1.6 });
+    }
+
+    function scatter(items) {
+      const sw = sim.s.sway, lean = Math.sin(sw.th);
+      for (const it of items) {
+        toDebris(it.type, it.x, it.y, (rng() - 0.5) * 520 + lean * 500 + sw.v * (it.hc || 0) * 0.5,
+          -150 - rng() * 520, it.rot);
+      }
+    }
+
+    function resetSwayIfEmpty() {
+      if (sim.s.column.length === 0) { sim.s.sway.th = 0; sim.s.sway.v = 0; }
+    }
+
+    function switchTarget(cause) {
+      sim.s.target = other(sim.s.target);
+      sim.s.targetTimer = 0;
+      emit('target_change', { target: sim.s.target, cause });
+    }
+
+    function catchGrain(g, dx, halfW, xc, cy) {
+      const s = sim.s, c = sim.cfg;
+      g.dead = true;
+      const half = Math.PI / 2;
+      const or = ((g.rot % Math.PI) + Math.PI * 1.5) % Math.PI - half;   // ellipses are symmetric under PI
+      s.column.push({ id: g.id, type: g.type, ox: dx, oy: 0, ovx: 0, ovy: Math.min(500, g.vy * 0.2), or, ovr: 0,
+        x: xc, y: cy, px: g.px, py: g.py, rot: g.rot, prot: g.prot, hc: 0, fresh: true });
+      s.catches++; s.chain++;
+      const n = s.column.length;
+      if (n > s.bestColumn) s.bestColumn = n;
+      const af = Math.abs(dx) / halfW;
+      const perfect = af <= c.perfectFrac;
+      const nearMiss = af >= c.nearMissFrac;
+      s.sway.v += c.swayImpulse * (dx / halfW) * 0.2 * Math.pow(n / c.swayLenRef, c.swayLenExp);
+      emit('catch', { grain: g.type, n, chain: s.chain, dx: r2(dx), perfect, nearMiss, x: r2(xc), y: r2(cy) });
+      if (perfect) emit('perfect_catch', { grain: g.type, n, dx: r2(dx), x: r2(xc), y: r2(cy) });
+    }
+
+    function wrongGrain(g, dx, xc, cy) {
+      const s = sim.s, c = sim.cfg;
+      if (c.zen) {               // Zen: wrong grains bounce off, nothing is lost
+        g.bounced = true;
+        g.vy = -Math.abs(g.vy) * 0.4 - 250;
+        g.vx = g.vx * 0.5 + (dx >= 0 ? 1 : -1) * 260;
+        g.spin *= -1.5;
+        emit('bounce', { grain: g.type, x: r2(xc), y: r2(cy) });
+        return;
+      }
+      g.dead = true;
+      toDebris(g.type, xc, cy, g.vx * 0.3, -300, g.rot);
+      const lost = c.wrongRule === 'lose_top' ? Math.min(Math.max(1, Math.round(c.wrongTopN)), s.column.length) : s.column.length;
+      scatter(s.column.splice(s.column.length - lost, lost));
+      resetSwayIfEmpty();
+      s.chain = 0;
+      if (c.wrongCountsAsMiss) s.misses++;
+      emit('wrong_grain', { grain: g.type, rule: c.wrongRule, lost, remaining: s.column.length, x: r2(xc), y: r2(cy) });
+    }
+
+    function spill() {
+      const s = sim.s, c = sim.cfg;
+      const len = s.column.length;
+      scatter(s.column.splice(0, len));
+      s.sway.th = 0; s.sway.v = 0;
+      s.chain = 0;
+      if (c.spillCountsAsMiss && !c.zen) s.misses++;
+      emit('spill', { length: len });
+    }
+
+    function bank(L) {
+      const s = sim.s, c = sim.cfg;
+      const len = s.column.length;
+      const pts = scoreFor(len, c);
+      s.score += pts; s.banks++;
+      for (let i = len - 1, k = 0; i >= 0; i--, k++) {     // top grain leaves first
+        const it = s.column[i];
+        s.pours.push({ type: it.type, sx: it.x, sy: it.y, x: it.x, y: it.y, px: it.x, py: it.y,
+          ex: L.bowlX + (rng() - 0.5) * L.bowlR * 1.0, ey: L.bowlY - 6 + (rng() - 0.5) * 18,
+          delay: k * c.bankCascadeDelay, t: 0, flight: c.bankFlightTime * (0.9 + rng() * 0.2),
+          rot: it.rot, prot: it.rot, spin: (rng() - 0.5) * 14, idx: k, done: false });
+      }
+      s.column.length = 0;
+      s.sway.th = 0; s.sway.v = 0;
+      if (c.chainResetOnBank) s.chain = 0;
+      emit('bank', { length: len, score: pts, total: s.score });
+      if (c.targetSwitch === 'per_bank') switchTarget('bank');
+    }
+
+    function endRun(reason) {
+      const s = sim.s;
+      const lost = s.column.length;
+      scatter(s.column.splice(0, lost));
+      resetSwayIfEmpty();
+      s.state = 'over'; s.endReason = reason;
+      emit('run_end', { reason, score: s.score, banks: s.banks, catches: s.catches, misses: s.misses,
+        bestColumn: s.bestColumn, lostColumn: lost, duration: r2(s.time) });
+    }
+
+    // input: { targetX?: number, flick?: boolean }
+    sim.step = function (input) {
+      const s = sim.s, c = sim.cfg, dt = DT, L = sim.layout();
+      const st = s.stick, sw = s.sway;
+      s.steps++;
+      st.px = st.x; st.pwhip = st.whip; sw.pth = sw.th;
+      for (const g of s.grains) { g.px = g.x; g.py = g.y; g.prot = g.rot; }
+      for (const g of s.column) { g.px = g.x; g.py = g.y; g.prot = g.rot; }
+      for (const g of s.debris) { g.px = g.x; g.py = g.y; g.prot = g.rot; }
+      for (const g of s.pours) { g.px = g.x; g.py = g.y; g.prot = g.rot; }
+      const playing = s.state === 'playing';
+
+      if (input && playing) {
+        if (typeof input.targetX === 'number' && Number.isFinite(input.targetX)) st.target = clamp(input.targetX, c.stickMinX, c.stickMaxX);
+        if (input.flick) s.flickQueued = true;
+      }
+
+      // sticks: critically damped follow spring
+      const w = c.stickFollow, v0 = st.v;
+      st.v += (w * w * (st.target - st.x) - 2 * w * st.v) * dt;
+      st.x += st.v * dt;
+      if (st.x < c.stickMinX) { st.x = c.stickMinX; st.v = 0; }
+      else if (st.x > c.stickMaxX) { st.x = c.stickMaxX; st.v = 0; }
+      st.a = (st.v - v0) / dt;
+      if (st.whip > 0) st.whip = Math.max(0, st.whip - dt);
+
+      // column lean: damped spring driven by stick acceleration; taller columns are driven harder and swing slower
+      const n = s.column.length;
+      if (n > 0) {
+        const lenF = Math.pow(n / c.swayLenRef, c.swayLenExp);
+        const k = c.swayStiffness / Math.sqrt(1 + n / c.swayLenRef);
+        const acc = clamp(st.a, -c.swayAccelClamp, c.swayAccelClamp);
+        sw.v += (-k * sw.th - c.swayDamping * sw.v - c.swayDrive * acc * lenF) * dt;
+        sw.th += sw.v * dt;
+        if (c.zen && c.zenNoSpill) {
+          const lim = c.spillAngle * 0.95;
+          if (sw.th > lim) { sw.th = lim; if (sw.v > 0) sw.v = 0; }
+          else if (sw.th < -lim) { sw.th = -lim; if (sw.v < 0) sw.v = 0; }
+        } else if (playing && n >= c.spillMinLength && Math.abs(sw.th) > c.spillAngle) {
+          spill();
+        }
+      } else { sw.th = 0; sw.v = 0; }
+
+      if (s.flickQueued) {
+        s.flickQueued = false;
+        st.whip = WHIP_T;
+        if (s.column.length > 0) bank(L); else emit('flick_empty', {});
+      }
+
+      let H = colHeight();
+      if (playing) {
+        s.time += dt;
+        if (c.targetSwitch === 'timer') {
+          s.targetTimer += dt;
+          if (s.targetTimer >= c.targetSwitchSeconds) switchTarget('timer');
+        }
+        if (s.time >= s.nextSpawn) {
+          spawn(L, H);
+          const interval = Math.max(c.spawnIntervalMin, c.spawnInterval - c.spawnRamp * s.time);
+          s.nextSpawn = s.time + interval * (1 + (rng() * 2 - 1) * c.spawnJitter);
+        }
+      }
+
+      // flying grains
+      const halfW = c.stickGap / 2 + c.catchTolerance;
+      for (const g of s.grains) {
+        g.vy += c.gravity * dt;
+        g.x += g.vx * dt; g.y += g.vy * dt; g.rot += g.spin * dt;
+        if (!playing || g.bounced || g.missed || g.vy <= 0) continue;
+        const top = columnPoint(H, sw.th, c);
+        const cy = L.stickY - top.dy;
+        if (g.py < cy && g.y >= cy) {
+          const f = (cy - g.py) / (g.y - g.py);
+          const xc = g.px + (g.x - g.px) * f;
+          const dx = xc - (st.x + top.dx);
+          if (Math.abs(dx) <= halfW) {
+            if (g.type === s.target) catchGrain(g, dx, halfW, xc, cy);
+            else wrongGrain(g, dx, xc, cy);
+            H = colHeight();
+          } else if (g.type === s.target) {
+            g.missed = true;
+            s.chain = 0;
+            if (!c.zen) s.misses++;
+            emit('miss', { grain: g.type, dx: r2(dx), x: r2(xc), y: r2(cy) });
+          }
+        }
+      }
+      s.grains = s.grains.filter((g) => !g.dead && g.y < sim.H + 80 && g.x > -250 && g.x < W + 250);
+
+      // debris
+      for (const d of s.debris) {
+        d.vy += c.gravity * dt; d.vx *= 1 - 1.5 * dt;
+        d.x += d.vx * dt; d.y += d.vy * dt; d.rot += d.spin * dt; d.life -= dt;
+      }
+      s.debris = s.debris.filter((d) => d.life > 0 && d.y < sim.H + 80);
+
+      // banked grains pouring into the bowl
+      for (const p of s.pours) {
+        p.t += dt;
+        const u = (p.t - p.delay) / p.flight;
+        if (u <= 0) continue;
+        const e = Math.min(1, u);
+        p.x = p.sx + (p.ex - p.sx) * e;
+        p.y = p.sy + (p.ey - p.sy) * e * e - 160 * 4 * e * (1 - e) * 0.6;
+        p.rot += p.spin * dt;
+        if (u >= 1) { p.done = true; emit('pour_tick', { grain: p.type, idx: p.idx, x: r2(p.ex), y: r2(p.ey) }); }
+      }
+      s.pours = s.pours.filter((p) => !p.done);
+
+      // column: snap springs + lean geometry
+      H = colHeight();
+      for (const it of s.column) {
+        it.ovx += (-c.snapStiffness * it.ox - c.snapDamping * it.ovx) * dt; it.ox += it.ovx * dt;
+        it.ovy += (-c.snapStiffness * it.oy - c.snapDamping * it.ovy) * dt; it.oy += it.ovy * dt;
+        it.ovr += (-c.snapStiffness * it.or - c.snapDamping * it.ovr) * dt; it.or += it.ovr * dt;
+        const pt = columnPoint(it.hc, sw.th, c);
+        it.x = st.x + pt.dx + it.ox;
+        it.y = L.stickY - pt.dy + it.oy;
+        it.rot = pt.rot + it.or;
+        if (it.fresh) it.fresh = false;
+      }
+
+      if (playing && !c.zen) {
+        let reason = null;
+        if ((c.runMode === 'misses' || c.runMode === 'both') && s.misses >= c.maxMisses) reason = 'misses';
+        else if ((c.runMode === 'timer' || c.runMode === 'both') && s.time >= c.runSeconds) reason = 'timer';
+        if (reason) endRun(reason);
+      }
+    };
+
+    // geometry helpers shared with the renderer so drawing and catching agree
+    sim.columnTop = function () {
+      const H = colHeight(), L = sim.layout(), top = columnPoint(H, sim.s.sway.th, sim.cfg);
+      return { x: sim.s.stick.x + top.dx, y: L.stickY - top.dy, H };
+    };
+
+    // test / debug hooks
+    sim.debugSpawn = function (type, x, y, vx, vy) {
+      sim.s.grains.push({ id: nextId++, type, x, y, px: x, py: y, vx, vy, rot: 0, prot: 0, spin: 0, missed: false, bounced: false, dead: false });
+    };
+    sim.debugFillColumn = function (type, n) {
+      for (let i = 0; i < n; i++) {
+        sim.s.column.push({ id: nextId++, type, ox: 0, oy: 0, ovx: 0, ovy: 0, or: 0, ovr: 0, x: sim.s.stick.x, y: 0, px: sim.s.stick.x, py: 0, rot: 0, prot: 0, hc: 0, fresh: true });
+      }
+      sim.s.bestColumn = Math.max(sim.s.bestColumn, sim.s.column.length);
+    };
+    sim.hash = function () {
+      const s = sim.s;
+      const parts = [s.steps, s.state, s.score, s.banks, s.catches, s.misses, s.chain, s.target, s.stick.x.toFixed(6), s.sway.th.toFixed(9),
+        s.grains.length, s.column.length, s.debris.length, s.pours.length];
+      for (const g of s.grains) parts.push(g.id, g.x.toFixed(4), g.y.toFixed(4));
+      return parts.join('|');
+    };
+
+    sim.reset(seed);
+    return sim;
+  }
+
+  return { DT, WHIP_T, DEFAULTS, ENUMS, GRAIN, TYPES, create, scoreFor, validateConfig, columnPoint, mulberry32 };
+})();
+// ===== CHOPSTICK-SIM END =====
+</script>
+
+<script>
+// ===== HOST: config, storage, audio, haptics, input, rendering, tuning panel =====
+(() => {
+  'use strict';
+  const D = ChopSim.DEFAULTS;
+  const TUNING_KEY = 'cakehero.chopstickCatch.tuning';
+  const SAVE_KEY = 'cakehero.chopstickCatch.save';
+  const SAVE_VERSION = 1;
+
+  // ---------- storage (every access wrapped: private mode / blocked storage must not break the game) ----------
+  const Store = {
+    get(k) { try { const v = window.localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch (e) { return null; } },
+    set(k, v) { try { window.localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } },
+    del(k) { try { window.localStorage.removeItem(k); return true; } catch (e) { return false; } },
+  };
+
+  function sanitizeOverrides(src) {
+    const out = {};
+    if (!src || typeof src !== 'object') return out;
+    for (const k of Object.keys(D)) {
+      if (!(k in src) || typeof src[k] !== typeof D[k]) continue;
+      if (typeof D[k] === 'number' && !Number.isFinite(src[k])) continue;
+      if (ChopSim.ENUMS[k] && !ChopSim.ENUMS[k].includes(src[k])) continue;
+      out[k] = src[k];
+    }
+    return out;
+  }
+
+  const cfg = Object.assign({}, D);
+  const tuningSave = Store.get(TUNING_KEY);
+  if (tuningSave && tuningSave.saveVersion === SAVE_VERSION) Object.assign(cfg, sanitizeOverrides(tuningSave.cfg));
+  if (ChopSim.validateConfig(cfg).length) Object.assign(cfg, D);   // never boot on a broken saved tuning
+
+  function loadSave() {
+    const fresh = { saveVersion: SAVE_VERSION, bowl: { lentil: 0, rice: 0 }, best: { score: 0, column: 0, zenColumn: 0 }, runs: 0, banksEver: 0, zen: false };
+    const s = Store.get(SAVE_KEY);
+    if (!s || s.saveVersion !== SAVE_VERSION) return fresh;   // future versions: migrate here instead of discarding
+    const num = (v) => (Number.isFinite(v) && v >= 0 ? Math.floor(v) : 0);
+    return {
+      saveVersion: SAVE_VERSION,
+      bowl: { lentil: num(s.bowl && s.bowl.lentil), rice: num(s.bowl && s.bowl.rice) },
+      best: { score: num(s.best && s.best.score), column: num(s.best && s.best.column), zenColumn: num(s.best && s.best.zenColumn) },
+      runs: num(s.runs), banksEver: num(s.banksEver), zen: !!s.zen,
+    };
+  }
+  const save = loadSave();
+  cfg.zen = save.zen;
+  let saveDirty = false;
+  function persist() { Store.set(SAVE_KEY, save); saveDirty = false; }
+
+  // ---------- analytics (in-memory only, no network) ----------
+  const Analytics = {
+    log: [], seq: 0,
+    emit(name, props) {
+      this.log.push(Object.assign({ seq: ++this.seq, ms: Math.round(performance.now()), name }, props || {}));
+      if (this.log.length > 2000) this.log.shift();
+    },
+  };
+
+  // ---------- haptics (feature-detected; iOS Safari has no navigator.vibrate and silently no-ops) ----------
+  const Haptics = {
+    ok: typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function',
+    buzz(pattern) {
+      if (!this.ok || !cfg.hapticsEnabled) return;
+      if (typeof pattern === 'number' && pattern <= 0) return;
+      try { navigator.vibrate(pattern); } catch (e) { /* ignore */ }
+    },
+  };
+
+  // ---------- audio: everything synthesised with WebAudio ----------
+  const Sound = {
+    ctx: null, out: null, noise: null, unlocked: false,
+    unlock() {
+      try {
+        if (!this.ctx) {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (!AC) return;
+          const ctx = new AC();
+          const comp = ctx.createDynamicsCompressor();
+          comp.threshold.value = -14; comp.knee.value = 10; comp.ratio.value = 4; comp.attack.value = 0.002; comp.release.value = 0.12;
+          const out = ctx.createGain();
+          out.gain.value = cfg.volume;
+          out.connect(comp).connect(ctx.destination);
+          const len = Math.floor(ctx.sampleRate * 0.5);
+          const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+          const ch = buf.getChannelData(0);
+          for (let i = 0; i < len; i++) ch[i] = Math.random() * 2 - 1;
+          this.ctx = ctx; this.out = out; this.noise = buf;
+        }
+        if (this.ctx.state === 'suspended') this.ctx.resume();
+        if (!this.unlocked) {   // iOS: play a silent buffer inside the gesture
+          const s = this.ctx.createBufferSource();
+          s.buffer = this.ctx.createBuffer(1, 1, 22050);
+          s.connect(this.ctx.destination); s.start(0);
+          this.unlocked = true;
+        }
+      } catch (e) { /* audio is optional */ }
+    },
+    ready() { return this.ctx && this.ctx.state === 'running' && cfg.volume > 0; },
+    setVolume(v) { if (this.out) this.out.gain.value = v; },
+    env(g, t, peak, decay) {
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(Math.max(0.0002, peak), t + 0.0015);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + decay);
+    },
+    noiseBurst(t, type, freq, q, peak, decay) {
+      const ctx = this.ctx, src = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+      src.buffer = this.noise; f.type = type; f.frequency.value = freq; f.Q.value = q;
+      this.env(g, t, peak, decay);
+      src.connect(f).connect(g).connect(this.out);
+      src.start(t, Math.random() * 0.4, decay + 0.05);
+    },
+    tone(t, type, f0, f1, peak, decay, glide) {
+      const ctx = this.ctx, o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = type;
+      o.frequency.setValueAtTime(f0, t);
+      if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(f1, t + (glide || decay));
+      this.env(g, t, peak, decay);
+      o.connect(g).connect(this.out);
+      o.start(t); o.stop(t + decay + 0.05);
+    },
+    // a grain clicking into place; semi = semitones above basePitch
+    click(semi, opts) {
+      if (!this.ready()) return;
+      opts = opts || {};
+      const t = this.ctx.currentTime + (opts.delay || 0);
+      const f = cfg.basePitch * Math.pow(2, semi / 12);
+      const v = opts.vol == null ? 1 : opts.vol;
+      this.noiseBurst(t, 'bandpass', Math.min(14000, f * 3.2), 5, 0.55 * v, 0.025);
+      this.tone(t, 'triangle', f * 1.06, f, 0.32 * v, opts.bright ? 0.12 : 0.07, 0.015);
+      if (opts.bright) {
+        this.tone(t, 'sine', f * 2.01, f * 2, 0.16 * v, 0.2);
+        this.tone(t + 0.012, 'sine', f * 3.02, f * 3, 0.07 * v, 0.16);
+      }
+    },
+    thud() {
+      if (!this.ready()) return;
+      const t = this.ctx.currentTime;
+      this.tone(t, 'sine', 170, 48, 0.75, 0.22, 0.16);
+      this.noiseBurst(t, 'lowpass', 480, 1, 0.5, 0.08);
+      this.noiseBurst(t + 0.005, 'bandpass', 1900, 3, 0.22, 0.04);
+    },
+    softTick(freq, vol) {
+      if (!this.ready()) return;
+      const t = this.ctx.currentTime;
+      this.tone(t, 'sine', freq, freq * 0.7, 0.18 * (vol || 1), 0.07);
+      this.noiseBurst(t, 'lowpass', 900, 1, 0.12 * (vol || 1), 0.03);
+    },
+    whip(strength) {
+      if (!this.ready()) return;
+      const ctx = this.ctx, t = ctx.currentTime, src = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+      src.buffer = this.noise; f.type = 'bandpass'; f.Q.value = 1.6;
+      f.frequency.setValueAtTime(3800, t); f.frequency.exponentialRampToValueAtTime(500, t + 0.13);
+      this.env(g, t, 0.35 * strength, 0.15);
+      src.connect(f).connect(g).connect(this.out);
+      src.start(t, Math.random() * 0.3, 0.2);
+    },
+    scatterClicks(count) {
+      if (!this.ready()) return;
+      for (let i = 0; i < count; i++) this.click(-6 + Math.random() * 16, { delay: Math.random() * 0.35, vol: 0.28 + Math.random() * 0.2 });
+    },
+    chime(up) {
+      if (!this.ready()) return;
+      const t = this.ctx.currentTime, a = up ? 660 : 990, b = up ? 990 : 660;
+      this.tone(t, 'sine', a, a, 0.12, 0.12);
+      this.tone(t + 0.07, 'sine', b, b, 0.12, 0.18);
+    },
+    endTones() {
+      if (!this.ready()) return;
+      const t = this.ctx.currentTime;
+      [523, 440, 349].forEach((f, i) => this.tone(t + i * 0.09, 'triangle', f, f, 0.14, 0.22));
+    },
+  };
+
+  // ---------- canvas / layout ----------
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const safeEl = document.getElementById('safe');
+  const view = { cw: 0, ch: 0, dpr: 1, scale: 1, offX: 0, offY: 0, worldH: 1700, safe: { t: 0, r: 0, b: 0, l: 0 } };
+  const reducedMotionMQ = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+  const reducedMotion = () => !!(reducedMotionMQ && reducedMotionMQ.matches);
+
+  let sim = null;
+  let bgCache = null, sprites = null, heapCache = null, heapKey = '';
+
+  function readSafe() {
+    const cs = getComputedStyle(safeEl);
+    view.safe = { t: parseFloat(cs.paddingTop) || 0, r: parseFloat(cs.paddingRight) || 0, b: parseFloat(cs.paddingBottom) || 0, l: parseFloat(cs.paddingLeft) || 0 };
+  }
+
+  function resize() {
+    readSafe();
+    view.dpr = Math.min(3, window.devicePixelRatio || 1);
+    view.cw = window.innerWidth; view.ch = window.innerHeight;
+    canvas.width = Math.round(view.cw * view.dpr); canvas.height = Math.round(view.ch * view.dpr);
+    const usableH = view.ch - view.safe.t - view.safe.b;
+    view.worldH = Math.max(1450, Math.min(2200, 1000 * usableH / Math.max(1, view.cw)));
+    view.scale = Math.min(view.cw / 1000, usableH / view.worldH);
+    view.offX = (view.cw - 1000 * view.scale) / 2;
+    view.offY = view.safe.t + (usableH - view.worldH * view.scale) / 2;
+    if (sim) sim.H = view.worldH;
+    sprites = buildSprites();
+    bgCache = buildBackground();
+    heapKey = '';
+  }
+
+  // world -> device pixels
+  const k = () => view.dpr * view.scale;
+  function worldTransform(c, sx, sy) { c.setTransform(k(), 0, 0, k(), view.dpr * (view.offX + (sx || 0)), view.dpr * (view.offY + (sy || 0))); }
+
+  // ---------- sprites ----------
+  const COLORS = {
+    lentil: { base: '#e2632b', light: '#ffab72', dark: '#a8400f', dust: '#d98a5a' },
+    rice: { base: '#f2ede0', light: '#ffffff', dark: '#c9bfa8', dust: '#e9e2d1' },
+  };
+
+  function makeGrainSprite(type) {
+    const G = ChopSim.GRAIN[type], col = COLORS[type];
+    const pad = 6, kk = k() * 1.5;
+    const w = (G.rx * 2 + pad * 2), h = (G.ry * 2 + pad * 2);
+    const cv = document.createElement('canvas');
+    cv.width = Math.max(2, Math.ceil(w * kk)); cv.height = Math.max(2, Math.ceil(h * kk));
+    const c = cv.getContext('2d');
+    c.scale(kk, kk); c.translate(w / 2, h / 2);
+    // contact shadow
+    c.fillStyle = 'rgba(0,0,0,0.38)';
+    c.beginPath(); c.ellipse(1.6, 2.4, G.rx * 0.98, G.ry * 0.98, 0, 0, Math.PI * 2); c.fill();
+    // body
+    const gr = c.createRadialGradient(-G.rx * 0.35, -G.ry * 0.4, 0.5, 0, 0, Math.max(G.rx, G.ry) * 1.1);
+    gr.addColorStop(0, col.light); gr.addColorStop(0.45, col.base); gr.addColorStop(1, col.dark);
+    c.fillStyle = gr;
+    c.beginPath();
+    if (type === 'rice') {   // slightly pointed grain
+      c.moveTo(0, -G.ry);
+      c.bezierCurveTo(G.rx * 1.25, -G.ry * 0.6, G.rx * 1.25, G.ry * 0.6, 0, G.ry);
+      c.bezierCurveTo(-G.rx * 1.25, G.ry * 0.6, -G.rx * 1.25, -G.ry * 0.6, 0, -G.ry);
+    } else {
+      c.ellipse(0, 0, G.rx, G.ry, 0, 0, Math.PI * 2);
+    }
+    c.fill();
+    // rim + highlight
+    c.strokeStyle = 'rgba(0,0,0,0.18)'; c.lineWidth = 0.8; c.stroke();
+    c.fillStyle = 'rgba(255,255,255,0.55)';
+    c.beginPath(); c.ellipse(-G.rx * 0.35, -G.ry * 0.42, G.rx * 0.28, G.ry * 0.18, -0.4, 0, Math.PI * 2); c.fill();
+    if (type === 'lentil') { // the lentil "eye"
+      c.fillStyle = 'rgba(120,40,10,0.35)';
+      c.beginPath(); c.ellipse(G.rx * 0.55, G.ry * 0.05, 1.3, 2.2, 0, 0, Math.PI * 2); c.fill();
+    }
+    return { cv, w, h };
+  }
+
+  function buildSprites() { return { lentil: makeGrainSprite('lentil'), rice: makeGrainSprite('rice') }; }
+
+  function drawGrain(c, type, x, y, rot, alpha, scale) {
+    const sp = sprites[type];
+    const s = scale || 1;
+    c.save();
+    c.translate(x, y); if (rot) c.rotate(rot);
+    if (alpha != null && alpha < 1) c.globalAlpha = Math.max(0, alpha);
+    c.drawImage(sp.cv, -sp.w * s / 2, -sp.h * s / 2, sp.w * s, sp.h * s);
+    c.restore();
+  }
+
+  // ---------- background: slate, grain heaps, vignette (rebuilt on resize only) ----------
+  function buildBackground() {
+    const cv = document.createElement('canvas');
+    cv.width = canvas.width; cv.height = canvas.height;
+    const c = cv.getContext('2d');
+    const W = cv.width, H = cv.height;
+    c.fillStyle = '#2a2f35'; c.fillRect(0, 0, W, H);
+    const lg = c.createLinearGradient(0, 0, W * 0.3, H);
+    lg.addColorStop(0, 'rgba(255,255,255,0.035)'); lg.addColorStop(1, 'rgba(0,0,0,0.06)');
+    c.fillStyle = lg; c.fillRect(0, 0, W, H);
+    const rnd = ChopSim.mulberry32(20261025);
+    // slate cleavage streaks
+    for (let i = 0; i < 26; i++) {
+      const y = rnd() * H, a = 0.015 + rnd() * 0.03;
+      c.strokeStyle = rnd() < 0.5 ? `rgba(255,255,255,${a})` : `rgba(0,0,0,${a * 1.6})`;
+      c.lineWidth = (0.5 + rnd() * 2.5) * view.dpr;
+      c.beginPath(); c.moveTo(-20, y);
+      c.bezierCurveTo(W * 0.3, y + (rnd() - 0.5) * 40, W * 0.7, y + (rnd() - 0.5) * 40, W + 20, y + (rnd() - 0.5) * 60);
+      c.stroke();
+    }
+    // speckle grain
+    const dots = Math.floor(W * H / 260);
+    for (let i = 0; i < dots; i++) {
+      const v = rnd();
+      c.fillStyle = v < 0.5 ? `rgba(255,255,255,${0.02 + rnd() * 0.05})` : `rgba(0,0,0,${0.04 + rnd() * 0.08})`;
+      const s = (0.6 + rnd() * 1.4) * view.dpr;
+      c.fillRect(rnd() * W, rnd() * H, s, s);
+    }
+    // heaps in world space
+    worldTransform(c);
+    const wh = view.worldH;
+    const heap = [];
+    for (let i = 0; i < 520; i++) {   // lentils: top-left corner along both edges
+      const alongLeft = rnd() < 0.62;
+      const d = Math.pow(rnd(), 2.3) * 120;
+      const x = alongLeft ? -20 + d : -30 + Math.pow(rnd(), 1.4) * 460;
+      const y = alongLeft ? -30 + Math.pow(rnd(), 1.25) * (wh * 0.42) : -20 + d * 0.8;
+      heap.push(['lentil', x, y]);
+    }
+    for (let i = 0; i < 560; i++) {   // rice: bottom-right corner, trailing up the right edge
+      let x, y;
+      if (rnd() < 0.75) { const a = rnd() * Math.PI / 2, r = Math.pow(rnd(), 0.9) * 230; x = 1020 - Math.cos(a) * r; y = wh + 20 - Math.sin(a) * r; }
+      else { x = 1015 - Math.pow(rnd(), 2.2) * 90; y = wh * 0.45 + rnd() * wh * 0.42; }
+      heap.push(['rice', x, y]);
+    }
+    heap.sort((a, b) => a[2] - b[2]);
+    for (const [t, x, y] of heap) drawGrain(c, t, x, y, rnd() * Math.PI * 2, 1, 0.95 + rnd() * 0.15);
+    // vignette
+    c.setTransform(1, 0, 0, 1, 0, 0);
+    const vg = c.createRadialGradient(W / 2, H * 0.55, Math.min(W, H) * 0.25, W / 2, H * 0.55, Math.max(W, H) * 0.75);
+    vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.6)');
+    c.fillStyle = vg; c.fillRect(0, 0, W, H);
+    return cv;
+  }
+
+  // ---------- bowl heap (cached until the visible level changes) ----------
+  const HEAP_MAX = 360;
+  function heapCount() { return save.bowl.lentil + save.bowl.rice; }
+  function heapVisible() {
+    const n = heapCount();
+    return Math.min(HEAP_MAX, Math.round(HEAP_MAX * Math.log(1 + n) / Math.log(1 + 4000)));
+  }
+  function drawHeap(c, L) {
+    const vis = heapVisible();
+    const key = vis + ':' + Math.round(10 * save.bowl.lentil / Math.max(1, heapCount()));
+    const R = L.bowlR, ry = R * 0.38;
+    if (key !== heapKey || !heapCache) {
+      heapKey = key;
+      const kk = k(), pad = 20;
+      const cv = document.createElement('canvas');
+      cv.width = Math.ceil((R * 2 + pad * 2) * kk); cv.height = Math.ceil((ry * 2 + pad * 2 + 60) * kk);
+      const hc = cv.getContext('2d');
+      hc.scale(kk, kk); hc.translate(R + pad, ry + pad + 60);
+      hc.save();
+      hc.beginPath(); hc.ellipse(0, 0, R * 0.9, ry * 0.86, 0, 0, Math.PI * 2); hc.clip();
+      const share = save.bowl.lentil / Math.max(1, heapCount());
+      const rnd = ChopSim.mulberry32(777);
+      const pts = [];
+      for (let i = 0; i < HEAP_MAX; i++) {
+        const a = rnd() * Math.PI * 2, r = Math.sqrt(rnd());
+        pts.push({ x: Math.cos(a) * r * R * 0.88, y: Math.sin(a) * r * ry * 0.84 + 6, r, tl: rnd() < share ? 'lentil' : 'rice', rot: rnd() * 6.28 });
+      }
+      pts.sort((a, b) => b.r - a.r);   // heap fills from the rim inward so the middle mounds last
+      const fill = vis / HEAP_MAX;
+      for (let i = 0; i < vis; i++) {
+        const p = pts[i];
+        const mound = fill * 26 * (1 - p.r * p.r);
+        drawGrainLocal(hc, p.tl, p.x, p.y - mound, p.rot);
+      }
+      hc.restore();
+      heapCache = { cv, ox: R + pad, oy: ry + pad + 60, w: R * 2 + pad * 2, h: ry * 2 + pad * 2 + 60 };
+    }
+    c.drawImage(heapCache.cv, L.bowlX - heapCache.ox, L.bowlY - heapCache.oy, heapCache.w, heapCache.h);
+  }
+  function drawGrainLocal(c, type, x, y, rot) { drawGrain(c, type, x, y, rot, 1, 1); }
+
+  function drawBowlBack(c, L) {
+    const R = L.bowlR, ry = R * 0.38, x = L.bowlX, y = L.bowlY;
+    c.fillStyle = 'rgba(0,0,0,0.35)';
+    c.beginPath(); c.ellipse(x + 10, y + R * 0.62, R * 1.05, ry * 0.9, 0, 0, Math.PI * 2); c.fill();
+    // outer body
+    const body = c.createLinearGradient(x - R, 0, x + R, 0);
+    body.addColorStop(0, '#b9b1a1'); body.addColorStop(0.35, '#efe8da'); body.addColorStop(1, '#a79e8d');
+    c.fillStyle = body;
+    c.beginPath(); c.moveTo(x - R, y);
+    c.bezierCurveTo(x - R, y + R * 0.75, x + R, y + R * 0.75, x + R, y);
+    c.ellipse(x, y, R, ry, 0, 0, Math.PI, true); c.fill();
+    // glaze stripe
+    c.strokeStyle = 'rgba(60,90,120,0.55)'; c.lineWidth = 5;
+    c.beginPath(); c.ellipse(x, y + R * 0.22, R * 0.93, ry * 0.95, 0, 0.15, Math.PI - 0.15); c.stroke();
+    // inside
+    const inner = c.createRadialGradient(x, y + ry * 0.4, 4, x, y, R);
+    inner.addColorStop(0, '#5a5249'); inner.addColorStop(1, '#2e2a26');
+    c.fillStyle = inner;
+    c.beginPath(); c.ellipse(x, y, R * 0.92, ry * 0.88, 0, 0, Math.PI * 2); c.fill();
+  }
+  function drawBowlRim(c, L) {
+    const R = L.bowlR, ry = R * 0.38, x = L.bowlX, y = L.bowlY;
+    c.strokeStyle = '#f7f1e6'; c.lineWidth = 7;
+    c.beginPath(); c.ellipse(x, y, R * 0.96, ry * 0.92, 0, 0, Math.PI * 2); c.stroke();
+    c.strokeStyle = 'rgba(0,0,0,0.18)'; c.lineWidth = 1.5;
+    c.beginPath(); c.ellipse(x, y, R * 0.92, ry * 0.86, 0, Math.PI * 1.05, Math.PI * 1.95); c.stroke();
+  }
+
+  // ---------- chopsticks ----------
+  function stickPath(c, xBase, len, below, wBase, wTip, lean) {
+    c.beginPath();
+    c.moveTo(xBase - wBase / 2, below);
+    c.lineTo(xBase - wTip / 2 + lean, -len);
+    c.quadraticCurveTo(xBase + lean, -len - wTip * 0.7, xBase + wTip / 2 + lean, -len);
+    c.lineTo(xBase + wBase / 2, below);
+    c.closePath();
+  }
+  function drawSticks(c, x, y, th, whipOff, alpha) {
+    const gap = cfg.stickGap, len = cfg.stickLen, below = 120;
+    c.save();
+    c.translate(x, y + whipOff); c.rotate(th);
+    if (alpha != null) c.globalAlpha = alpha;
+    for (const side of [-1, 1]) {
+      const xb = side * (gap / 2 + 8), lean = -side * 2.5;   // slight V toward the tips
+      // shadow
+      c.save(); c.translate(7, 9); c.fillStyle = 'rgba(0,0,0,0.33)';
+      stickPath(c, xb, len, below, 16, 8, lean); c.fill(); c.restore();
+      const gr = c.createLinearGradient(xb - 8, 0, xb + 8, 0);
+      gr.addColorStop(0, '#9c6a3b'); gr.addColorStop(0.35, '#e5b47a'); gr.addColorStop(0.6, '#cf9a60'); gr.addColorStop(1, '#8a5a30');
+      c.fillStyle = gr;
+      stickPath(c, xb, len, below, 16, 8, lean); c.fill();
+      // grain lines
+      c.strokeStyle = 'rgba(90,50,20,0.25)'; c.lineWidth = 0.8;
+      c.beginPath(); c.moveTo(xb - 2, below - 6); c.lineTo(xb - 1 + lean * 0.9, -len * 0.9); c.stroke();
+      // lacquered handle end
+      c.fillStyle = '#5b2b1c';
+      c.beginPath(); c.rect(xb - 8, below - 46, 16, 46); c.fill();
+      c.fillStyle = 'rgba(255,255,255,0.18)'; c.fillRect(xb - 4, below - 44, 2.5, 42);
+    }
+    c.restore();
+  }
+
+  // ---------- presentation-only effects (not part of the deterministic sim) ----------
+  const fx = { dust: [], rings: [], floats: [], shakeT: 0, slowUntil: 0, timeScale: 1, flash: 0, targetFlash: 0, missFlash: 0 };
+
+  function dust(x, y, color, count, speed) {
+    for (let i = 0; i < count; i++) {
+      const a = Math.random() * Math.PI * 2, v = (0.3 + Math.random()) * (speed || 260);
+      fx.dust.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 60, life: 0.32 + Math.random() * 0.2, max: 0.5, s: 1.2 + Math.random() * 2.2, color });
+    }
+  }
+  function floatText(text, x, y, color, size, life) { fx.floats.push({ text, x, y, color, size: size || 34, t: 0, life: life || 0.9 }); }
+  function slowmo() {
+    if (!cfg.slowmoEnabled || reducedMotion()) return;
+    fx.slowUntil = performance.now() + cfg.slowmoMs;
+  }
+  function shake() { if (cfg.shakeEnabled && !reducedMotion()) fx.shakeT = 0.22; }
+
+  function chainSemi(chain) {
+    let semi = Math.max(0, chain - 1) * cfg.pitchStep;
+    if (cfg.pitchCap <= 0) return 0;
+    return cfg.pitchWrap ? semi % (cfg.pitchCap + 1e-9) : Math.min(semi, cfg.pitchCap);
+  }
+
+  // ---------- game phase ----------
+  let phase = 'title';           // 'title' | 'play' | 'over'
+  let overAt = 0;
+  let runIndex = 0;
+  let lastRunEnd = null;
+
+  function newSeed() { return cfg.fixedSeed > 0 ? Math.floor(cfg.fixedSeed) : ((Date.now() ^ (runIndex * 2654435761)) >>> 0) || 1; }
+
+  function startRun(voluntary) {
+    if (voluntary) Analytics.emit('voluntary_replay', { afterReason: lastRunEnd && lastRunEnd.reason, msSinceEnd: Math.round(performance.now() - overAt) });
+    runIndex++;
+    if (!sim) sim = ChopSim.create(cfg, newSeed(), { worldH: view.worldH });
+    else { sim.H = view.worldH; sim.reset(newSeed()); }
+    phase = 'play';
+    pending.targetX = null; pending.flick = false;
+    drag.anchorStick = sim.s.stick.x;
+  }
+
+  // ---------- input ----------
+  const pending = { targetX: null, flick: false };
+  const drag = { id: null, anchorX: 0, anchorStick: 500, startY: 0, samples: [], flicked: false };
+  const activePointers = new Map();
+
+  function toWorldX(px) { return (px - view.offX) / view.scale; }
+
+  function beginDrag(e) {
+    drag.id = e.pointerId; drag.anchorX = e.clientX; drag.startY = e.clientY; drag.flicked = false;
+    drag.anchorStick = pending.targetX != null ? pending.targetX : (sim ? sim.s.stick.target : 500);
+    drag.samples = [{ x: e.clientX, y: e.clientY, t: performance.now() }];
+    if (cfg.dragMode === 'absolute') pending.targetX = toWorldX(e.clientX);
+  }
+
+  canvas.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    Sound.unlock();
+    activePointers.set(e.pointerId, performance.now());
+    try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+    if (activePointers.size >= 3) { drag.id = null; togglePanel(true); return; }
+    if (phase === 'title') { startRun(false); beginDrag(e); return; }
+    if (phase === 'over') {
+      if (performance.now() - overAt < 280) return;   // swallow the tap that was still in flight when the run ended
+      startRun(true); beginDrag(e); return;
+    }
+    if (drag.id === null) beginDrag(e);
+  });
+
+  canvas.addEventListener('pointermove', (e) => {
+    if (e.pointerId !== drag.id || phase !== 'play') return;
+    const now = performance.now();
+    const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : null;
+    const list = evs && evs.length ? evs : [e];
+    for (const ev of list) drag.samples.push({ x: ev.clientX, y: ev.clientY, t: now });
+    while (drag.samples.length > 2 && now - drag.samples[0].t > 100) drag.samples.shift();
+    if (cfg.dragMode === 'absolute') pending.targetX = toWorldX(e.clientX);
+    else pending.targetX = drag.anchorStick + (e.clientX - drag.anchorX) / view.scale * cfg.dragGain;
+    checkFlick(e);
+  });
+
+  function checkFlick(e) {
+    if (drag.flicked || drag.samples.length < 2) return;
+    const a = drag.samples[0], b = drag.samples[drag.samples.length - 1];
+    const dt = Math.max(1, b.t - a.t) / 1000;
+    const vyWorld = (b.y - a.y) / view.scale / dt;           // negative = upward
+    const travel = (drag.startY - e.clientY) / view.scale;
+    if (-vyWorld > cfg.flickSpeed && travel > cfg.flickMinDist) {
+      drag.flicked = true;
+      pending.flick = true;
+      // freeze horizontal position at flick start so the swipe doesn't drag the sticks sideways
+      pending.targetX = drag.anchorStick + (a.x - drag.anchorX) / view.scale * cfg.dragGain;
+    }
+  }
+
+  function endPointer(e) {
+    activePointers.delete(e.pointerId);
+    if (e.pointerId !== drag.id) return;
+    if (phase === 'play' && e.type === 'pointerup') checkFlick(e);
+    drag.id = null;
+    if (pending.targetX != null) drag.anchorStick = pending.targetX;
+  }
+  canvas.addEventListener('pointerup', endPointer);
+  canvas.addEventListener('pointercancel', endPointer);
+  canvas.addEventListener('lostpointercapture', (e) => activePointers.delete(e.pointerId));
+
+  // stop page scroll / zoom (iOS pinch, double-tap) outside the tuning panel
+  const panelEl = document.getElementById('panel');
+  document.addEventListener('touchmove', (e) => { if (!panelEl.contains(e.target)) e.preventDefault(); }, { passive: false });
+  document.addEventListener('gesturestart', (e) => e.preventDefault());
+  document.addEventListener('dblclick', (e) => e.preventDefault());
+  ['touchend', 'click'].forEach((t) => document.addEventListener(t, () => Sound.unlock(), { passive: true }));
+
+  // keyboard for desktop testing
+  const keys = { left: false, right: false };
+  window.addEventListener('keydown', (e) => {
+    if (panelEl.classList.contains('open') && e.key !== 'Escape' && e.key !== 'g') return;
+    Sound.unlock();
+    if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = true;
+    else if (e.key === 'ArrowRight' || e.key === 'd') keys.right = true;
+    else if (e.key === 'ArrowUp' || e.key === ' ' || e.key === 'w') {
+      e.preventDefault();
+      if (phase === 'play') pending.flick = true;
+      else if (phase === 'title') startRun(false);
+      else if (performance.now() - overAt > 280) startRun(true);
+    } else if (e.key === 'r') startRun(phase === 'over');
+    else if (e.key === 'z') toggleZen();
+    else if (e.key === 'g' || e.key === 'Escape') togglePanel();
+  });
+  window.addEventListener('keyup', (e) => {
+    if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = false;
+    if (e.key === 'ArrowRight' || e.key === 'd') keys.right = false;
+  });
+
+  // ---------- sim event -> juice / analytics ----------
+  function handleEvent(e) {
+    const L = sim.layout();
+    switch (e.type) {
+      case 'run_start':
+        Analytics.emit('run_start', { seed: e.seed, zen: e.zen, runMode: e.runMode, target: e.target, run: runIndex });
+        break;
+      case 'spawn':
+        dust(e.x, e.y, COLORS[e.grain].dust, 3, 90);
+        break;
+      case 'catch': {
+        Sound.click(chainSemi(e.chain), { bright: e.perfect });
+        Haptics.buzz(e.perfect ? cfg.hapticPerfectMs : cfg.hapticCatchMs);
+        dust(e.x, e.y, COLORS[e.grain].dust, Math.round(cfg.dustCount), 220);
+        Analytics.emit('catch', { grain: e.grain, n: e.n, chain: e.chain, dx: e.dx, nearMiss: e.nearMiss });
+        if (e.nearMiss) slowmo();
+        break;
+      }
+      case 'perfect_catch':
+        fx.rings.push({ x: e.x, y: e.y, t: 0, life: 0.28, color: '255,240,200' });
+        Analytics.emit('perfect_catch', { grain: e.grain, n: e.n, dx: e.dx });
+        break;
+      case 'wrong_grain':
+        Sound.thud();
+        Haptics.buzz(cfg.hapticWrongMs);
+        fx.rings.push({ x: e.x, y: e.y, t: 0, life: 0.35, color: '255,90,70' });
+        fx.flash = 0.18;
+        floatText(e.lost ? `wrong grain −${e.lost}` : 'wrong grain', e.x, e.y - 30, '#ff8a73', 30);
+        Analytics.emit('wrong_grain', { grain: e.grain, rule: e.rule, lost: e.lost, remaining: e.remaining });
+        break;
+      case 'bounce':
+        Sound.softTick(260, 0.8);
+        Analytics.emit('wrong_grain', { grain: e.grain, rule: 'zen_bounce', lost: 0 });
+        break;
+      case 'spill':
+        Sound.scatterClicks(Math.min(14, 4 + e.length));
+        Haptics.buzz([25, 30, 25]);
+        floatText(`spilled ${e.length}`, sim.s.stick.x, L.stickY - 120, '#ffb38a', 32);
+        Analytics.emit('spill', { length: e.length });
+        break;
+      case 'miss':
+        Sound.softTick(190, 0.6);
+        fx.missFlash = 0.35;
+        Analytics.emit('miss', { grain: e.grain, dx: e.dx });
+        break;
+      case 'bank':
+        Sound.whip(1);
+        Haptics.buzz([cfg.hapticBankMs, 30, Math.round(cfg.hapticBankMs * 0.6)]);
+        shake();
+        floatText(`+${e.score}`, L.bowlX, L.bowlY - 150, '#ffe1a8', 44, 1.1);
+        floatText(`${e.length} in a row`, L.bowlX, L.bowlY - 110, '#d8cfc0', 22, 1.1);
+        if (sim.s.score > save.best.score && !cfg.zen) save.best.score = sim.s.score;
+        save.banksEver++;
+        saveDirty = true;
+        Analytics.emit('bank', { length: e.length, score: e.score, total: e.total });
+        break;
+      case 'flick_empty':
+        Sound.whip(0.5);
+        break;
+      case 'pour_tick':
+        Sound.click(10 - e.idx * 0.6 + Math.random() * 1.5, { vol: 0.45 });
+        save.bowl[e.grain] = (save.bowl[e.grain] || 0) + 1;
+        saveDirty = true;
+        if (Math.random() < 0.5) dust(e.x, e.y, COLORS[e.grain].dust, 2, 80);
+        break;
+      case 'target_change':
+        Sound.chime(e.target === 'rice');
+        fx.targetFlash = 0.6;
+        Analytics.emit('target_change', { target: e.target, cause: e.cause });
+        break;
+      case 'run_end':
+        Sound.endTones();
+        phase = 'over'; overAt = performance.now();
+        lastRunEnd = e;
+        save.runs++;
+        if (!cfg.zen) save.best.score = Math.max(save.best.score, e.score);
+        save.best.column = Math.max(save.best.column, e.bestColumn);
+        persist();
+        Analytics.emit('run_end', { reason: e.reason, score: e.score, banks: e.banks, catches: e.catches, misses: e.misses, bestColumn: e.bestColumn, lostColumn: e.lostColumn, duration: e.duration });
+        break;
+    }
+  }
+
+  // ---------- main loop: fixed 120 Hz sim, interpolated render ----------
+  let last = performance.now(), acc = 0, fps = 60, frames = 0, fpsT = 0, stepsThisSec = 0, stepsPerSec = 0, saveT = 0;
+
+  function frame(now) {
+    let dtReal = Math.min(0.1, Math.max(0, (now - last) / 1000));
+    last = now;
+    frames++; fpsT += dtReal;
+    if (fpsT >= 0.5) { fps = frames / fpsT; frames = 0; fpsT = 0; stepsPerSec = stepsThisSec * 2; stepsThisSec = 0; }
+
+    // slow-mo eases back to 1
+    const targetScale = now < fx.slowUntil ? cfg.slowmoScale : 1;
+    fx.timeScale += (targetScale - fx.timeScale) * Math.min(1, dtReal * (targetScale < fx.timeScale ? 60 : 14));
+
+    if (sim && phase !== 'title') {
+      if (keys.left || keys.right) {
+        const base = pending.targetX != null ? pending.targetX : sim.s.stick.target;
+        pending.targetX = base + (keys.right - keys.left) * 900 * dtReal;
+        pending.targetX = Math.max(cfg.stickMinX, Math.min(cfg.stickMaxX, pending.targetX));
+        drag.anchorStick = pending.targetX;
+      }
+      acc += dtReal * fx.timeScale;
+      let n = 0;
+      while (acc >= ChopSim.DT && n < 24) {
+        sim.step({ targetX: pending.targetX, flick: pending.flick });
+        pending.flick = false;
+        acc -= ChopSim.DT; n++; stepsThisSec++;
+        const evs = sim.drainEvents();
+        for (const e of evs) handleEvent(e);
+      }
+      if (n >= 24) acc = 0;
+    }
+
+    saveT += dtReal;
+    if (saveDirty && saveT > 2) { persist(); saveT = 0; }
+
+    updateFx(dtReal);
+    render(sim ? acc / ChopSim.DT : 0);
+    if (panelOpen) updatePanelLive(dtReal);
+    requestAnimationFrame(loop);
+  }
+
+  function updateFx(dt) {
+    for (const d of fx.dust) { d.vy += 600 * dt; d.vx *= 1 - 3 * dt; d.x += d.vx * dt; d.y += d.vy * dt; d.life -= dt; }
+    fx.dust = fx.dust.filter((d) => d.life > 0);
+    for (const r of fx.rings) r.t += dt;
+    fx.rings = fx.rings.filter((r) => r.t < r.life);
+    for (const f of fx.floats) { f.t += dt; f.y -= 50 * dt; }
+    fx.floats = fx.floats.filter((f) => f.t < f.life);
+    fx.shakeT = Math.max(0, fx.shakeT - dt);
+    fx.flash = Math.max(0, fx.flash - dt);
+    fx.targetFlash = Math.max(0, fx.targetFlash - dt);
+    fx.missFlash = Math.max(0, fx.missFlash - dt);
+  }
+
+  const lerp = (a, b, t) => a + (b - a) * t;
+
+  // ---------- render ----------
+  function render(alpha) {
+    const c = ctx;
+    c.setTransform(1, 0, 0, 1, 0, 0);
+    let sx = 0, sy = 0;
+    if (fx.shakeT > 0) {
+      const m = cfg.shakeAmount * view.scale * (fx.shakeT / 0.22);
+      sx = (Math.random() - 0.5) * 2 * m; sy = (Math.random() - 0.5) * 2 * m;
+    }
+    c.drawImage(bgCache, sx * view.dpr, sy * view.dpr);
+    if (!sim) { drawOverlay(c); return; }
+    const s = sim.s, L = sim.layout();
+    worldTransform(c, sx, sy);
+
+    // bowl + heap
+    drawBowlBack(c, L);
+    drawHeap(c, L);
+
+    const st = s.stick;
+    const stx = lerp(st.px, st.x, alpha);
+    const th = lerp(s.sway.pth, s.sway.th, alpha);
+    const whip = lerp(st.pwhip, st.whip, alpha);
+    const wp = whip > 0 ? 1 - whip / ChopSim.WHIP_T : 0;
+    const whipOff = whip > 0 ? -Math.sin(wp * Math.PI) * 46 : 0;
+
+    if (cfg.showDebug) drawDebug(c, L, stx, th);
+
+    // debris and flying grains
+    for (const d of s.debris) drawGrain(c, d.type, lerp(d.px, d.x, alpha), lerp(d.py, d.y, alpha), lerp(d.prot, d.rot, alpha), Math.min(1, d.life / 0.4));
+    for (const g of s.grains) drawGrain(c, g.type, lerp(g.px, g.x, alpha), lerp(g.py, g.y, alpha), lerp(g.prot, g.rot, alpha), g.bounced ? 0.75 : 1);
+
+    // whip motion blur ghosts
+    if (whip > 0 && wp < 0.7 && !reducedMotion()) {
+      for (let i = 1; i <= 3; i++) drawSticks(c, stx, L.stickY, th, whipOff * (1 - i * 0.22), 0.12);
+    }
+    // column, then sticks over it so the grains look wedged between them
+    for (const it of s.column) drawGrain(c, it.type, lerp(it.px, it.x, alpha), lerp(it.py, it.y, alpha) + whipOff, lerp(it.prot, it.rot, alpha));
+    drawSticks(c, stx, L.stickY, th, whipOff, 1);
+
+    // potential bank value next to the column
+    if (s.column.length >= 2 && s.state === 'playing') {
+      const top = s.column[s.column.length - 1];
+      const n = s.column.length;
+      c.font = '600 24px system-ui, sans-serif'; c.textAlign = 'left'; c.textBaseline = 'middle';
+      const lean = Math.min(1, Math.abs(s.sway.th) / cfg.spillAngle);
+      c.fillStyle = lean > 0.7 ? `rgba(255,${Math.round(200 - lean * 120)},120,0.95)` : 'rgba(241,236,226,0.75)';
+      c.fillText(`${n} → ${ChopSim.scoreFor(n, cfg)}`, lerp(top.px, top.x, alpha) + 34, lerp(top.py, top.y, alpha));
+      if (save.banksEver === 0 && n >= 3) {
+        c.font = '600 22px system-ui, sans-serif'; c.textAlign = 'center';
+        c.fillStyle = `rgba(255,225,168,${0.6 + 0.4 * Math.sin(performance.now() / 180)})`;
+        c.fillText('flick ↑ to bank', stx, L.stickY + 150);
+      }
+    }
+
+    // pours into the bowl, then the rim in front
+    for (const p of s.pours) drawGrain(c, p.type, lerp(p.px, p.x, alpha), lerp(p.py, p.y, alpha), lerp(p.prot, p.rot, alpha));
+    drawBowlRim(c, L);
+
+    // dust, rings, floating text
+    for (const d of fx.dust) { c.globalAlpha = Math.max(0, d.life / d.max); c.fillStyle = d.color; c.fillRect(d.x - d.s / 2, d.y - d.s / 2, d.s, d.s); }
+    c.globalAlpha = 1;
+    for (const r of fx.rings) {
+      const u = r.t / r.life;
+      c.strokeStyle = `rgba(${r.color},${1 - u})`; c.lineWidth = 3 * (1 - u) + 0.5;
+      c.beginPath(); c.arc(r.x, r.y, 10 + u * 34, 0, Math.PI * 2); c.stroke();
+    }
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    for (const f of fx.floats) {
+      const u = f.t / f.life;
+      c.globalAlpha = u < 0.75 ? 1 : 1 - (u - 0.75) / 0.25;
+      const pop = u < 0.12 ? 0.7 + u / 0.12 * 0.4 : 1.1 - Math.min(0.1, (u - 0.12));
+      c.font = `700 ${Math.round(f.size * pop)}px system-ui, sans-serif`;
+      c.fillStyle = 'rgba(0,0,0,0.45)'; c.fillText(f.text, f.x + 2, f.y + 3);
+      c.fillStyle = f.color; c.fillText(f.text, f.x, f.y);
+    }
+    c.globalAlpha = 1;
+
+    // bowl count under the bowl
+    c.font = '600 20px system-ui, sans-serif'; c.fillStyle = 'rgba(241,236,226,0.55)';
+    c.fillText(`${heapCount().toLocaleString()} in the bowl`, L.bowlX, L.bowlY + L.bowlR * 0.75 + 26);
+
+    if (fx.flash > 0) { c.setTransform(1, 0, 0, 1, 0, 0); c.fillStyle = `rgba(255,60,40,${fx.flash * 0.6})`; c.fillRect(0, 0, canvas.width, canvas.height); }
+    drawHud(c);
+    drawOverlay(c);
+  }
+
+  function drawDebug(c, L, stx, th) {
+    const top = sim.columnTop();
+    const halfW = cfg.stickGap / 2 + cfg.catchTolerance;
+    c.fillStyle = 'rgba(120,255,160,0.15)'; c.fillRect(top.x - halfW, top.y - 3, halfW * 2, 6);
+    c.fillStyle = 'rgba(255,255,160,0.35)'; c.fillRect(top.x - halfW * cfg.perfectFrac, top.y - 3, halfW * cfg.perfectFrac * 2, 6);
+    c.strokeStyle = 'rgba(255,255,255,0.15)'; c.setLineDash([6, 8]);
+    c.beginPath(); c.moveTo(cfg.landMinX, top.y); c.lineTo(cfg.landMaxX, top.y); c.stroke(); c.setLineDash([]);
+  }
+
+  // HUD in CSS pixels for crisp text
+  function drawHud(c) {
+    const s = sim.s, d = view.dpr;
+    c.setTransform(d, 0, 0, d, 0, 0);
+    const cx = view.cw / 2, top = view.safe.t + 14;
+    c.textAlign = 'center'; c.textBaseline = 'top';
+    c.fillStyle = '#f1ece2'; c.font = '700 34px system-ui, sans-serif';
+    c.fillText(s.score.toLocaleString(), cx, top);
+    c.font = '500 12px system-ui, sans-serif'; c.fillStyle = 'rgba(241,236,226,0.5)';
+    c.fillText(cfg.zen ? 'ZEN · endless' : `BEST ${save.best.score.toLocaleString()}`, cx, top + 40);
+
+    // target pill
+    const py = top + 64, pulse = fx.targetFlash > 0 ? 1 + Math.sin(fx.targetFlash / 0.6 * Math.PI) * 0.18 : 1;
+    c.save(); c.translate(cx, py + 18); c.scale(pulse, pulse);
+    const pw = 150, ph = 36;
+    c.fillStyle = 'rgba(0,0,0,0.35)'; roundRect(c, -pw / 2, -ph / 2, pw, ph, 18); c.fill();
+    c.strokeStyle = s.target === 'lentil' ? 'rgba(226,99,43,0.9)' : 'rgba(242,237,224,0.85)'; c.lineWidth = 1.5; c.stroke();
+    c.fillStyle = '#f1ece2'; c.font = '700 12px system-ui, sans-serif'; c.textAlign = 'left'; c.textBaseline = 'middle';
+    c.fillText('CATCH', -pw / 2 + 14, 0.5);
+    c.fillText(s.target === 'lentil' ? 'LENTIL' : 'RICE', 18, 0.5);
+    c.restore();
+    // grain icon inside pill (sprite is in world units; draw at a fixed CSS size)
+    c.save(); c.translate(cx - 4 * pulse, py + 18); c.scale(pulse * 0.7, pulse * 0.7);
+    const sp = sprites[s.target];
+    c.drawImage(sp.cv, -sp.w / 2, -sp.h / 2, sp.w, sp.h);
+    c.restore();
+
+    // misses / timer
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    if (!cfg.zen && (cfg.runMode === 'misses' || cfg.runMode === 'both')) {
+      const n = Math.round(cfg.maxMisses), gapX = 14, y = py + 50;
+      for (let i = 0; i < n; i++) {
+        const x = cx - (n - 1) * gapX / 2 + i * gapX;
+        const used = i < s.misses;
+        c.fillStyle = used ? (fx.missFlash > 0 && i === s.misses - 1 ? '#ffd0c0' : '#e8553a') : 'rgba(241,236,226,0.22)';
+        c.beginPath(); c.arc(x, y, 4.5, 0, Math.PI * 2); c.fill();
+      }
+    }
+    if (!cfg.zen && (cfg.runMode === 'timer' || cfg.runMode === 'both')) {
+      const w = Math.min(220, view.cw * 0.5), y = py + 64, f = Math.max(0, 1 - s.time / cfg.runSeconds);
+      c.fillStyle = 'rgba(241,236,226,0.15)'; c.fillRect(cx - w / 2, y, w, 4);
+      c.fillStyle = f < 0.2 ? '#e8553a' : '#e5b47a'; c.fillRect(cx - w / 2, y, w * f, 4);
+    }
+  }
+
+  function roundRect(c, x, y, w, h, r) {
+    c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r);
+    c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath();
+  }
+
+  function drawOverlay(c) {
+    if (phase === 'play') return;
+    const d = view.dpr;
+    c.setTransform(d, 0, 0, d, 0, 0);
+    const cx = view.cw / 2, cy = view.ch * 0.42;
+    c.fillStyle = 'rgba(16,18,21,0.62)';
+    roundRect(c, cx - Math.min(160, view.cw / 2 - 16), cy - 110, Math.min(320, view.cw - 32), 230, 18); c.fill();
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    if (phase === 'title') {
+      c.fillStyle = '#f1ece2'; c.font = '800 28px system-ui, sans-serif'; c.fillText('Chopstick Catch', cx, cy - 72);
+      c.font = '500 15px system-ui, sans-serif'; c.fillStyle = 'rgba(241,236,226,0.8)';
+      c.fillText('drag ← → to catch the target grain', cx, cy - 30);
+      c.fillText('flick ↑ to bank the column', cx, cy - 6);
+      c.fillText('taller column = more points, more sway', cx, cy + 18);
+      c.fillStyle = '#ef7a3c'; c.font = '700 17px system-ui, sans-serif';
+      c.fillText('tap to start', cx, cy + 72);
+    } else {
+      const e = lastRunEnd || {};
+      const why = e.reason === 'timer' ? 'time up' : 'out of misses';
+      c.fillStyle = '#f1ece2'; c.font = '800 26px system-ui, sans-serif'; c.fillText(why, cx, cy - 74);
+      c.font = '700 40px system-ui, sans-serif'; c.fillText((e.score || 0).toLocaleString(), cx, cy - 26);
+      c.font = '500 14px system-ui, sans-serif'; c.fillStyle = 'rgba(241,236,226,0.75)';
+      c.fillText(`${e.banks || 0} banks · longest column ${e.bestColumn || 0}${e.lostColumn ? ` · lost ${e.lostColumn} unbanked` : ''}`, cx, cy + 14);
+      c.fillText(`best ${save.best.score.toLocaleString()}`, cx, cy + 36);
+      const ready = performance.now() - overAt > 280;
+      c.fillStyle = ready ? '#ef7a3c' : 'rgba(239,122,60,0.4)'; c.font = '700 17px system-ui, sans-serif';
+      c.fillText('tap to play again', cx, cy + 78);
+    }
+  }
+
+  // ---------- Zen ----------
+  const zenBtn = document.getElementById('zenBtn');
+  function syncZenBtn() { zenBtn.classList.toggle('on', !!cfg.zen); zenBtn.textContent = cfg.zen ? 'ZEN ✓' : 'ZEN'; }
+  function toggleZen() {
+    cfg.zen = !cfg.zen; save.zen = cfg.zen; persist(); syncZenBtn();
+    Analytics.emit('mode_toggle', { zen: cfg.zen });
+    toast(cfg.zen ? 'Zen: no fail, wrong grains bounce off' : 'Score mode');
+    if (phase !== 'title') startRun(false);
+    syncPanelInputs();
+  }
+  zenBtn.addEventListener('click', (e) => { e.stopPropagation(); Sound.unlock(); toggleZen(); });
+
+  let toastT = null;
+  const toastEl = document.getElementById('toast');
+  function toast(msg) {
+    toastEl.textContent = msg; toastEl.classList.add('show');
+    clearTimeout(toastT); toastT = setTimeout(() => toastEl.classList.remove('show'), 1600);
+  }
+
+  // ---------- tuning panel ----------
+  // [key, label, min, max, step] for numbers; booleans and enums are detected from DEFAULTS.
+  const SCHEMA = [
+    ['Physics & spawning', [
+      ['gravity', 'gravity', 800, 5000, 50], ['spawnInterval', 'spawn interval s', 0.2, 2, 0.01], ['spawnIntervalMin', 'min interval s', 0.15, 2, 0.01],
+      ['spawnRamp', 'interval ramp /s', 0, 0.03, 0.001], ['spawnJitter', 'spawn jitter', 0, 0.8, 0.01], ['arcTimeMin', 'arc time min s', 0.4, 2.5, 0.05],
+      ['arcTimeMax', 'arc time max s', 0.4, 3, 0.05], ['targetShare', 'target share', 0.2, 1, 0.05], ['landMinX', 'landing min x', 50, 500, 5], ['landMaxX', 'landing max x', 500, 950, 5]]],
+    ['Sticks & catching', [
+      ['dragMode', 'drag mode'], ['dragGain', 'drag gain', 0.5, 3, 0.05], ['stickFollow', 'follow stiffness', 5, 120, 1],
+      ['stickGap', 'stick gap', 18, 70, 1], ['catchTolerance', 'catch tolerance', 0, 60, 1], ['perfectFrac', 'perfect zone', 0, 1, 0.02],
+      ['nearMissFrac', 'near-miss zone', 0.5, 1, 0.01], ['stickLen', 'stick length', 100, 600, 10], ['stickYFrac', 'stick height', 0.55, 0.9, 0.01],
+      ['snapStiffness', 'snap stiffness', 100, 3000, 10], ['snapDamping', 'snap damping', 2, 100, 1]]],
+    ['Sway & spill', [
+      ['swayStiffness', 'sway stiffness', 2, 120, 1], ['swayDamping', 'sway damping', 0, 20, 0.1], ['swayDrive', 'sway drive', 0, 0.0008, 0.00001],
+      ['swayLenRef', 'length ref', 1, 30, 1], ['swayLenExp', 'length exponent', 0, 3, 0.05], ['swayBendAbove', 'bend above tips', 0, 3, 0.05],
+      ['swayImpulse', 'off-centre kick', 0, 3, 0.05], ['spillAngle', 'spill angle rad', 0.1, 1.2, 0.01], ['spillMinLength', 'spill min length', 1, 20, 1],
+      ['zenNoSpill', 'Zen never spills']]],
+    ['Score & rules', [
+      ['scoreExponent', 'score exponent', 1, 3, 0.05], ['scoreBase', 'score base', 1, 10, 1], ['wrongRule', 'wrong grain rule'], ['wrongTopN', 'lose top N', 1, 10, 1],
+      ['wrongCountsAsMiss', 'wrong = miss'], ['spillCountsAsMiss', 'spill = miss'], ['chainResetOnBank', 'pitch resets on bank'],
+      ['targetSwitch', 'target switch'], ['targetSwitchSeconds', 'switch every s', 3, 60, 1], ['runMode', 'run ends by'],
+      ['maxMisses', 'max misses', 1, 20, 1], ['runSeconds', 'run length s', 15, 300, 5], ['zen', 'Zen mode']]],
+    ['Bank', [
+      ['flickSpeed', 'flick speed', 400, 4000, 50], ['flickMinDist', 'flick distance', 10, 200, 5],
+      ['bankCascadeDelay', 'cascade delay s', 0.005, 0.15, 0.005], ['bankFlightTime', 'pour flight s', 0.15, 1.5, 0.05]]],
+    ['Juice', [
+      ['slowmoEnabled', 'slow-mo on near miss'], ['slowmoScale', 'slow-mo scale', 0.1, 1, 0.05], ['slowmoMs', 'slow-mo ms', 0, 800, 10],
+      ['shakeEnabled', 'shake on bank'], ['shakeAmount', 'shake amount', 0, 30, 1], ['dustCount', 'dust particles', 0, 20, 1]]],
+    ['Audio', [
+      ['volume', 'volume', 0, 1, 0.05], ['basePitch', 'base pitch Hz', 200, 3000, 10], ['pitchStep', 'pitch step st', 0, 4, 0.25],
+      ['pitchCap', 'pitch cap st', 0, 48, 1], ['pitchWrap', 'wrap pitch']]],
+    ['Haptics', [
+      ['hapticsEnabled', 'haptics'], ['hapticCatchMs', 'catch ms', 0, 60, 1], ['hapticPerfectMs', 'perfect ms', 0, 60, 1],
+      ['hapticBankMs', 'bank ms', 0, 200, 5], ['hapticWrongMs', 'wrong ms', 0, 120, 5]]],
+    ['Debug', [['fixedSeed', 'fixed seed (0=random)', 0, 99999, 1], ['showDebug', 'show catch zones']]],
+  ];
+
+  let panelOpen = false;
+  const inputs = {};
+  const RESTART_KEYS = new Set(['runMode', 'zen', 'fixedSeed', 'maxMisses', 'runSeconds']);
+
+  function fmt(v, step) {
+    if (typeof v !== 'number') return String(v);
+    const dec = step < 0.0001 ? 5 : step < 0.001 ? 4 : step < 0.01 ? 3 : step < 0.1 ? 2 : step < 1 ? 2 : 0;
+    return v.toFixed(dec);
+  }
+
+  function buildPanel() {
+    const p = panelEl;
+    p.innerHTML = '';
+    const h = document.createElement('h2');
+    h.innerHTML = '<span>Tuning</span><span id="stats"></span>';
+    p.appendChild(h);
+    const btns = document.createElement('div'); btns.className = 'btns';
+    const mk = (label, fn, cls) => { const b = document.createElement('button'); b.textContent = label; if (cls) b.className = cls; b.addEventListener('click', fn); btns.appendChild(b); return b; };
+    mk('Close', () => togglePanel(false), 'primary');
+    mk('Save', () => { const ok = Store.set(TUNING_KEY, { saveVersion: SAVE_VERSION, cfg: diffFromDefaults() }); toast(ok ? 'Tuning saved on this device' : 'Storage unavailable — use Copy JSON'); });
+    mk('Reset', () => { Object.assign(cfg, D, { zen: cfg.zen }); Store.del(TUNING_KEY); syncPanelInputs(); applyLive(); toast('Defaults restored'); });
+    mk('Copy JSON', copyJson);
+    mk('Restart run', () => { togglePanel(false); startRun(phase === 'over'); });
+    p.appendChild(btns);
+
+    for (const [group, rows] of SCHEMA) {
+      const g = document.createElement('h3'); g.textContent = group; p.appendChild(g);
+      for (const [key, label, min, max, step] of rows) {
+        const row = document.createElement('div'); row.className = 'row';
+        const lab = document.createElement('label'); lab.textContent = label; lab.title = key; row.appendChild(lab);
+        const def = D[key];
+        let input, out = document.createElement('output');
+        if (typeof def === 'boolean') {
+          input = document.createElement('input'); input.type = 'checkbox';
+          input.addEventListener('change', () => setKey(key, input.checked));
+          input.style.justifySelf = 'start';
+        } else if (ChopSim.ENUMS[key]) {
+          input = document.createElement('select');
+          for (const o of ChopSim.ENUMS[key]) { const op = document.createElement('option'); op.value = o; op.textContent = o; input.appendChild(op); }
+          input.addEventListener('change', () => setKey(key, input.value));
+        } else {
+          input = document.createElement('input'); input.type = 'range'; input.min = min; input.max = max; input.step = step;
+          input.addEventListener('input', () => { setKey(key, parseFloat(input.value)); out.textContent = fmt(cfg[key], step); });
+        }
+        lab.htmlFor = input.id = 'cfg_' + key;
+        row.appendChild(input); row.appendChild(out);
+        inputs[key] = { input, out, step };
+        p.appendChild(row);
+      }
+    }
+
+    const ah = document.createElement('h3'); ah.textContent = 'Analytics log (in memory, newest first)'; p.appendChild(ah);
+    const ta = document.createElement('textarea'); ta.id = 'alog'; ta.readOnly = true; p.appendChild(ta);
+    const jh = document.createElement('h3'); jh.textContent = 'Config JSON'; p.appendChild(jh);
+    const tj = document.createElement('textarea'); tj.id = 'cjson'; tj.readOnly = true; p.appendChild(tj);
+    const note = document.createElement('p'); note.style.color = '#9aa1a9';
+    note.textContent = 'Open this panel with the gear, a three-finger tap, or G. Changes apply live; run mode, Zen, seed, misses and run length restart the run. Copy JSON gives the full config to paste into the repo.';
+    p.appendChild(note);
+    syncPanelInputs();
+  }
+
+  function setKey(key, value) {
+    const prev = cfg[key];
+    cfg[key] = value;
+    // soft problems (e.g. min > max while dragging two sliders) are tolerated; unstable or non-finite values are refused
+    const hard = ChopSim.validateConfig(cfg).filter((m) => m.includes('stable') || m.includes('finite') || m.includes('> 0'));
+    if (hard.length) { cfg[key] = prev; toast(hard[0]); syncPanelInputs(); return; }
+    if (key === 'zen') { save.zen = cfg.zen; persist(); syncZenBtn(); }
+    applyLive();
+    if (RESTART_KEYS.has(key) && phase === 'play') startRun(false);
+    updateJsonBox();
+  }
+
+  function applyLive() { Sound.setVolume(cfg.volume); }
+
+  function syncPanelInputs() {
+    for (const key of Object.keys(inputs)) {
+      const { input, out, step } = inputs[key];
+      if (input.type === 'checkbox') input.checked = !!cfg[key];
+      else input.value = cfg[key];
+      out.textContent = input.type === 'range' ? fmt(cfg[key], step) : '';
+    }
+    updateJsonBox();
+  }
+
+  function diffFromDefaults() {
+    const o = {};
+    for (const key of Object.keys(D)) if (cfg[key] !== D[key]) o[key] = cfg[key];
+    return o;
+  }
+  function configJson() { return JSON.stringify(Object.assign({ prototype: 'chopstick-catch', saveVersion: SAVE_VERSION }, cfg), null, 2); }
+  function updateJsonBox() { const tj = document.getElementById('cjson'); if (tj) tj.value = configJson(); }
+
+  function copyJson() {
+    const text = configJson();
+    const fallback = () => {
+      const tj = document.getElementById('cjson');
+      try { tj.focus(); tj.select(); tj.setSelectionRange(0, text.length); const ok = document.execCommand('copy'); toast(ok ? 'Config JSON copied' : 'Select the JSON box and copy manually'); }
+      catch (e) { toast('Select the JSON box and copy manually'); }
+    };
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(() => toast('Config JSON copied'), fallback);
+      else fallback();
+    } catch (e) { fallback(); }
+  }
+
+  let panelLogT = 0;
+  function updatePanelLive(dt) {
+    panelLogT += dt;
+    if (panelLogT < 0.4) return;
+    panelLogT = 0;
+    const st = document.getElementById('stats');
+    if (st) st.textContent = `${fps.toFixed(0)} fps · ${stepsPerSec} steps/s · ${sim ? sim.s.grains.length : 0} grains`;
+    const ta = document.getElementById('alog');
+    if (ta) {
+      const tail = Analytics.log.slice(-80).reverse().map((e) => JSON.stringify(e));
+      ta.value = `${Analytics.log.length} events this session\n` + tail.join('\n');
+    }
+  }
+
+  function togglePanel(force) {
+    panelOpen = force == null ? !panelOpen : !!force;
+    if (panelOpen && !panelEl.childElementCount) buildPanel();
+    if (panelOpen) syncPanelInputs();
+    panelEl.classList.toggle('open', panelOpen);
+    // pausing while tuning keeps a run from ending behind the panel
+    if (panelOpen) acc = 0;
+    paused = panelOpen;
+  }
+  let paused = false;
+  document.getElementById('gearBtn').addEventListener('click', (e) => { e.stopPropagation(); togglePanel(); });
+
+  // pause when hidden / tuning; flush save on hide
+  document.addEventListener('visibilitychange', () => { if (document.hidden) persist(); last = performance.now(); });
+  window.addEventListener('pagehide', () => persist());
+  window.addEventListener('resize', resize);
+  if (reducedMotionMQ && reducedMotionMQ.addEventListener) reducedMotionMQ.addEventListener('change', () => {});
+
+  // the panel and hidden tabs pause the simulation but keep rendering
+  function loop(now) {
+    if (paused || document.hidden) { last = now; render(sim ? acc / ChopSim.DT : 0); if (panelOpen) updatePanelLive(0.5); requestAnimationFrame(loop); return; }
+    frame(now);
+  }
+
+  resize();
+  syncZenBtn();
+  const bad = ChopSim.validateConfig(cfg);
+  if (bad.length) console.warn('config problems', bad);
+  Analytics.emit('session_started', { saveVersion: SAVE_VERSION, haptics: Haptics.ok, reducedMotion: reducedMotion() });
+  sim = ChopSim.create(cfg, newSeed(), { worldH: view.worldH });
+  sim.drainEvents();   // the title screen shows a frozen board; run_start is logged when play begins
+  // console handle for local debugging (e.g. __chop.sim.debugFillColumn('rice', 12)); not used by the game
+  window.__chop = { get sim() { return sim; }, cfg, Analytics };
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
