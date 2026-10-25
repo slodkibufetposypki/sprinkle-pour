@@ -10,203 +10,203 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23262b31'/%3E%3Cpath d='M12 30 L15 4 M20 30 L17 4' stroke='%23d9ae72' stroke-width='2.4' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='9' r='2.6' fill='%23ef8a40'/%3E%3Ccircle cx='16' cy='14.5' r='2.6' fill='%23ef8a40'/%3E%3Ccircle cx='16' cy='20' r='2.6' fill='%23ef8a40'/%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23262b31'/%3E%3Cpath d='M12 30 L15 4 M20 30 L17 4' stroke='%23d9ae72' stroke-width='2.4' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='9' r='2.6' fill='%23ef8a40'/%3E%3Ccircle cx='16' cy='14.5' r='2.6' fill='%23ef8a40'/%3E%3Ccircle cx='16' cy='20' r='2.6' fill='%23ef8a40'/%3E%3C/svg%3E">
 <title>Grain Line</title>
-<meta name="theme-color" content="#121519">
+<meta name="theme-color" content="#0f1215">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Young+Serif&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Cabin+Sketch:wght@700&family=Patrick+Hand&display=swap">
 <style>
-  /* Layout: one full-bleed slate board drawn on canvas; a thin HUD floats in the safe top band;
-     every other screen is a sheet that rises from the bottom, inside thumb reach. Single dark look on purpose. */
+  /* Chalk on slate. Whatever is written on the board (score, multiplier, tallies, notes) is chalk in a hand;
+     the menus are a slate slab across the bottom, inside thumb reach, with a chalk rule along its top edge.
+     Small print stays in a plain face. The one loud thing is on the board itself: the chopstick tips heat up
+     with the multiplier and a wrong grain quenches them. */
   :root {
-    --night: #121519;
-    --rice: #f2ede3;
-    --dim: #a7adb5;
+    --slate: #0f1215;
+    --slab: #171b20;
+    --chalk: #ece8de;
+    --chalk-2: rgba(236, 232, 222, 0.62);
+    --chalk-3: rgba(236, 232, 222, 0.3);
     --lentil: #ef8a40;
-    --lentil-ink: #2a1607;
-    --mung: #7fa84a;
-    --gold: #f3c75a;
-    --warn: #ff6b5e;
-    --sheet: rgba(22, 25, 30, 0.95);
-    --glass: rgba(12, 14, 17, 0.58);
-    --line: rgba(242, 237, 227, 0.14);
-    --display: "Young Serif", "Iowan Old Style", Georgia, serif;
-    --ui: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    --fs-11: 11px; --fs-13: 13px; --fs-15: 15px; --fs-17: 17px; --fs-20: 20px; --fs-28: 28px; --fs-44: 44px;
+    --mung: #8fb85a;
+    --ember: #f6c453;
+    --chalk-red: #ff7a6b;
+    --hand: "Patrick Hand", "Segoe Print", "Bradley Hand", cursive;
+    --sketch: "Cabin Sketch", "Patrick Hand", cursive;
+    --print: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --fs-13: 13px; --fs-15: 15px; --fs-17: 17px; --fs-20: 20px; --fs-24: 24px; --fs-28: 28px; --fs-34: 34px; --fs-44: 44px; --fs-56: 56px;
+    --halo: 0 0 3px rgba(15, 18, 21, 0.95), 0 0 14px rgba(15, 18, 21, 0.9);
     color-scheme: dark;
   }
   html, body { height: 100%; }
   [hidden] { display: none !important; }
   body {
-    margin: 0; background: var(--night); color: var(--rice); font: 400 var(--fs-15)/1.45 var(--ui);
+    margin: 0; background: #0d0f12; color: var(--chalk); font: 400 var(--fs-15)/1.45 var(--print);
     overflow: hidden; overscroll-behavior: none; -webkit-user-select: none; user-select: none;
     -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent;
   }
   button { font: inherit; color: inherit; cursor: pointer; }
-  button:focus-visible { outline: 2px solid var(--lentil); outline-offset: 2px; }
+  button:focus-visible { outline: 2px dashed var(--ember); outline-offset: 3px; }
   #game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
   #safe { position: fixed; inset: 0; visibility: hidden; pointer-events: none;
     padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); }
   .haptic { position: fixed; left: -100px; top: 0; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+  /* chalk: a speckled mask made at start-up (see chalkMask) roughens anything written on the board */
+  .chalk { -webkit-mask-image: var(--chalk-mask); mask-image: var(--chalk-mask); -webkit-mask-size: 180px; mask-size: 180px; }
 
-  /* ---------- HUD ---------- */
+  /* ---------- HUD, written straight on the slate ---------- */
   #hud {
     position: fixed; left: 50%; top: 0; z-index: 2; pointer-events: none; box-sizing: border-box;
     width: min(100%, var(--board-w, 100%)); transform: translateX(-50%);
-    padding-top: calc(env(safe-area-inset-top, 0px) + 10px);
-    padding-left: max(12px, env(safe-area-inset-left, 0px)); padding-right: max(12px, env(safe-area-inset-right, 0px));
-    display: grid; grid-template-columns: 44px 1fr 72px; align-items: start; gap: 8px;
+    padding-top: calc(env(safe-area-inset-top, 0px) + 8px);
+    padding-left: max(10px, env(safe-area-inset-left, 0px)); padding-right: max(14px, env(safe-area-inset-right, 0px));
+    display: grid; grid-template-columns: 44px 1fr 96px; align-items: start; gap: 6px;
+    font-family: var(--hand); line-height: 1;
   }
   #hud > * { pointer-events: auto; }
-  .iconbtn {
-    width: 44px; height: 44px; border-radius: 22px; border: 1px solid var(--line); background: var(--glass);
-    display: grid; place-items: center; padding: 0;
-  }
-  .iconbtn svg { width: 16px; height: 16px; fill: var(--rice); }
-  .mid { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; }
-  #chip {
-    display: flex; align-items: center; gap: 8px; height: 42px; padding: 0 16px 0 12px; max-width: 100%; box-sizing: border-box;
-    border-radius: 21px; background: var(--glass); border: 1px solid var(--line); white-space: nowrap;
-  }
-  #chip.swap { animation: swap .22s cubic-bezier(.2, .8, .2, 1); }
-  @keyframes swap { from { transform: scale(.86); opacity: .35; } }
-  #chip .ico { width: 20px; height: 20px; display: block; flex: none; }
-  #chip .name { font-weight: 700; font-size: var(--fs-17); }
-  #chip .left { color: var(--dim); font-variant-numeric: tabular-nums; }
-  #streak {
-    position: relative; overflow: hidden; display: flex; align-items: center; gap: 8px; height: 26px; padding: 0 10px; border-radius: 13px;
-    background: var(--glass); border: 1px solid var(--line); font-variant-numeric: tabular-nums;
-  }
-  #streak b { font-size: var(--fs-15); font-weight: 700; min-width: 2ch; text-align: center; }
+  .iconbtn { width: 44px; height: 44px; border: 0; background: none; display: grid; place-items: center; padding: 0; }
+  .iconbtn svg { width: 22px; height: 22px; fill: none; stroke: var(--chalk-2); stroke-width: 2.6; stroke-linecap: round; }
+  .mid { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; padding-top: 4px; }
+  #chip { display: flex; align-items: center; gap: 7px; white-space: nowrap; max-width: 100%; font-size: var(--fs-24); }
+  #chip.swap { animation: swap .24s cubic-bezier(.2, .8, .2, 1); }
+  @keyframes swap { from { transform: translateY(-6px) rotate(-3deg); opacity: 0; } }
+  #chip .ico { width: 22px; height: 22px; display: block; flex: none; }
+  #chip .left { color: var(--chalk-2); font-size: var(--fs-20); }
+  #streak { display: flex; align-items: center; gap: 10px; height: 34px; }
+  #streak b { font-weight: 400; font-size: var(--fs-34); min-width: 2.4ch; text-align: center; transition: color .2s ease; }
   #streak.hot b { color: var(--lentil); }
-  #streak.max b { color: var(--gold); }
-  #streak .combo { color: var(--dim); font-size: var(--fs-13); white-space: nowrap; }
-  /* pace bar: drains from the moment of the last pull; gold while a full row would still count as Lightning */
-  #streak .bar { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: var(--dim); transform-origin: left; transform: scaleX(0); }
-  #streak[data-pace="Lightning"] .bar { background: var(--gold); }
-  #streak[data-pace="Quick"] .bar { background: var(--lentil); }
-  #streak[data-pace="Slow"] .bar { background: var(--warn); }
-  #streak.up { animation: up .38s cubic-bezier(.3, 1.6, .5, 1); }
-  @keyframes up { 40% { transform: scale(1.28); } }
-  #streak.lost { animation: lost .4s ease; }
-  @keyframes lost { 20%, 60% { transform: translateX(-5px); border-color: var(--warn); } 40%, 80% { transform: translateX(5px); border-color: var(--warn); } }
-  #score { justify-self: end; text-align: right; line-height: 1.05; font-variant-numeric: tabular-nums; }
-  #score b { display: block; font: 700 var(--fs-20)/1.1 var(--ui); }
-  #score span { color: var(--dim); font-size: var(--fs-15); font-weight: 700; }
-  #score span.low { color: var(--gold); }
-  #score span.over { color: var(--warn); }
-  #score.bump b { animation: bump .25s ease; }
-  @keyframes bump { 40% { transform: scale(1.18); color: var(--gold); } }
+  #streak.max b { color: var(--ember); }
+  /* full rows in a row, as tally marks in fives on their own line, so they never read as digits */
+  #tally { display: flex; gap: 7px; height: 16px; margin-top: 3px; }
+  #tally svg { fill: none; stroke: var(--chalk-2); stroke-width: 2.4; stroke-linecap: round; }
+  #streak.up b { animation: up .4s cubic-bezier(.3, 1.6, .5, 1); }
+  @keyframes up { 35% { transform: scale(1.35) rotate(-4deg); } }
+  #streak.lost { animation: lost .42s ease; }
+  @keyframes lost { 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
+  #streak.lost b { animation: lostc .9s ease; }
+  @keyframes lostc { 0%, 55% { color: var(--chalk-red); } }
+  /* pace: a chalk line that wears away from both ends; when it is gone the next full row counts as slow */
+  #fuse { display: block; width: 132px; height: 4px; border-radius: 2px; background: var(--chalk-2); transform: scaleX(0); transition: background .25s ease; }
+  #fuse[data-pace="Lightning"] { background: var(--ember); }
+  #fuse[data-pace="Quick"] { background: var(--lentil); }
+  #fuse[data-pace="Slow"] { background: var(--chalk-red); }
+  #score { justify-self: end; text-align: right; padding-top: 4px; }
+  #score b { display: block; font-weight: 400; font-size: var(--fs-34); line-height: 1; }
+  #score span { color: var(--chalk-2); font-size: var(--fs-20); }
+  #score span.low { color: var(--ember); }
+  #score span.over { color: var(--chalk-red); }
+  #score.down b { color: var(--chalk-red); }
+  #tally .nw { stroke: var(--chalk); stroke-dasharray: 30; animation: draw .3s ease-out backwards; }
+  @keyframes draw { from { stroke-dashoffset: 30; } }
 
-  #banner {
-    position: fixed; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 96px); z-index: 3; pointer-events: none;
-    transform: translate(-50%, -8px); opacity: 0; transition: opacity .2s ease, transform .2s ease;
-    text-align: center; padding: 10px 18px; border-radius: 16px; background: var(--sheet); border: 1px solid rgba(243, 199, 90, 0.5);
-    max-width: 86vw; box-sizing: border-box;
-  }
-  #banner.show { opacity: 1; transform: translate(-50%, 0); }
-  #banner b { display: block; font: 400 var(--fs-20)/1.15 var(--display); color: var(--gold); }
-  #banner span { font-size: var(--fs-15); color: var(--rice); }
-
-  #hint {
-    position: fixed; left: 50%; z-index: 2; transform: translateX(-50%); pointer-events: none;
-    top: calc(env(safe-area-inset-top, 0px) + 100px); width: max-content; max-width: min(84vw, 340px);
-    padding: 10px 16px; border-radius: 16px; background: var(--glass); border: 1px solid var(--line);
-    text-align: center; font-size: var(--fs-15); transition: opacity .2s ease;
-  }
+  /* notes chalked onto the board: a dark halo instead of a box keeps them legible over grains */
+  .note { position: fixed; left: 50%; z-index: 3; pointer-events: none; transform: translateX(-50%); text-align: center;
+    font-family: var(--hand); line-height: 1.2; text-shadow: var(--halo); padding: 16px 30px; box-sizing: border-box;
+    background: radial-gradient(closest-side, rgba(15, 18, 21, 0.9), rgba(15, 18, 21, 0.72) 62%, rgba(15, 18, 21, 0)); }
+  #banner { top: calc(env(safe-area-inset-top, 0px) + 112px); opacity: 0; transform: translate(-50%, -6px) rotate(-1.5deg);
+    transition: opacity .2s ease, transform .2s ease; max-width: 86vw; }
+  #banner.show { opacity: 1; transform: translate(-50%, 0) rotate(-1.5deg); }
+  #banner b { display: block; font-weight: 400; font-size: var(--fs-34); color: var(--ember); }
+  #banner span { font-size: var(--fs-20); }
+  #hint { top: calc(env(safe-area-inset-top, 0px) + 112px); width: max-content; max-width: min(84vw, 360px); font-size: var(--fs-24); transition: opacity .2s ease; }
   #hint.off { opacity: 0; }
+  #toast { top: calc(env(safe-area-inset-top, 0px) + 70px); z-index: 6; font-size: var(--fs-20); opacity: 0; transition: opacity .2s ease; max-width: 88vw; }
+  #toast.show { opacity: 1; }
 
-  /* ---------- sheets ---------- */
+  /* ---------- menus: a slate slab across the bottom ---------- */
   .screen {
     position: fixed; inset: 0; z-index: 4; display: flex; flex-direction: column; justify-content: flex-end; align-items: center;
-    padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
-    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
-    background: linear-gradient(to bottom, rgba(10, 12, 15, 0) 35%, rgba(10, 12, 15, 0.72));
+    background: linear-gradient(to bottom, rgba(10, 12, 15, 0) 30%, rgba(10, 12, 15, 0.8));
   }
-  .screen.dim { background: rgba(10, 12, 15, 0.55); }
-  .sheet {
-    width: 100%; max-width: 420px; box-sizing: border-box; background: var(--sheet); border: 1px solid var(--line);
-    border-radius: 24px; padding: 22px 20px 18px; display: flex; flex-direction: column; gap: 14px;
-    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5); animation: rise .24s cubic-bezier(.2, .8, .2, 1);
-    max-height: calc(100% - env(safe-area-inset-top, 0px) - 32px); overflow-y: auto; -webkit-overflow-scrolling: touch;
+  .screen.dim { background: rgba(10, 12, 15, 0.62); }
+  .slab {
+    position: relative; width: min(100%, var(--board-w, 100%)); box-sizing: border-box; background: var(--slab);
+    padding: 26px max(20px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 18px) max(20px, env(safe-area-inset-left, 0px));
+    display: flex; flex-direction: column; gap: 14px; border-top: 1px solid rgba(255, 255, 255, 0.07);
+    animation: rise .26s cubic-bezier(.2, .8, .2, 1);
+    max-height: calc(100% - env(safe-area-inset-top, 0px) - 24px); overflow-y: auto; -webkit-overflow-scrolling: touch;
   }
-  @keyframes rise { from { transform: translateY(18px); opacity: 0; } }
-  h1, h2 { margin: 0; font-family: var(--display); font-weight: 400; text-wrap: balance; }
-  h1 { font-size: var(--fs-44); line-height: 1; letter-spacing: -0.01em; }
-  h2 { font-size: var(--fs-28); line-height: 1.1; }
-  .lede { margin: 0; color: var(--dim); font-size: var(--fs-17); max-width: 34ch; }
-  .eyebrow { margin: 0; color: var(--dim); font-size: var(--fs-13); letter-spacing: 0.08em; text-transform: uppercase; }
+  .slab::before { content: ""; position: absolute; left: 18px; right: 18px; top: 11px; height: 3px; border-radius: 2px; background: var(--chalk-3);
+    -webkit-mask-image: var(--chalk-mask); mask-image: var(--chalk-mask); -webkit-mask-size: 180px; mask-size: 180px; }
+  @keyframes rise { from { transform: translateY(40px); opacity: 0; } }
+  h1, h2 { margin: 0; font-weight: 400; text-wrap: balance; }
+  h1 { font: 700 var(--fs-56)/0.95 var(--sketch); letter-spacing: 0.01em; }
+  h2 { font: 400 var(--fs-34)/1.05 var(--hand); }
+  .kicker { margin: 0 0 -10px; font: 400 var(--fs-20)/1.2 var(--hand); color: var(--chalk-2); }
+  .lede { margin: 0; font: 400 var(--fs-24)/1.25 var(--hand); color: var(--chalk-2); }
   .primary {
-    height: 56px; border: 0; border-radius: 16px; background: var(--lentil); color: var(--lentil-ink); flex: none;
-    font-weight: 700; font-size: var(--fs-17); display: flex; align-items: center; justify-content: center; gap: 10px; padding: 0 18px;
+    height: 58px; border: 0; border-radius: 11px 8px 12px 7px; background: var(--chalk); color: var(--slate); flex: none;
+    font: 400 var(--fs-24)/1 var(--hand); display: flex; align-items: center; justify-content: center; gap: 10px; padding: 0 18px;
   }
-  .primary small { font-weight: 400; font-size: var(--fs-15); opacity: 0.78; }
-  .primary:active { transform: scale(0.985); }
+  .primary:active { transform: scale(0.985) rotate(-0.3deg); }
   .ghost {
-    min-height: 48px; border-radius: 14px; border: 1px solid var(--line); background: transparent; padding: 0 16px;
-    font-size: var(--fs-15); display: flex; align-items: center; justify-content: center; gap: 8px; flex: none;
+    min-height: 50px; border-radius: 9px 7px 10px 8px; border: 2px solid var(--chalk-3); background: transparent; padding: 0 16px;
+    font: 400 var(--fs-20)/1.1 var(--hand); display: flex; align-items: center; justify-content: center; gap: 8px; flex: none;
   }
-  .ghost:active { background: rgba(242, 237, 227, 0.06); }
+  .ghost:active { background: rgba(236, 232, 222, 0.06); }
   .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .stack { display: flex; flex-direction: column; gap: 10px; }
+  .sub { margin: 0; color: var(--chalk-2); font: 400 var(--fs-15)/1.4 var(--print); }
 
-  .list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+  .list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+  .list li + li { border-top: 1px dashed rgba(236, 232, 222, 0.1); }
   .lvl {
-    width: 100%; min-height: 54px; display: grid; grid-template-columns: 34px 1fr auto; align-items: center; gap: 12px;
-    background: transparent; border: 0; border-radius: 12px; padding: 4px 10px; text-align: left;
+    width: 100%; min-height: 56px; display: grid; grid-template-columns: 30px 1fr auto; align-items: center; gap: 12px;
+    background: transparent; border: 0; padding: 6px 4px; text-align: left;
   }
-  .lvl:active { background: rgba(242, 237, 227, 0.06); }
-  .lvl .n { font: 400 var(--fs-20)/1 var(--display); color: var(--dim); text-align: center; font-variant-numeric: tabular-nums; }
-  .lvl .nm { font-size: var(--fs-17); min-width: 0; }
-  .lvl .nm small { display: block; color: var(--dim); font-size: var(--fs-13); }
-  .lvl.locked { opacity: 0.45; }
-  .stars { letter-spacing: 0.08em; color: rgba(242, 237, 227, 0.2); white-space: nowrap; }
-  .stars .on { color: var(--lentil); }
-  .stars.big { font-size: 38px; line-height: 1; letter-spacing: 0.08em; }
-  .stars.big span { display: inline-block; animation: pop .32s cubic-bezier(.3, 1.6, .5, 1) backwards; }
-  .stars.big span:nth-child(2) { animation-delay: .09s; }
-  .stars.big span:nth-child(3) { animation-delay: .18s; }
-  .stars.big span:nth-child(4) { animation-delay: .27s; }
-  .stars.big span:nth-child(5) { animation-delay: .36s; }
-  @keyframes pop { from { transform: scale(.3); opacity: 0; } }
-  .result { margin: 0; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
-  .result b { font: 400 var(--fs-44)/1 var(--display); font-variant-numeric: tabular-nums; }
-  .result span { color: var(--dim); }
-  .result .best { color: var(--lentil-ink); background: var(--gold); border-radius: 8px; padding: 2px 8px; font-size: var(--fs-13); font-weight: 700; }
-  .sub { margin: 0; color: var(--dim); }
-  .prize { margin: 0; padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(243, 199, 90, 0.45); color: var(--rice); }
-  .prize b { color: var(--gold); }
+  .lvl:active { background: rgba(236, 232, 222, 0.05); }
+  .lvl .n { font: 400 var(--fs-24)/1 var(--hand); color: var(--chalk-2); text-align: center; }
+  .lvl .nm { font: 400 var(--fs-20)/1.15 var(--hand); min-width: 0; }
+  .lvl .nm small { display: block; color: var(--chalk-2); font: 400 var(--fs-13)/1.3 var(--print); margin-top: 2px; }
+  .lvl .rt { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+  .lvl .rt small { font: 400 var(--fs-15)/1 var(--hand); color: var(--chalk-2); }
+  .lvl.locked { opacity: 0.42; }
+  .stars { display: flex; gap: 1px; }
+  .stars svg { width: 17px; height: 17px; fill: none; stroke: var(--chalk-3); stroke-width: 1.7; stroke-linejoin: round; }
+  .stars svg.on { fill: var(--ember); stroke: var(--ember); }
+  .stars.big { gap: 6px; justify-content: center; margin: 2px 0 -2px; }
+  .stars.big svg { width: 46px; height: 46px; stroke-width: 1.4; }
+  .stars.big svg.stamp { animation: stamp .3s cubic-bezier(.3, 1.6, .5, 1); }
+  @keyframes stamp { from { transform: scale(1.9) rotate(-14deg); opacity: 0; } }
+
+  /* the end of a level: a tally chalked up line by line, then the score counts up and stamps the stars */
+  .tally { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1px; font: 400 var(--fs-20)/1.3 var(--hand); }
+  .tally li { display: flex; justify-content: space-between; gap: 12px; animation: write .22s ease backwards; }
+  .tally li span { color: var(--chalk-2); }
+  .tally li.minus b { color: var(--chalk-red); }
+  .tally li b { font-weight: 400; }
+  @keyframes write { from { opacity: 0; transform: translateX(-8px); } }
+  .total { margin: 0; display: flex; align-items: center; gap: 12px; border-top: 2px solid var(--chalk-3); padding-top: 10px; }
+  .total span { font: 400 var(--fs-20)/1 var(--hand); color: var(--chalk-2); }
+  .total b { margin-left: auto; font: 700 var(--fs-44)/1 var(--sketch); }
+  .total em { font: 400 var(--fs-17)/1 var(--hand); color: var(--ember); border: 2px solid var(--ember); border-radius: 50% / 46%;
+    padding: 5px 10px 4px; transform: rotate(-6deg); animation: stamp .3s cubic-bezier(.3, 1.6, .5, 1) backwards; }
+  .prize { margin: 0; font: 400 var(--fs-20)/1.3 var(--hand); color: var(--chalk); }
+  .prize b { font-weight: 400; color: var(--ember); }
 
   .pairrow {
-    width: 100%; display: grid; grid-template-columns: 96px 1fr auto; gap: 12px; align-items: center; min-height: 58px;
-    background: transparent; border: 0; border-radius: 12px; padding: 4px 8px; text-align: left;
+    width: 100%; display: grid; grid-template-columns: 92px 1fr auto; gap: 12px; align-items: center; min-height: 60px;
+    background: transparent; border: 0; padding: 6px 4px; text-align: left;
   }
-  .pairrow:active { background: rgba(242, 237, 227, 0.06); }
+  .pairrow:active { background: rgba(236, 232, 222, 0.05); }
   .pairrow .pv { display: flex; flex-direction: column; gap: 5px; }
   .pairrow .pv i { display: block; height: 8px; clip-path: polygon(0 32%, 100% 0, 100% 100%, 0 68%); border-radius: 2px; }
-  .pairrow .nm { min-width: 0; font-size: var(--fs-17); }
-  .pairrow .nm small { display: block; color: var(--dim); font-size: var(--fs-13); }
-  .pairrow .st { font-size: var(--fs-13); color: var(--dim); white-space: nowrap; }
-  .pairrow.on .st { color: var(--gold); font-weight: 700; }
+  .pairrow .nm { min-width: 0; font: 400 var(--fs-20)/1.15 var(--hand); }
+  .pairrow .nm small { display: block; color: var(--chalk-2); font: 400 var(--fs-13)/1.3 var(--print); margin-top: 2px; }
+  .pairrow .st { font: 400 var(--fs-17)/1 var(--hand); color: var(--chalk-2); white-space: nowrap; }
+  .pairrow.on .st { color: var(--ember); }
   .pairrow.locked .pv, .pairrow.locked .nm b { opacity: 0.4; }
 
   #tuneList { display: flex; flex-direction: column; gap: 6px; }
   .trow { display: grid; grid-template-columns: 1fr 64px; gap: 4px 10px; align-items: center; }
-  .trow label { font-size: var(--fs-13); color: var(--dim); }
+  .trow label { font-size: var(--fs-13); color: var(--chalk-2); }
   .trow output { text-align: right; font-variant-numeric: tabular-nums; font-size: var(--fs-13); }
   .trow input[type=range] { grid-column: 1 / -1; width: 100%; accent-color: var(--lentil); }
   .check { display: flex; align-items: center; gap: 10px; font-size: var(--fs-15); min-height: 40px; }
   .check input { width: 20px; height: 20px; accent-color: var(--lentil); }
-  #tuneJson { width: 100%; box-sizing: border-box; background: #0d0f12; color: var(--rice); border: 1px solid var(--line); border-radius: 10px; font: 12px ui-monospace, Menlo, monospace; }
+  #tuneJson { width: 100%; box-sizing: border-box; background: #0d0f12; color: var(--chalk); border: 1px solid var(--chalk-3); border-radius: 10px; font: 12px ui-monospace, Menlo, monospace; }
 
-  #toast {
-    position: fixed; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 66px); transform: translateX(-50%); z-index: 6;
-    background: var(--sheet); border: 1px solid var(--line); padding: 9px 14px; border-radius: 14px; font-size: var(--fs-15);
-    opacity: 0; transition: opacity .2s ease; pointer-events: none; max-width: 88vw; text-align: center;
-  }
-  #toast.show { opacity: 1; }
   @media (prefers-reduced-motion: reduce) {
-    .sheet, #chip.swap, .stars.big span, #streak.up, #streak.lost, #score.bump b { animation: none; }
-    #hint, #toast, #banner { transition: none; }
+    .slab, #chip.swap, .stars.big svg.stamp, #streak.up b, #streak.lost, #streak.lost b, .tally li, .total em, #tally .nw { animation: none; }
+    #hint, #toast, #banner, #fuse, #streak b { transition: none; }
   }
 </style>
 </head>
@@ -216,21 +216,23 @@
 <div id="safe"></div>
 
 <div id="hud" hidden>
-  <button id="menuBtn" class="iconbtn" aria-label="Pause"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="2" width="3.5" height="12" rx="1"/><rect x="9.5" y="2" width="3.5" height="12" rx="1"/></svg></button>
+  <button id="menuBtn" class="iconbtn" aria-label="Pause"><svg viewBox="0 0 22 22" aria-hidden="true"><path d="M7.6 4.2c.2 4.6-.1 9.2.3 13.6M14.6 4.4c-.3 4.4.1 9 .1 13.4"/></svg></button>
   <div class="mid">
-    <div id="chip" aria-live="polite"><svg class="ico" viewBox="0 0 20 20" aria-hidden="true"></svg><span class="name">Lentils</span><span class="left">0</span></div>
-    <div id="streak"><b>×1.0</b><span class="combo"></span><i class="bar"></i></div>
+    <div id="chip" class="chalk" aria-live="polite"><svg class="ico" viewBox="0 0 20 20" aria-hidden="true"></svg><span class="name">Lentils</span><span class="left">0</span></div>
+    <div id="streak" class="chalk"><b>×1.0</b></div>
+    <i id="fuse" class="chalk" aria-hidden="true"></i>
+    <span id="tally" class="chalk" aria-hidden="true"></span>
   </div>
-  <div id="score"><b>0</b><span id="clock">0:00</span></div>
+  <div id="score" class="chalk"><b>0</b><span id="clock">0:00</span></div>
 </div>
-<div id="banner" role="status"><b></b><span></span></div>
-<div id="hint" class="off" aria-live="polite"></div>
+<div id="banner" class="note chalk" role="status"><b></b><span></span></div>
+<div id="hint" class="note chalk off" aria-live="polite"></div>
 
 <section id="title" class="screen" hidden>
-  <div class="sheet">
-    <h1>Grain Line</h1>
-    <p class="lede">Sort a spilled mess one kind at a time. Quick full rows in a row grow your multiplier. A wrong grain resets it.</p>
-    <button id="playBtn" class="primary">Play <small id="playSub"></small></button>
+  <div class="slab">
+    <h1 class="chalk">Grain Line</h1>
+    <p class="lede chalk">Sort the spill, one kind at a time.</p>
+    <button id="playBtn" class="primary">Play</button>
     <div class="pair">
       <button id="openLevelsBtn" class="ghost">Levels</button>
       <button id="openSticksBtn" class="ghost">Chopsticks</button>
@@ -239,25 +241,25 @@
 </section>
 
 <section id="levels" class="screen dim" hidden>
-  <div class="sheet">
-    <h2>Levels</h2>
+  <div class="slab">
+    <h2 class="chalk">Levels</h2>
     <ol id="levelList" class="list"></ol>
     <button id="levelsBackBtn" class="ghost">Back</button>
   </div>
 </section>
 
 <section id="sticks" class="screen dim" hidden>
-  <div class="sheet">
-    <h2>Chopsticks</h2>
-    <p class="sub" id="sticksSub"></p>
+  <div class="slab">
+    <h2 class="chalk">Chopsticks</h2>
+    <p class="sub">Each pair is earned by playing well.</p>
     <ul id="sticksList" class="list"></ul>
     <button id="sticksBackBtn" class="ghost">Back</button>
   </div>
 </section>
 
 <section id="pause" class="screen dim" hidden>
-  <div class="sheet">
-    <h2>Paused</h2>
+  <div class="slab">
+    <h2 class="chalk">Paused</h2>
     <button id="resumeBtn" class="primary">Resume</button>
     <div class="stack">
       <button id="controlBtn" class="ghost"></button>
@@ -272,13 +274,14 @@
 </section>
 
 <section id="done" class="screen" hidden>
-  <div class="sheet">
-    <p class="eyebrow" id="doneEyebrow"></p>
-    <h2>Board clear</h2>
+  <div class="slab" id="doneSlab">
+    <p class="kicker chalk" id="doneLevel"></p>
+    <h2 class="chalk" id="doneName"></h2>
     <div class="stars big" id="doneStars"></div>
-    <p class="result" id="doneResult"></p>
-    <p class="sub" id="doneSub"></p>
-    <p class="prize" id="donePrize" hidden></p>
+    <ol class="tally chalk" id="doneTally"></ol>
+    <p class="total chalk" id="doneTotal"><span>Score</span><b>0</b></p>
+    <p class="sub" id="doneNext"></p>
+    <p class="prize chalk" id="donePrize" hidden></p>
     <button id="nextBtn" class="primary">Next level</button>
     <div class="pair">
       <button id="retryBtn" class="ghost">Retry</button>
@@ -288,8 +291,8 @@
 </section>
 
 <section id="tune" class="screen dim" hidden>
-  <div class="sheet">
-    <h2>Tune feel</h2>
+  <div class="slab">
+    <h2 class="chalk">Tune feel</h2>
     <p class="sub">Changes apply right away and stay on this device. Row length applies from the next level. A level with its own rule keeps it.</p>
     <div id="tuneList"></div>
     <label class="check"><input type="checkbox" id="showReach"> Show how far the sticks reach</label>
@@ -303,7 +306,7 @@
   </div>
 </section>
 
-<div id="toast" role="status"></div>
+<div id="toast" class="note chalk" role="status"></div>
 
 <script>
 // ===== GRAIN-SIM BEGIN =====
@@ -411,7 +414,7 @@ const GrainSim = (() => {
     },
     {
       id: 'strays', name: 'Strays', seed: 41, types: ['lentil', 'rice'], hintRows: 2,
-      hint: ['Quick full rows grow the multiplier a lot, slow ones barely. A short row shrinks it.'],
+      hint: ['The line under the multiplier wears away. Fill the row before it is gone.', 'A short row keeps the multiplier but shrinks it.'],
       tune: { zoneR: 150, paceK: 1.15 },
       piles: [
         { type: 'lentil', kind: 'blob', cx: 0.32, cy: 0.3, r: 0.14, count: 20 },
@@ -686,8 +689,9 @@ const GrainSim = (() => {
   // loose grains never lie on a sorted pile
   function keepOffStores(g, stores) {
     for (const k in stores) {
-      const s = stores[k], dx = g.x - s.x, dy = g.y - s.y, d = Math.hypot(dx, dy), min = s.r + TYPES[g.type].size + 16;
-      if (d >= min) continue;
+      const s = stores[k], dx = g.x - s.x, dy = g.y - s.y, min = s.r + TYPES[g.type].size + 16;
+      if (dx * dx + dy * dy >= min * min) continue;
+      const d = Math.sqrt(dx * dx + dy * dy);
       const nx = d > 1e-6 ? dx / d : 0, ny = d > 1e-6 ? dy / d : -1;
       g.x = s.x + nx * min; g.y = s.y + ny * min;
       const vn = g.vx * nx + g.vy * ny;
@@ -719,26 +723,54 @@ const GrainSim = (() => {
     return [clamp(x, B.x0, B.x1), clamp(y, B.y0, B.y1)];
   }
 
-  // push overlapping grains apart a little, so heaps look heaped rather than stacked on one point
+  // Grains are solid ovals. Two touch when their centres are closer than the sum of their radii toward each other,
+  // so rice meets rice end to end at its full length and side by side at its width.
+  const SOLID = 0.9;          // share of the drawn oval that is solid; a little overlap reads as a heap
+  const SOLID_MAX = 2 * 17 * 1.1 * SOLID;
+  function radiusToward(g, nx, ny) {
+    const T = TYPES[g.type], ca = nx * g.ca + ny * g.sa, sa = ny * g.ca - nx * g.sa;
+    const a = T.rx * g.s * SOLID, b = T.ry * g.s * SOLID;
+    return (a * b) / Math.sqrt(b * b * ca * ca + a * a * sa * sa);
+  }
+  function orient(g) { g.ca = Math.cos(g.rot); g.sa = Math.sin(g.rot); }
+  // separation along n for a pair, or 0 when they do not touch; n points from a to b
+  function overlap(a, b, out) {
+    const dx = b.x - a.x, dy = b.y - a.y;
+    if (dx >= SOLID_MAX || dx <= -SOLID_MAX || dy >= SOLID_MAX || dy <= -SOLID_MAX) return 0;
+    const d2 = dx * dx + dy * dy;
+    if (d2 >= SOLID_MAX * SOLID_MAX) return 0;
+    let d = Math.sqrt(d2);
+    if (d < 1e-6) { const ang = (a.id * 2.399 + b.id * 0.7) % (Math.PI * 2); out.nx = Math.cos(ang); out.ny = Math.sin(ang); d = 0; }
+    else { out.nx = dx / d; out.ny = dy / d; }
+    const min = radiusToward(a, out.nx, out.ny) + radiusToward(b, out.nx, out.ny);
+    return d < min ? min - d : 0;
+  }
+
+  // settle a freshly scattered board so no two grains start inside each other
   function relax(gs, B, iters, stores) {
+    const n = { nx: 0, ny: 0 };
+    for (const g of gs) orient(g);
     for (let it = 0; it < iters; it++) {
       for (let i = 0; i < gs.length; i++) {
-        const a = gs[i], ra = TYPES[a.type].size;
+        const a = gs[i];
         for (let j = i + 1; j < gs.length; j++) {
-          const b = gs[j], min = 0.72 * (ra + TYPES[b.type].size);
-          const dx = b.x - a.x, dy = b.y - a.y;
-          if (dx >= min || dx <= -min || dy >= min || dy <= -min) continue;
-          let d = Math.hypot(dx, dy);
-          if (d >= min) continue;
-          let nx, ny;
-          if (d < 1e-6) { const ang = (i * 2.399 + j * 0.7) % (Math.PI * 2); nx = Math.cos(ang); ny = Math.sin(ang); d = 0; }
-          else { nx = dx / d; ny = dy / d; }
-          const push = (min - d) * 0.42;
-          a.x -= nx * push; a.y -= ny * push; b.x += nx * push; b.y += ny * push;
+          const b = gs[j], o = overlap(a, b, n);
+          if (!o) continue;
+          const push = o * 0.52;
+          a.x -= n.nx * push; a.y -= n.ny * push; b.x += n.nx * push; b.y += n.ny * push;
         }
       }
       for (const g of gs) { g.x = clamp(g.x, B.x0, B.x1); g.y = clamp(g.y, B.y0, B.y1); keepOffStores(g, stores); }
     }
+  }
+
+  // every grain carries every field from the start: one object shape keeps the hot loops fast
+  function makeGrain(id, type, x, y, rot, s, tint) {
+    return {
+      id, type, x, y, rot, s, tint, st: ST.REST, vx: 0, vy: 0, w: 0, d: 0, warn: 0, cw: false, slot: -1, pt: 0,
+      ca: 1, sa: 0, aw: true, px: NaN, py: NaN, prot: NaN, pk: -1, hx: 0, hy: 0, hd: undefined,
+      ax: 0, ay: 0, arot: 0, bx: 0, by: 0, brot: 0,
+    };
   }
 
   function generate(level, B, stores) {
@@ -748,13 +780,11 @@ const GrainSim = (() => {
       for (let i = 0; i < p.count; i++) {
         let xy = place(rng, p, B);
         for (let tries = 0; tries < 24 && inStore(xy[0], xy[1], stores, 14); tries++) xy = place(rng, p, B);
-        gs.push({
-          id: gs.length, type: p.type, x: xy[0], y: xy[1], rot: rng() * Math.PI * 2, s: 0.9 + rng() * 0.2,
-          tint: Math.floor(rng() * 4), st: ST.REST, vx: 0, vy: 0, w: 0, d: 0, warn: 0, cw: false, slot: -1, pt: 0,
-        });
+        const rot = rng() * Math.PI * 2, sc = 0.9 + rng() * 0.2;
+        gs.push(makeGrain(gs.length, p.type, xy[0], xy[1], rot, sc, Math.floor(rng() * 4)));
       }
     }
-    relax(gs, B, 3, stores);
+    relax(gs, B, 10, stores);
     return gs;
   }
 
@@ -783,11 +813,11 @@ const GrainSim = (() => {
     // how quick the row being gathered is so far: below 0.75 a full row counts as Lightning, above 2 as Slow
     sim.paceRatio = () => (sim.clock - sim.lastPull) / paceFor(Math.max(1, S.need || sim.caps[sim.target]), cfg);
     sim.target = level.types.find((t) => sim.total[t] > 0);
-    sim.stats = { rows: 0, fullRows: 0, breaks: 0, penalty: 0, taken: {} };
+    sim.stats = { rows: 0, fullRows: 0, breaks: 0, penalty: 0, rowPts: 0, comboPts: 0, taken: {} };
     const S = sim.sticks = {
       phase: 'away', pt: 0, tx: W / 2, ty: sim.H * 0.6, vx: 0, vy: 0, carry: cfg.enterDist, carryTo: 1600,
       gap: 3, row: [], trail: [], callT: 0, kind: 'short', rowType: sim.target, need: 0, cap: 0,
-      cx0: 0, cy0: 0, cdx: 0, cdy: 0, pushN: 0, pushT: 0,
+      cx0: 0, cy0: 0, cdx: 0, cdy: 0, pushN: 0, pushT: 0, clackV: 0, clackT: 0,
     };
 
     function emit(type, data) { sim.events.push(Object.assign({ type, t: sim.t }, data || {})); }
@@ -915,6 +945,7 @@ const GrainSim = (() => {
         sim.mult = Math.max(1, sim.mult * SCORE.shortDecay);
       }
       sim.score += points;
+      sim.stats.rowPts += points - bonus; sim.stats.comboPts += bonus;
       sim.bestCombo = Math.max(sim.bestCombo, sim.combo);
       sim.bestMult = Math.max(sim.bestMult, sim.mult);
       sim.stats.rows++;
@@ -937,6 +968,7 @@ const GrainSim = (() => {
       sim.result = {
         score: sim.score, ideal: sim.ideal, stars: starsFor(sim.score, sim.ideal), bestCombo: sim.bestCombo, bestMult: sim.bestMult,
         fullRows: sim.stats.fullRows, rows: sim.stats.rows, breaks: sim.stats.breaks, penalty: sim.stats.penalty, noBreak,
+        rowPts: sim.stats.rowPts, comboPts: sim.stats.comboPts,
         time: sim.clock, par: sim.par, timeBonus, sorted: Object.values(sim.stats.taken).reduce((a, b) => a + b, 0),
       };
       emit('level_complete', sim.result);
@@ -975,7 +1007,7 @@ const GrainSim = (() => {
         if (c >= hw + r || c <= -(hw + r)) continue;
         const side = c > 0 ? 1 : c < 0 ? -1 : (g.id & 1 ? 1 : -1);
         const d = side * (hw + r) - c;
-        g.x += G.nx * d; g.y += G.ny * d;
+        g.x += G.nx * d; g.y += G.ny * d; g.pk = sim.steps;
         const vn = (S.vx * G.nx + S.vy * G.ny) * side;
         if (vn > 80) {                                      // a quick sweep flicks grains away
           const k = vn * cfg.flick;
@@ -1023,6 +1055,7 @@ const GrainSim = (() => {
         if (k > 0) { const p = sim.grains[S.trail[k - 1]]; tx = p.x; ty = p.y; want = spacing; sp *= cfg.catchUp; }
         const dx = tx - g.x, dy = ty - g.y, d = Math.hypot(dx, dy);
         const m = Math.min(sp * dt, Math.max(0, d - want));
+        if (d > 1e-6) { g.hx = dx / d; g.hy = dy / d; }
         if (d > 1e-6 && m > 0) { g.x += (dx / d) * m; g.y += (dy / d) * m; g.rot = turn(g.rot, Math.atan2(dy, dx), 14 * dt); }
         const ox = g.x - mx, oy = g.y - my;
         if (ox * ox + oy * oy > lose2) { g.st = ST.REST; S.trail.splice(k, 1); k--; }
@@ -1048,6 +1081,23 @@ const GrainSim = (() => {
       }
     }
 
+    // The board has a slightly raised rim: a grain left against an edge or a pile rolls slowly back toward the
+    // middle, so the last grains of a level never jam into a corner where the sticks cannot get between them.
+    const RIM = 22, RIM_V = 40;
+    function rim(g, B, dt) {
+      let ix = 0, iy = 0;
+      if (g.x < B.x0 + RIM) ix = 1; else if (g.x > B.x1 - RIM) ix = -1;
+      if (g.y < B.y0 + RIM) iy = 1; else if (g.y > B.y1 - RIM) iy = -1;
+      for (const k in sim.stores) {
+        const st = sim.stores[k], dx = g.x - st.x, dy = g.y - st.y, far = st.r + TYPES[g.type].size + 16 + RIM;
+        if (dx * dx + dy * dy >= far * far) continue;
+        const d = Math.sqrt(dx * dx + dy * dy);
+        if (d > 1e-6) { ix += dx / d; iy += dy / d; }
+      }
+      const l = Math.hypot(ix, iy);
+      if (l > 0) { g.x += (ix / l) * RIM_V * dt; g.y += (iy / l) * RIM_V * dt; }
+    }
+
     function updateFree(dt) {
       const f = Math.exp(-cfg.friction * dt), B = bounds();
       for (const g of sim.grains) {
@@ -1067,17 +1117,104 @@ const GrainSim = (() => {
           }
           g.x = clamp(g.x, B.x0, B.x1); g.y = clamp(g.y, B.y0, B.y1);
           keepOffStores(g, sim.stores);
+          if (!g.cw && g.pk !== sim.steps) rim(g, B, dt);
         } else if (g.st === ST.POUR) {
           g.pt += dt;
           if (g.pt >= 0) {
             const k = Math.min(1, g.pt / cfg.pourTime), e = 1 - (1 - k) * (1 - k);
             g.x = g.ax + (g.bx - g.ax) * e; g.y = g.ay + (g.by - g.ay) * e; g.rot = g.arot + (g.brot - g.arot) * e;
-            if (k >= 1) { g.st = ST.GONE; g.x = g.bx; g.y = g.by; g.rot = g.brot; }
+            if (k >= 1) { g.st = ST.GONE; g.x = g.bx; g.y = g.by; g.rot = g.brot; emit('land', { id: g.id, grain: g.type, slot: g.slot }); }
           }
         }
         if (!g.cw && g.warn > 0) g.warn = Math.max(0, g.warn - 4 * dt);
         g.cw = false;
       }
+    }
+
+    // Loose grains are solid against each other. A grain the sticks are shoving, or one walking into them, does not
+    // give way; a walker parts the crowd sideways instead of pushing it ahead into the mouth. A sliding grain hands
+    // its speed on like a pool ball and can set a resting one sliding.
+    const CELL = 40, nrm = { nx: 0, ny: 0 };
+    let cHead = new Int32Array(0), cNext = new Int32Array(0);
+    const solid = (g) => g.st === ST.REST || g.st === ST.SLIDE || g.st === ST.WALK;
+    const pinned = (g) => g.st === ST.WALK || g.pk === sim.steps;
+    const massOf = (g) => { const r = TYPES[g.type].size * g.s; return r * r; };
+    function sidestep(w, nx, ny) {
+      const hx = w.hx || 0, hy = w.hy || 0, f = nx * hx + ny * hy;
+      if (f <= 0) return;
+      let lx = nx - f * hx, ly = ny - f * hy, l = Math.hypot(lx, ly);
+      if (l < 0.25) { const side = (lx * hy - ly * hx) > 0 || (l < 1e-6 && (w.id & 1)) ? -1 : 1; lx = -hy * side; ly = hx * side; l = 1; }
+      nrm.nx = lx / l; nrm.ny = ly / l;
+    }
+    function resolve(a, b) {
+      const o = overlap(a, b, nrm);
+      if (!o) return;
+      let nx = nrm.nx, ny = nrm.ny;
+      const pa = pinned(a), pb = pinned(b);
+      if (pa && pb) return;
+      if (pa || pb) {                                        // the free one takes the whole step
+        const w = pa ? a : b, f = pa ? b : a, sx = pa ? nx : -nx, sy = pa ? ny : -ny;
+        nrm.nx = sx; nrm.ny = sy;
+        if (w.st === ST.WALK) sidestep(w, sx, sy);
+        f.x += nrm.nx * o; f.y += nrm.ny * o; f.aw = true;
+      } else {
+        const ia = 1 / massOf(a), ib = 1 / massOf(b), k = o / (ia + ib);
+        a.x -= nx * k * ia; a.y -= ny * k * ia; b.x += nx * k * ib; b.y += ny * k * ib; a.aw = b.aw = true;
+      }
+      if (a.st !== ST.SLIDE && b.st !== ST.SLIDE) return;
+      const ia = a.st === ST.WALK ? 0 : 1 / massOf(a), ib = b.st === ST.WALK ? 0 : 1 / massOf(b);
+      const rv = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny;
+      if (rv >= 0 || ia + ib === 0) return;
+      const j = -(1 + 0.35) * rv / (ia + ib);
+      a.vx -= j * ia * nx; a.vy -= j * ia * ny; b.vx += j * ib * nx; b.vy += j * ib * ny;
+      const tv = (b.vx - a.vx) * -ny + (b.vy - a.vy) * nx;   // a glancing hit sets them spinning
+      if (ia) a.w -= tv * 0.02; if (ib) b.w += tv * 0.02;
+      for (const g of [a, b]) {
+        if (g.st !== ST.REST) continue;
+        if (g.vx * g.vx + g.vy * g.vy > 400) g.st = ST.SLIDE; else { g.vx = 0; g.vy = 0; g.w = 0; }
+      }
+      if (-rv > S.clackV) S.clackV = -rv;
+    }
+    function collide() {
+      const gs = sim.grains, cols = Math.ceil(W / CELL) + 1, rows = Math.ceil((sim.H + 200) / CELL) + 1;
+      if (cHead.length < cols * rows) cHead = new Int32Array(cols * rows);
+      if (cNext.length < gs.length) cNext = new Int32Array(gs.length + 64);
+      for (const g of gs) {
+        if (!solid(g)) continue;
+        orient(g);
+        g.aw = g.st !== ST.REST || g.x !== g.px || g.y !== g.py || g.rot !== g.prot;
+      }
+      for (let it = 0; it < 2; it++) {
+        cHead.fill(-1);
+        for (const g of gs) {
+          if (!solid(g)) continue;
+          const c = clamp(Math.floor(g.y / CELL) + 2, 0, rows - 1) * cols + clamp(Math.floor(g.x / CELL), 0, cols - 1);
+          cNext[g.id] = cHead[c]; cHead[c] = g.id;
+        }
+        for (const a of gs) {
+          if (!solid(a)) continue;
+          const cx = clamp(Math.floor(a.x / CELL), 0, cols - 1), cy = clamp(Math.floor(a.y / CELL) + 2, 0, rows - 1);
+          for (let y = Math.max(0, cy - 1); y <= Math.min(rows - 1, cy + 1); y++) {
+            for (let x = Math.max(0, cx - 1); x <= Math.min(cols - 1, cx + 1); x++) {
+              for (let j = cHead[y * cols + x]; j >= 0; j = cNext[j]) {
+                if (j <= a.id) continue;
+                const b = gs[j];
+                if (!a.aw && !b.aw) continue;
+                if (a.st === ST.WALK && b.st === ST.WALK) continue;
+                resolve(a, b);
+              }
+            }
+          }
+        }
+      }
+      const B = bounds();
+      for (const g of gs) {
+        if (g.st !== ST.REST && g.st !== ST.SLIDE) continue;
+        if (g.aw) { g.x = clamp(g.x, B.x0, B.x1); g.y = clamp(g.y, B.y0, B.y1); keepOffStores(g, sim.stores); }
+        g.px = g.x; g.py = g.y; g.prot = g.rot;
+      }
+      if (S.clackV > 60 && sim.t - S.clackT > 0.035) { emit('clack', { v: S.clackV }); S.clackT = sim.t; }
+      S.clackV = 0;
     }
 
     function tickClocks(dt) {
@@ -1154,6 +1291,7 @@ const GrainSim = (() => {
       }
       placeRow(dt);
       updateFree(dt);
+      collide();
       tickClocks(dt);
     };
 
@@ -1165,7 +1303,7 @@ const GrainSim = (() => {
       return h >>> 0;
     };
     sim.debugPut = function (type, x, y) {
-      const g = { id: sim.grains.length, type, x, y, rot: 0, s: 1, tint: 0, st: ST.REST, vx: 0, vy: 0, w: 0, d: 0, warn: 0, cw: false, slot: -1, pt: 0 };
+      const g = makeGrain(sim.grains.length, type, x, y, 0, 1, 0);
       sim.grains.push(g); sim.total[type] = (sim.total[type] || 0) + 1;
       return g;
     };
@@ -1251,6 +1389,7 @@ const GrainSim = (() => {
     W, ST, DEFAULTS, STICK, TYPES, AUTHORED, DEMO, SCORE, MILESTONES, TWIST,
     mulberry32, capacity, totalsFor, paceFor, speedFactor, speedLabel, multGain, rowPoints, idealScore, starsFor, parTime, difficulty,
     validateLevel, levelFor, create, makeBot,
+    overlapOf(a, b) { orient(a); orient(b); return overlap(a, b, { nx: 0, ny: 0 }); },
   };
 })();
 // ===== GRAIN-SIM END =====
@@ -1404,7 +1543,7 @@ const GrainSim = (() => {
   const TYPE_PITCH = { lentil: 1, rice: 1.26, mung: 1.12 };
   const BROKE = { lentil: 'A lentil got in', rice: 'Rice got in', mung: 'A mung bean got in' };
   const Sound = {
-    ctx: null, out: null, noise: null, unlocked: false, lastPush: 0,
+    ctx: null, out: null, noise: null, unlocked: false, lastPush: 0, lastLand: 0,
     unlock() {
       try {
         // iPhone: play through the silent switch, like a game would (Safari 16.4+)
@@ -1558,7 +1697,78 @@ const GrainSim = (() => {
       const t = this.ctx.currentTime;
       [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => this.tone(t + i * 0.08, 'triangle', f, f, 0.15, 0.4));
     },
+    // two loose grains knocking together
+    knock(v) {
+      if (!this.ready()) return;
+      const t = this.ctx.currentTime, a = Math.min(1, v / 700), f = 1800 + Math.random() * 1600;
+      this.noiseBurst(t, 'bandpass', f * 2.2, 7, 0.05 + 0.15 * a, 0.018);
+      this.tone(t, 'triangle', f * 0.5, f * 0.46, 0.02 + 0.06 * a, 0.03);
+    },
+    // a grain dropping onto its pile; the pile sounds lower as it grows
+    land(slot) {
+      if (!this.ready()) return;
+      const now = this.ctx.currentTime;
+      if (now - this.lastLand < 0.016) return;
+      this.lastLand = now;
+      const f = 1500 - (slot % 24) * 18 + Math.random() * 160;
+      this.noiseBurst(now, 'bandpass', f * 2.4, 5, 0.12, 0.022);
+      this.tone(now, 'triangle', f, f * 0.94, 0.045, 0.035);
+    },
+    // the board filling at the start of a level: a patter of grains
+    spill(n) {
+      if (!this.ready()) return;
+      const t0 = this.ctx.currentTime;
+      for (let i = 0; i < Math.min(n, 36); i++) {
+        const t = t0 + 0.04 + Math.pow(Math.random(), 0.8) * 0.6, f = 900 + Math.random() * 1800;
+        this.noiseBurst(t, 'bandpass', f * 2.6, 6, 0.08, 0.02);
+      }
+    },
+    // a heartbeat while a wrong grain creeps toward the tips
+    beat(w) {
+      if (!this.ready()) return;
+      const t = this.ctx.currentTime, a = 0.25 + 0.5 * w;
+      this.tone(t, 'sine', 95, 48, 0.5 * a, 0.14, 0.1);
+      this.tone(t + 0.13, 'sine', 80, 44, 0.32 * a, 0.12, 0.09);
+    },
+    // hot tips quenched by a wrong grain
+    hiss() { if (this.ready()) this.sweep(this.ctx.currentTime, 7000, 2500, 0.12, 0.5, 0.8); },
+    // a star stamped on the end screen, each one a step up the chord
+    stamp(i) {
+      if (!this.ready()) return;
+      const t = this.ctx.currentTime, f = 523.25 * Math.pow(2, [0, 4, 7, 12, 16][i] / 12);
+      this.noiseBurst(t, 'lowpass', 900, 1, 0.35, 0.05);
+      this.tone(t, 'triangle', f, f, 0.16, 0.3); this.tone(t, 'sine', f * 2, f * 2, 0.05, 0.25);
+    },
   };
+
+  // ---------- chalk: a speckled alpha mask for the DOM, a speckled fill for canvas text ----------
+  function chalkTile(size, fill, dense) {
+    const cv = document.createElement('canvas'); cv.width = cv.height = size;
+    const c = cv.getContext('2d'), img = c.createImageData(size, size), rnd = GS.mulberry32(7331);
+    const col = fill || [255, 255, 255];
+    for (let y = 0; y < size; y++) {
+      const streak = 0.94 + 0.06 * Math.sin(y * 0.9 + Math.sin(y * 0.13) * 4);   // faint drag marks across the stroke
+      for (let x = 0; x < size; x++) {
+        const r = rnd(), i = (y * size + x) * 4;
+        const a = dense ? (r < 0.04 ? 0.4 : 0.88 + rnd() * 0.12) : r < 0.07 ? 0.12 + rnd() * 0.25 : (0.72 + rnd() * 0.28) * streak;
+        img.data[i] = col[0]; img.data[i + 1] = col[1]; img.data[i + 2] = col[2]; img.data[i + 3] = Math.round(a * 255);
+      }
+    }
+    c.putImageData(img, 0, 0);
+    return cv;
+  }
+  try { document.documentElement.style.setProperty('--chalk-mask', 'url(' + chalkTile(180).toDataURL('image/png') + ')'); } catch (e) { /* plain text then */ }
+  const chalkFills = new Map();
+  function chalkFill(c, color) {
+    if (!chalkFills.has(color)) {
+      const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(color);
+      const rgb = m ? [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)] : [236, 232, 222];
+      chalkFills.set(color, c.createPattern(chalkTile(96, rgb, true), 'repeat'));
+    }
+    return chalkFills.get(color) || color;
+  }
+  const HAND = '"Patrick Hand", "Segoe Print", "Bradley Hand", cursive';
+  if (document.fonts && document.fonts.load) { try { document.fonts.load('40px "Patrick Hand"'); } catch (e) { /* ignore */ } }
 
   // ---------- canvas & layout ----------
   const canvas = $('game'), ctx = canvas.getContext('2d');
@@ -1575,7 +1785,10 @@ const GrainSim = (() => {
   const virt = { x: W / 2, y: 700, set: false };   // where the tips go in drag-anywhere mode
   const drag = { sx: 0, sy: 0, x0: 0, y0: 0 };
   const keys = new Set();
-  const fx = { pops: new Map(), sparks: [], floats: [], rings: [], wave: null, shakeT: 0, bad: null };
+  const fx = {
+    pops: new Map(), lands: new Map(), sparks: [], steam: [], floats: [], rings: [], wave: null, shakeT: 0, bad: null,
+    stop: 0, heat: 0, quench: 0, beatT: 0, beat: 0, spill: null, shimmer: null, score: 0,
+  };
 
   function readSafe() {
     const cs = getComputedStyle($('safe'));
@@ -1592,7 +1805,7 @@ const GrainSim = (() => {
     view.offX = (view.cw - boardPx) / 2;
     document.documentElement.style.setProperty('--board-w', boardPx + 'px');
     view.H = view.ch / view.scale;
-    view.top = (view.safe.t + 92) / view.scale;
+    view.top = (view.safe.t + 100) / view.scale;
     view.bottom = (view.safe.b + 4) / view.scale;
     const lay = { H: view.H, top: view.top, bottom: view.bottom };
     if (sim) sim.setLayout(lay);
@@ -1655,7 +1868,7 @@ const GrainSim = (() => {
     return out;
   }
   function chipIcon(type) {
-    if (type === 'rice') return '<ellipse cx="10" cy="10" rx="8.5" ry="3.4" transform="rotate(-32 10 10)" fill="var(--rice)"/>';
+    if (type === 'rice') return '<ellipse cx="10" cy="10" rx="8.5" ry="3.4" transform="rotate(-32 10 10)" fill="var(--chalk)"/>';
     if (type === 'mung') return '<ellipse cx="10" cy="10" rx="6.6" ry="5" fill="var(--mung)"/>';
     return '<ellipse cx="10" cy="10" rx="7.4" ry="6.6" fill="var(--lentil)"/>';
   }
@@ -1704,7 +1917,7 @@ const GrainSim = (() => {
     for (let i = 0; i <= save.reached; i++) if (!save.levels[levelAt(i).id]) return i;
     return save.reached;
   }
-  function levelLabel(i) { return 'Level ' + (i + 1) + ' · ' + levelAt(i).name; }
+  function playLabel() { const i = nextLevelIndex(); return i === 0 && !save.levels[levelAt(0).id] ? 'Play' : 'Play level ' + (i + 1); }
 
   function newDemo() {
     demo = GS.create(Object.assign({}, cfg), GS.DEMO, layout(), demoSeed);
@@ -1717,7 +1930,18 @@ const GrainSim = (() => {
     const L = levelAt(levelIndex);
     sim = GS.create(cfg, L, layout(), ((Date.now() >>> 0) ^ (levelIndex * 7919)) >>> 0);
     autoBot = null; pendingDone = null; levelUnlocks = [];
-    fx.pops.clear(); fx.sparks = []; fx.floats = []; fx.rings = []; fx.wave = null; fx.bad = null; fx.shakeT = 0;
+    fx.pops.clear(); fx.lands.clear(); fx.sparks = []; fx.steam = []; fx.floats = []; fx.rings = []; fx.wave = null; fx.bad = null; fx.shakeT = 0;
+    fx.stop = 0; fx.heat = 0; fx.quench = 0; fx.beat = 0; fx.beatT = 0; fx.shimmer = null; fx.score = 0;
+    if (reducedMotion()) fx.spill = null;
+    else {
+      // the grains drop onto the board from the middle of the spill outward
+      let cx = 0, cy = 0, far = 1;
+      for (const g of sim.grains) { cx += g.x / sim.grains.length; cy += g.y / sim.grains.length; }
+      for (const g of sim.grains) far = Math.max(far, Math.hypot(g.x - cx, g.y - cy));
+      fx.spill = { t: 0, cx, cy, far };
+    }
+    stopDoneAnim();
+    if (fx.spill) Sound.spill(sim.grains.length);
     releaseInput();
     hintRows = 0;
     hintStage = L.hint && !save.levels[L.id] ? 0 : -1;
@@ -1730,7 +1954,7 @@ const GrainSim = (() => {
   }
 
   // ---------- HUD ----------
-  const chip = $('chip'), streakEl = $('streak'), scoreEl = $('score'), clockEl = $('clock'), barEl = streakEl.querySelector('.bar');
+  const chip = $('chip'), streakEl = $('streak'), scoreEl = $('score'), clockEl = $('clock'), fuseEl = $('fuse');
   let chipType = null;
   function updateHud(animate) {
     if (!sim) return;
@@ -1742,20 +1966,25 @@ const GrainSim = (() => {
       chipType = t;
     }
     chip.querySelector('.left').textContent = sim.remaining(t) + ' left';
-    scoreEl.querySelector('b').textContent = fmt(sim.score);
   }
-  // per frame: the level clock and the pace bar
-  function updateClocks() {
+  // per frame: the score counts toward its value, the level clock, and the pace line
+  function updateClocks(dt) {
     if (!sim) return;
+    if (fx.score !== sim.score) {
+      const d = sim.score - fx.score;
+      fx.score = Math.abs(d) < 2 || reducedMotion() ? sim.score : fx.score + d * Math.min(1, dt * 10) + Math.sign(d);
+      scoreEl.querySelector('b').textContent = fmt(fx.score);
+      scoreEl.classList.toggle('down', d < 0);
+    }
     const left = sim.timeLeft();
     clockEl.textContent = (left < 0 ? '+' : '') + mmss(left);
     clockEl.classList.toggle('over', left < 0);
     clockEl.classList.toggle('low', left >= 0 && left < 10 && sim.started);
-    // the pace bar: full right after a pull, empty once a full row would only count as Slow
+    // the pace line: whole right after a pull, gone once a full row would only count as Slow
     const r = sim.started && !sim.done ? sim.paceRatio() : 0, pace = GS.speedLabel(r);
-    barEl.style.transform = 'scaleX(' + (sim.started && !sim.done ? clamp(1 - r / 2, 0, 1) : 0).toFixed(3) + ')';
-    if (streakEl.dataset.pace !== pace) {
-      streakEl.dataset.pace = pace;
+    fuseEl.style.transform = 'scaleX(' + (sim.started && !sim.done ? clamp(1 - r / 2, 0, 1) : 0).toFixed(3) + ')';
+    if (fuseEl.dataset.pace !== pace) {
+      fuseEl.dataset.pace = pace;
       if (pace === 'Slow' && sim.mult > 1.05 && screen === 'play' && sim.started) Sound.tick(false);
     }
   }
@@ -1764,15 +1993,32 @@ const GrainSim = (() => {
     el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls);
   }
   const multText = (m) => '×' + (Math.floor(m * 10) / 10).toFixed(1);
+  // full rows in a row, chalked up as tally marks in fives; the newest stroke draws itself in
+  function tallySvg(n, fresh) {
+    let out = '';
+    const shown = Math.min(n, 20);
+    for (let g = 0; g * 5 < shown; g++) {
+      const k = Math.min(5, shown - g * 5), w = k === 5 ? 27 : 2 + Math.min(k, 4) * 6;
+      let d = '', last = '';
+      for (let i = 0; i < Math.min(k, 4); i++) {
+        const x = 3 + i * 6 + (((i * 7 + g * 3) % 3) - 1) * 0.4, lean = (i + g) % 2 ? 0.9 : -0.7;
+        const seg = 'M' + x.toFixed(1) + ' 2.5L' + (x + lean).toFixed(1) + ' 17.5';
+        if (fresh && g * 5 + i === shown - 1) last = seg; else d += seg;
+      }
+      if (k === 5) { const seg = 'M0.8 14.8L26 4.6'; if (fresh && g * 5 + 4 === shown - 1) last = seg; else d += seg; }
+      out += '<svg width="' + (w * 0.8).toFixed(1) + '" height="16" viewBox="0 0 ' + w + ' 20"><path d="' + d + '"/>' + (last ? '<path class="nw" d="' + last + '"/>' : '') + '</svg>';
+    }
+    return out;
+  }
   function updateStreak(anim) {
     if (!sim) return;
     const m = sim.mult, c = sim.combo;
     streakEl.classList.toggle('hot', m >= 2 && m < 6);
     streakEl.classList.toggle('max', m >= 6);
     streakEl.querySelector('b').textContent = multText(m);
-    streakEl.querySelector('.combo').textContent = c >= 2 ? c + ' in a row' : '';
+    $('tally').innerHTML = c >= 1 ? tallySvg(c, anim === 'up' && !reducedMotion()) : '';
     streakEl.setAttribute('aria-label', 'Multiplier ' + multText(m) + ', ' + c + ' full rows in a row');
-    if (anim) restartAnim(streakEl, anim);
+    if (anim) { streakEl.classList.remove('up', 'lost'); restartAnim(streakEl, anim); }
   }
   let bannerT = 0;
   function banner(title, line, ms) {
@@ -1801,19 +2047,22 @@ const GrainSim = (() => {
     $('hud').hidden = !(s === 'play' || s === 'pause' || s === 'tune');
     if (s !== 'play') { $('hint').classList.add('off'); releaseInput(); } else showHint();
     if ((s === 'title' || s === 'levels' || s === 'sticks') && !demo) newDemo();
-    if (s === 'title') $('playSub').textContent = levelLabel(nextLevelIndex());
+    if (s === 'title') $('playBtn').textContent = playLabel();
+    if (s !== 'done') stopDoneAnim();
     if (s === 'levels') renderLevelList();
     if (s === 'sticks') renderSticks();
     if (s === 'pause') syncControl();
     const focusMap = { title: 'playBtn', levels: 'levelsBackBtn', sticks: 'sticksBackBtn', pause: 'resumeBtn', done: 'nextBtn', tune: 'tuneDoneBtn' };
     if (focusMap[s] && document.activeElement && document.activeElement !== document.body) $(focusMap[s]).focus({ preventScroll: true });
   }
+  // a chalk star, drawn a little crooked; each of the five leans its own way
+  const STAR = 'M12 2.4l2.8 6.3 6.8.6-5.2 4.5 1.6 6.7-6-3.6-6 3.6 1.6-6.7-5.1-4.5 6.8-.6z';
   function starsHtml(n) {
     let h = '';
-    for (let i = 0; i < 5; i++) h += '<span' + (i < n ? ' class="on"' : '') + '>★</span>';
+    for (let i = 0; i < 5; i++) h += '<svg viewBox="0 0 24 24"' + (i < n ? ' class="on"' : '') + ' style="transform:rotate(' + [-6, 3, -2, 5, -4][i] + 'deg)" aria-hidden="true"><path d="' + STAR + '"/></svg>';
     return h;
   }
-  const LOCK = '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.5" fill="var(--dim)"/><path d="M5.2 7V5.2a2.8 2.8 0 0 1 5.6 0V7" fill="none" stroke="var(--dim)" stroke-width="1.6"/></svg>';
+  const LOCK = '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.5" fill="var(--chalk-2)"/><path d="M5.2 7V5.2a2.8 2.8 0 0 1 5.6 0V7" fill="none" stroke="var(--chalk-2)" stroke-width="1.6"/></svg>';
   function renderLevelList() {
     const ol = $('levelList'); ol.innerHTML = '';
     const last = Math.max(GS.AUTHORED.length - 1, save.reached + 1);
@@ -1821,10 +2070,12 @@ const GrainSim = (() => {
       const L = levelAt(i), rec = save.levels[L.id], open = unlocked(i);
       const li = document.createElement('li'), b = document.createElement('button');
       b.className = 'lvl' + (open ? '' : ' locked');
-      const sub = (L.rule || L.types.map((t) => TYPES[t].label).join(', ')) + (rec && rec.best ? ' · best ' + fmt(rec.best) : '');
+      const kinds = L.types.map((t, k) => (k ? TYPES[t].label.toLowerCase() : TYPES[t].label));
+      const sub = L.rule && L.rule !== L.name ? L.rule : kinds.length > 1 ? kinds.slice(0, -1).join(', ') + ' and ' + kinds[kinds.length - 1] : kinds[0];
       b.innerHTML = '<span class="n">' + (i + 1) + '</span><span class="nm">' + L.name + '<small>' + sub + '</small></span>' +
-        (open ? '<span class="stars" aria-label="' + (rec ? rec.stars : 0) + ' of 5 stars">' + starsHtml(rec ? rec.stars : 0) + '</span>'
-              : '<span class="stars" aria-label="Locked">' + LOCK + '</span>');
+        (open ? '<span class="rt"><span class="stars" role="img" aria-label="' + (rec ? rec.stars : 0) + ' of 5 stars">' + starsHtml(rec ? rec.stars : 0) + '</span>' +
+                (rec && rec.best ? '<small>' + fmt(rec.best) + '</small>' : '') + '</span>'
+              : '<span class="rt" aria-label="Locked">' + LOCK + '</span>');
       b.addEventListener('click', () => {
         if (!open) { toast('Clear level ' + i + ' to open this one.'); return; }
         startLevel(i, 'level_list');
@@ -1841,7 +2092,6 @@ const GrainSim = (() => {
   }
   function renderSticks() {
     const ul = $('sticksList'); ul.innerHTML = '';
-    $('sticksSub').textContent = 'Earned by playing well. Top multiplier ' + multText(save.totals.bestMult) + ' · best combo ' + save.totals.bestCombo + ' · ' + fmt(save.totals.grains) + ' grains sorted · ' + starCount() + ' stars.';
     for (const k of STICKS) {
       const owned = save.sticks.owned.includes(k.id), on = save.sticks.equipped === k.id;
       const li = document.createElement('li'), b = document.createElement('button');
@@ -1857,26 +2107,75 @@ const GrainSim = (() => {
       li.appendChild(b); ul.appendChild(li);
     }
   }
+  // A tally chalked up line by line; then the score counts up from zero and stamps a star as it passes each mark.
+  // A tap on the slab skips to the end.
+  let doneAnim = null;
+  function stopDoneAnim() { if (doneAnim) { cancelAnimationFrame(doneAnim.raf); doneAnim = null; } }
   function showDone(res, prev, unlocks) {
-    $('doneEyebrow').textContent = levelLabel(levelIndex);
-    $('doneStars').innerHTML = starsHtml(res.stars);
-    $('doneStars').setAttribute('aria-label', res.stars + ' of 5 stars');
-    const isBest = !prev || !prev.best || res.score > prev.best;
-    $('doneResult').innerHTML = '<b>' + fmt(res.score) + '</b><span>points</span>' + (isBest && prev ? '<span class="best">New best</span>' : '');
-    const full = res.fullRows === 1 ? '1 full row' : res.fullRows + ' full rows';
-    const broken = res.breaks === 0 ? 'none broken' : (res.breaks === 1 ? '1 broken' : res.breaks + ' broken') + ' (−' + fmt(res.penalty) + ')';
-    let sub = 'Top multiplier ' + multText(res.bestMult) + ', best combo ' + res.bestCombo + '. ' + full + ', ' + broken + '.';
-    sub += ' Time ' + mmss(res.time) + ' of ' + mmss(res.par) + (res.timeBonus ? ', time bonus +' + fmt(res.timeBonus) : ', no time bonus') + '.';
-    if (res.noBreak) sub += ' No-break bonus +' + fmt(res.noBreak) + '.';
-    if (res.stars < 5) sub += ' Next star at ' + fmt(Math.ceil(res.ideal * GS.SCORE.stars[res.stars])) + ' points.';
-    $('doneSub').textContent = sub;
+    const L = levelAt(levelIndex);
+    $('doneLevel').textContent = 'Level ' + (levelIndex + 1) + ' cleared';
+    $('doneName').textContent = L.name;
+    const starsEl = $('doneStars');
+    starsEl.innerHTML = starsHtml(0);
+    starsEl.setAttribute('role', 'img'); starsEl.setAttribute('aria-label', res.stars + ' of 5 stars');
+    const rows = res.rows === 1 ? '1 row' : res.rows + ' rows';
+    const lines = [[res.fullRows === res.rows ? rows + ', all full' : rows + ', ' + res.fullRows + ' full', res.rowPts]];
+    if (res.comboPts) lines.push(['Combo prizes', res.comboPts]);
+    lines.push(['Time ' + mmss(res.time) + ' of ' + mmss(res.par), res.timeBonus]);
+    if (res.noBreak) lines.push(['No row broken', res.noBreak]);
+    if (res.breaks) lines.push([(res.breaks === 1 ? '1 row' : res.breaks + ' rows') + ' broken', -res.penalty]);
+    const ol = $('doneTally'); ol.innerHTML = '';
+    lines.forEach(([label, v], i) => {
+      const li = document.createElement('li');
+      if (v < 0) li.className = 'minus';
+      li.style.animationDelay = (i * 0.12) + 's';
+      li.innerHTML = '<span></span><b></b>';
+      li.firstChild.textContent = label; li.lastChild.textContent = (v < 0 ? '−' : '+') + fmt(Math.abs(v));
+      ol.appendChild(li);
+    });
+    const totalB = $('doneTotal').querySelector('b'), oldEm = $('doneTotal').querySelector('em');
+    if (oldEm) oldEm.remove();
+    const isBest = prev && prev.best && res.score > prev.best;
+    const marks = GS.SCORE.stars.map((f) => Math.ceil(res.ideal * f));
+    $('doneNext').textContent = '';
     const pz = $('donePrize');
-    if (unlocks.length) {
-      pz.hidden = false;
-      pz.innerHTML = 'New chopsticks: <b>' + unlocks.map((k) => k.name).join(', ') + '</b>. Pick them under Chopsticks.';
-    } else pz.hidden = true;
+    pz.hidden = true;
+    if (unlocks.length) pz.innerHTML = 'New chopsticks: <b>' + unlocks.map((k) => k.name).join(', ') + '</b>. Pick them under Chopsticks.';
     setScreen('done');
+
+    const svgs = starsEl.querySelectorAll('svg');
+    let stamped = 0;
+    const stamp = (n, quiet) => {
+      while (stamped < n) {
+        const el = svgs[stamped]; el.classList.add('on');
+        if (!quiet) { el.classList.add('stamp'); Sound.stamp(stamped); Haptics.buzz(stamped === 4 ? [14, 30, 22] : 10); }
+        stamped++;
+      }
+    };
+    const finish = (quiet) => {
+      stopDoneAnim();
+      totalB.textContent = fmt(res.score);
+      stamp(res.stars, quiet);
+      if (isBest) { const em = document.createElement('em'); em.textContent = 'New best'; $('doneTotal').appendChild(em); }
+      $('doneNext').textContent = res.stars < 5 ? 'Next star at ' + fmt(marks[res.stars]) + ' points.' : '';
+      if (unlocks.length) pz.hidden = false;
+    };
+    if (reducedMotion()) { finish(true); return; }
+    totalB.textContent = '0';
+    const t0 = performance.now() + lines.length * 120 + 200, dur = 900 + res.stars * 120;
+    doneAnim = { raf: 0, finish };
+    const step = (now) => {
+      if (!doneAnim) return;
+      const k = clamp((now - t0) / dur, 0, 1), e = 1 - Math.pow(1 - k, 3), v = Math.round(res.score * e);
+      totalB.textContent = fmt(v);
+      let n = 0; while (n < res.stars && v >= marks[n]) n++;
+      stamp(n, false);
+      if (k >= 1) { finish(false); return; }
+      doneAnim.raf = requestAnimationFrame(step);
+    };
+    doneAnim.raf = requestAnimationFrame(step);
   }
+  $('doneSlab').addEventListener('click', (e) => { if (doneAnim && !e.target.closest('button')) doneAnim.finish(true); });
 
   // ---------- input: above the finger (direct), or drag anywhere (relative) ----------
   const offset = () => (sim ? sim.cfg.fingerOffset : (cfg.fingerOffset || GS.DEFAULTS.fingerOffset));
@@ -1924,14 +2223,17 @@ const GrainSim = (() => {
   });
 
   // ---------- game events → sound, haptics, effects, HUD ----------
-  const MULT_COLOR = { 1: '#f2ede3', 2: '#ffd2a0', 3: '#ffb36b', 4: '#ff9445', 5: '#f3c75a' };
-  const SPEED_COLOR = { Lightning: '#f3c75a', Quick: '#ffb36b', Steady: '#f2ede3', Slow: '#a7adb5' };
+  // One chalk note per row: the points, and under them what the row did to the multiplier.
+  const MULT_COLOR = { 1: '#ece8de', 2: '#ffd9ae', 3: '#ffb877', 4: '#ef8a40', 5: '#f6c453' };
+  const SPEED_COLOR = { Lightning: '#f6c453', Quick: '#ffb877', Steady: '#ece8de', Slow: '#9aa0a8' };
+  const heatFor = (m) => clamp((m - 1) / 4, 0, 1);    // the sticks are fully hot from ×5
   function handleEvents(evts) {
     const L = levelAt(levelIndex);
     for (const e of evts) {
       switch (e.type) {
         case 'sticks_in': Sound.swish(); break;
         case 'push': Sound.push(e.n, e.speed); break;
+        case 'clack': Sound.knock(e.v); break;
         case 'slot':
           Sound.slot(e.index, e.grain, e.n >= e.need);
           Haptics.buzz(e.n >= e.need ? 12 : 5);
@@ -1940,10 +2242,11 @@ const GrainSim = (() => {
           break;
         case 'close': {
           Sound.clack();
+          { const G = sim.geom(); fx.closeAt = { x: G.mx, y: G.my }; }
           if (e.kind === 'full') {
             Sound.fullRow(); Haptics.buzz([15, 30, 15]);
             const G = sim.geom();
-            floatText('Full row', G.Tx + G.nx * 60, G.Ty - 30, '#f3c75a', 34);
+            if (!reducedMotion()) fx.stop = 0.075;        // a beat of stillness, so the full row lands
             fx.rings.push({ x: G.mx, y: G.my, t: 0, life: 0.45 });
             fx.wave = { ids: sim.sticks.row.slice(), t: 0 };
             sparkRow();
@@ -1951,27 +2254,24 @@ const GrainSim = (() => {
           break;
         }
         case 'carry': Sound.slide(); break;
+        case 'land': Sound.land(e.slot); fx.lands.set(e.id, 1); break;
         case 'row_taken': {
-          Sound.pour(e.n);
-          const tier = Math.min(5, Math.floor(e.mult));
-          floatText('+' + fmt(e.points), e.x, e.y - 50, MULT_COLOR[tier] || '#f2ede3', e.mult >= 3 ? 40 : 34);
+          const tier = Math.min(5, Math.floor(e.mult)), pts = '+' + fmt(e.points);
+          const at = fx.closeAt || { x: e.x, y: e.y }; fx.closeAt = null;
           save.totals.grains += e.n;
           save.totals.bestCombo = Math.max(save.totals.bestCombo, e.combo);
           save.totals.bestMult = Math.max(save.totals.bestMult, e.mult);
           if (e.kind !== 'short') {
             // how fast the row was decides how much the multiplier grows
-            const col = SPEED_COLOR[e.speed];
-            floatText(e.speed + '  ' + multText(e.mult), e.x, e.y - 105, col, e.speed === 'Lightning' ? 44 : 36);
+            const line = e.cleared ? TYPES[e.grain].label + ' cleared ' + multText(e.mult) : e.speed + ' ' + multText(e.mult);
+            note(pts, line, MULT_COLOR[tier], e.cleared ? '#ece8de' : SPEED_COLOR[e.speed], at.x, at.y);
             if (e.speed === 'Lightning' || e.speed === 'Quick') { Sound.multUp(Math.min(5, 1 + Math.floor(e.mult))); Haptics.buzz(e.speed === 'Lightning' ? [12, 30, 12, 30, 12] : [12, 30, 12]); }
-            if (e.speed === 'Lightning' && !reducedMotion()) fx.rings.push({ x: e.x, y: e.y - 105, t: 0, life: 0.5 });
-            if (e.cleared) floatText(TYPES[e.grain].label + ' cleared', e.x, e.y - 150, '#f2ede3', 28);
             updateStreak('up');
           } else {
-            floatText('Short row: ' + multText(e.multBefore) + ' → ' + multText(e.mult), e.x, e.y - 100, '#a7adb5', 26);
-            updateStreak(e.mult < e.multBefore ? 'lost' : null);
+            note(pts, 'Short row ' + multText(e.mult), '#ece8de', '#9aa0a8', at.x, at.y);
+            updateStreak(null);
           }
           if (e.milestone) { Sound.fanfare(); Haptics.buzz([20, 30, 20, 30, 60]); banner(e.milestone, '+' + fmt(e.bonus) + ' for ' + e.combo + ' full rows in a row'); }
-          restartAnim(scoreEl, 'bump');
           const un = checkUnlocks();
           if (un.length) { levelUnlocks.push(...un); if (!e.milestone) banner('New chopsticks', un.map((k) => k.name).join(', ')); }
           persist();
@@ -1984,19 +2284,20 @@ const GrainSim = (() => {
         case 'target': Sound.swap(); updateHud(true); break;
         case 'break': {
           Sound.thud(); Sound.scatter(e.lost); Haptics.buzz([30, 40, 30]);
-          if (!reducedMotion()) fx.shakeT = 0.25;
+          if (!reducedMotion()) { fx.shakeT = 0.25; fx.stop = 0.09; }
+          if (fx.heat > 0.05) { fx.quench = 1; Sound.hiss(); steam(); }
+          fx.heat = 0;
           fx.bad = { id: e.id, t: 1.4 };
-          const by = Math.max(view.top + 50, e.y - 40);
-          floatText((BROKE[e.wrong] || 'Wrong grain got in') + (e.penalty ? '  −' + fmt(e.penalty) : ''), e.x, by, '#ff6b5e', 32);
-          if (e.multLost > 1.05) { Sound.lost(); floatText('Multiplier lost: ' + multText(e.multLost) + ' → ×1.0', e.x, by + 45, '#ff6b5e', 28); }
+          if (e.multLost > 1.05) Sound.lost();
+          note(e.penalty ? '−' + fmt(e.penalty) : 'Broken', (BROKE[e.wrong] || 'A wrong grain got in') + (e.multLost > 1.05 ? ', back to ×1' : ''), '#ff7a6b', '#ff7a6b', e.x, e.y);
           updateStreak('lost');
-          restartAnim(scoreEl, 'bump');
           Analytics.emit('row_broken', { level: L.id, wrong: e.wrong, lost: e.lost, comboLost: e.comboLost, multLost: e.multLost });
           updateHud(false);
           break;
         }
         case 'level_complete': {
           Sound.chime(); Haptics.buzz([20, 30, 20, 30, 40]);
+          if (!reducedMotion()) fx.shimmer = { t: 0 };
           const prev = save.levels[L.id] ? Object.assign({}, save.levels[L.id]) : null;
           save.levels[L.id] = {
             stars: Math.max(e.stars, prev ? prev.stars : 0),
@@ -2007,16 +2308,18 @@ const GrainSim = (() => {
           persist();
           levelUnlocks.push(...checkUnlocks());
           Analytics.emit('level_complete', { level: L.id, score: e.score, stars: e.stars, breaks: e.breaks, bestCombo: e.bestCombo, bestMult: e.bestMult, time: e.time });
-          pendingDone = { at: performance.now() + 900, res: e, prev, unlocks: levelUnlocks.slice() };
+          pendingDone = { at: performance.now() + 1200, res: e, prev, unlocks: levelUnlocks.slice() };
           updateHud(false);
           break;
         }
       }
     }
   }
-  function floatText(text, x, y, color, size) {
-    const sz = size || 32, half = Math.min(W / 2 - 14, (text.length * sz * 0.56) / 2 + 12);   // keep the whole line on the board
-    fx.floats.push({ text, x: clamp(x, half, W - half), y: Math.max(view.top + 30, y), color, size: sz, t: 0, life: 1.1 });
+  function note(big, small, color, scol, x, y) {
+    const half = Math.min(W / 2 - 14, Math.max(big.length * 23, small.length * 12) / 2 + 14);   // keep both lines on the board
+    let ny = clamp(y - 80, view.top + 50, view.H - 180);
+    for (const f of fx.floats) if (f.t < 0.7 && Math.abs(f.y - ny) < 80) ny = Math.max(view.top + 50, f.y - 92);   // stack, never overlap
+    fx.floats.push({ big, small, color, scol, x: clamp(x, half, W - half), y: ny, t: 0, life: 1.3 });
   }
   function sparkRow() {
     const n = reducedMotion() ? 0 : 20;
@@ -2026,6 +2329,14 @@ const GrainSim = (() => {
         const a = Math.random() * Math.PI * 2, v = 60 + Math.random() * 160;
         fx.sparks.push({ x: g.x, y: g.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0, life: 0.35 + Math.random() * 0.25 });
       }
+    }
+  }
+  function steam() {
+    if (reducedMotion()) return;
+    const G = sim.geom();
+    for (let i = 0; i < 12; i++) {
+      fx.steam.push({ x: G.mx + (Math.random() - 0.5) * 30, y: G.my + (Math.random() - 0.5) * 30, vx: (Math.random() - 0.5) * 50,
+        vy: -30 - Math.random() * 50, r: 7 + Math.random() * 9, t: 0, life: 0.6 + Math.random() * 0.5 });
     }
   }
 
@@ -2056,6 +2367,7 @@ const GrainSim = (() => {
   }
   function drawSticks(s, ox, oy) {
     const G = s.geom(), L = GS.STICK.len, skin = stickById(save.sticks.equipped);
+    const hot = s === sim ? fx.heat : 0, cold = s === sim ? fx.quench : 0;
     const th = Math.atan2(G.ux, -G.uy), k = K(), cs = Math.cos(th) * k, sn = Math.sin(th) * k;
     const at = (wx, wy) => ctx.setTransform(cs, sn, -sn, cs, view.dpr * (view.offX + ox + wx * view.scale), view.dpr * (oy + wy * view.scale));
     // shadows first, cast down and to the right; lifted sticks cast them further and softer
@@ -2078,9 +2390,33 @@ const GrainSim = (() => {
         ctx.fillStyle = tg; ctx.fillRect(-m.baseW, -20, m.baseW * 2, 150);
         ctx.restore();
       }
+      // the multiplier as heat: the tips glow from wood to ember to white-gold; a wrong grain quenches them blue
+      if (hot > 0.01 || cold > 0.01) {
+        ctx.save(); ctx.clip();
+        const hg = ctx.createLinearGradient(0, 0, 0, 120 + 200 * Math.max(hot, cold));
+        if (cold > 0.01) {
+          hg.addColorStop(0, 'rgba(205,232,255,' + 0.9 * cold + ')'); hg.addColorStop(1, 'rgba(205,232,255,0)');
+        } else {
+          hg.addColorStop(0, 'rgba(255,240,190,' + 0.95 * hot + ')');
+          hg.addColorStop(0.15, 'rgba(255,160,60,' + 0.9 * hot + ')');
+          hg.addColorStop(0.55, 'rgba(190,60,20,' + 0.4 * hot + ')');
+          hg.addColorStop(1, 'rgba(120,30,10,0)');
+        }
+        ctx.fillStyle = hg; ctx.fillRect(-m.baseW, -20, m.baseW * 2, 360);
+        ctx.restore();
+      }
       ctx.strokeStyle = 'rgba(40,20,5,0.2)'; ctx.lineWidth = 0.8;
       ctx.beginPath(); ctx.moveTo(-1.2, 30); ctx.lineTo(-4, m.len); ctx.moveTo(1.6, 60); ctx.lineTo(3.5, m.len); ctx.stroke();
       ctx.restore();
+    }
+    if (hot > 0.05) {                     // a flickering glow around the hot tips
+      const fl = 0.85 + 0.15 * Math.sin(s.t * 23) * Math.sin(s.t * 7.1), r = 46 + 40 * hot;
+      worldTransform(ox, oy);
+      ctx.globalCompositeOperation = 'lighter';
+      const rg = ctx.createRadialGradient(G.Tx, G.Ty, 0, G.Tx, G.Ty, r);
+      rg.addColorStop(0, 'rgba(255,170,70,' + 0.34 * hot * fl + ')'); rg.addColorStop(1, 'rgba(255,120,40,0)');
+      ctx.fillStyle = rg; ctx.beginPath(); ctx.arc(G.Tx, G.Ty, r, 0, Math.PI * 2); ctx.fill();
+      ctx.globalCompositeOperation = 'source-over';
     }
   }
   // the reach (where the row's kind is pulled from) and, fainter and red, where wrong grains creep from
@@ -2126,9 +2462,9 @@ const GrainSim = (() => {
       const d = slot0 + i * T.pitch, x = G.Tx - G.ux * d, y = G.Ty - G.uy * d;
       ctx.beginPath(); ctx.arc(x, y, Math.min(T.rx, T.ry) * 0.75, 0, Math.PI * 2); ctx.stroke();
     }
-    const r = 30, a0 = -Math.PI / 2;
+    const r = 30 + fx.beat * 5, a0 = -Math.PI / 2;
     ctx.lineWidth = 5; ctx.lineCap = 'round';
-    ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+    ctx.strokeStyle = fx.beat > 0.02 ? 'rgba(255,122,107,' + (0.2 + 0.65 * fx.beat) + ')' : 'rgba(0,0,0,0.35)';
     ctx.beginPath(); ctx.arc(G.mx, G.my, r, 0, Math.PI * 2); ctx.stroke();
     const col = f >= 1 ? '#f3c75a' : 'rgba(255,' + Math.round(237 - 30 * f) + ',' + Math.round(227 - 140 * f) + ',0.95)';
     ctx.strokeStyle = col;
@@ -2145,7 +2481,22 @@ const GrainSim = (() => {
       ctx.beginPath(); ctx.moveTo(st.x, st.y); ctx.arc(st.x, st.y, r, a0, a1); ctx.closePath(); ctx.fill();
       ctx.strokeStyle = 'rgba(242,237,227,0.1)'; ctx.lineWidth = 2; ctx.setLineDash([10, 12]);
       ctx.beginPath(); ctx.arc(st.x, st.y, r, a0, a1); ctx.stroke(); ctx.setLineDash([]);
-      for (const id of st.ids) { const g = s.grains[id]; if (g.st === ST.GONE) drawGrain(g, 1, 0, 0, ox, oy); }
+      for (const id of st.ids) {
+        const g = s.grains[id];
+        if (g.st !== ST.GONE) continue;
+        const p = s === sim ? fx.lands.get(id) || 0 : 0;
+        drawGrain(g, 1 + 0.45 * p * p, 0, 0, ox, oy);
+      }
+      if (s === sim && fx.shimmer) {    // a light runs across the finished piles
+        ctx.globalCompositeOperation = 'lighter';
+        for (const id of st.ids) {
+          const g = s.grains[id], k = fx.shimmer.t * 1.5 - (g.x / W) * 0.7 - ((view.H - g.y) / view.H) * 0.4;
+          if (g.st !== ST.GONE || k <= 0 || k >= 0.3) continue;
+          ctx.globalAlpha = 0.7 * Math.sin((k / 0.3) * Math.PI);
+          drawGrain(g, 1.04, 0, 0, ox, oy);
+        }
+        ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+      }
       worldTransform(ox, oy);
     }
   }
@@ -2179,15 +2530,24 @@ const GrainSim = (() => {
     drawZone(s, ox, oy);
     const t = s.t, gs = s.grains;
     const badId = s === sim && fx.bad ? fx.bad.id : -1;
+    const sp = s === sim ? fx.spill : null;
     for (const g of gs) {
       if (g.st !== ST.REST && g.st !== ST.SLIDE) continue;
-      let jx = 0, jy = 0;
+      let jx = 0, jy = 0, sc = 1;
+      if (sp) {                          // dropping onto the board: big and faint, then down with a small bounce
+        const delay = 0.42 * Math.hypot(g.x - sp.cx, g.y - sp.cy) / sp.far + ((g.id * 0.618) % 1) * 0.12;
+        const k = clamp((sp.t - delay) / 0.3, 0, 1);
+        if (k <= 0) continue;
+        sc = 1 + 0.9 * (1 - k) * (1 - k) - 0.12 * Math.sin(Math.PI * k);
+        ctx.globalAlpha = Math.min(1, k * 2.5);
+      }
       if (g.warn > 0.02) {
         drawWarnRing(g, Math.min(0.95, 0.25 + g.warn), ox, oy);
         jx = Math.sin(t * 57 + g.id * 1.7) * g.warn * 2.4; jy = Math.cos(t * 49 + g.id) * g.warn * 2.4;
       }
       if (g.id === badId) drawWarnRing(g, Math.min(1, fx.bad.t), ox, oy);
-      drawGrain(g, 1, jx, jy, ox, oy);
+      drawGrain(g, sc, jx, jy, ox, oy);
+      ctx.globalAlpha = 1;
     }
     for (const g of gs) if (g.st === ST.WALK) drawGrain(g, 1.04, 0, 0, ox, oy);
     drawFill(s, ox, oy);
@@ -2214,19 +2574,45 @@ const GrainSim = (() => {
     }
     for (const p of fx.sparks) {
       const a = 1 - p.t / p.life;
-      ctx.fillStyle = 'rgba(255,236,190,' + a + ')';
-      ctx.beginPath(); ctx.arc(p.x, p.y, 3.2 * a + 1, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = p.warm ? 'rgba(255,170,70,' + a + ')' : 'rgba(255,236,190,' + a + ')';
+      ctx.beginPath(); ctx.arc(p.x, p.y, (p.warm ? 1.8 : 3.2) * a + 1, 0, Math.PI * 2); ctx.fill();
     }
+    for (const p of fx.steam) {
+      const k = p.t / p.life;
+      ctx.fillStyle = 'rgba(214,224,232,' + 0.3 * (1 - k) + ')';
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r * (1 + 1.6 * k), 0, Math.PI * 2); ctx.fill();
+    }
+    // notes chalked onto the board: points on top, what happened to the multiplier underneath
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.shadowColor = 'rgba(12,14,17,0.9)'; ctx.shadowBlur = 10 * view.dpr;
     for (const f of fx.floats) {
-      const k = f.t / f.life, a = k < 0.7 ? 1 : 1 - (k - 0.7) / 0.3, pop = k < 0.12 ? 0.7 + (k / 0.12) * 0.3 : 1;
-      ctx.font = '700 ' + Math.round(f.size * pop) + 'px "Atkinson Hyperlegible", system-ui, sans-serif';
-      ctx.fillStyle = 'rgba(0,0,0,' + 0.55 * a + ')'; ctx.fillText(f.text, f.x + 2, f.y - k * 45 + 2);
-      ctx.globalAlpha = a; ctx.fillStyle = f.color; ctx.fillText(f.text, f.x, f.y - k * 45); ctx.globalAlpha = 1;
+      const k = f.t / f.life, pop = k < 0.1 ? 0.6 + (k / 0.1) * 0.4 : 1, y = f.y - k * 36;
+      ctx.globalAlpha = k < 0.75 ? 1 : 1 - (k - 0.75) / 0.25;
+      ctx.font = Math.round(48 * pop) + 'px ' + HAND;
+      ctx.fillStyle = chalkFill(ctx, f.color); ctx.fillText(f.big, f.x, y);
+      if (f.small) { ctx.font = Math.round(26 * pop) + 'px ' + HAND; ctx.fillStyle = chalkFill(ctx, f.scol); ctx.fillText(f.small, f.x, y + 38); }
     }
+    ctx.globalAlpha = 1; ctx.shadowBlur = 0; ctx.shadowColor = 'transparent';
   }
   function updateFx(dt) {
     for (const [id, p] of fx.pops) { const v = p - dt / 0.16; if (v <= 0) fx.pops.delete(id); else fx.pops.set(id, v); }
+    for (const [id, p] of fx.lands) { const v = p - dt / 0.18; if (v <= 0) fx.lands.delete(id); else fx.lands.set(id, v); }
+    if (sim && screen === 'play') {
+      const want = heatFor(sim.mult);
+      fx.heat += (want - fx.heat) * Math.min(1, dt * (want > fx.heat ? 3 : 6));
+      // embers come off the tips once they are properly hot
+      const S = sim.sticks;
+      if (fx.heat > 0.5 && S.phase !== 'away' && !reducedMotion() && Math.random() < (fx.heat - 0.45) * 14 * dt) {
+        const G = sim.geom();
+        fx.sparks.push({ x: G.Tx + (Math.random() - 0.5) * 16, y: G.Ty, vx: (Math.random() - 0.5) * 60, vy: -40 - Math.random() * 70, t: 0, life: 0.5 + Math.random() * 0.4, warm: true });
+      }
+    }
+    fx.quench = Math.max(0, fx.quench - dt / 0.8);
+    fx.beat = Math.max(0, fx.beat - dt * 5);
+    if (fx.spill) { fx.spill.t += dt; if (fx.spill.t > 0.95) fx.spill = null; }
+    if (fx.shimmer) { fx.shimmer.t += dt; if (fx.shimmer.t > 1.4) fx.shimmer = null; }
+    for (const p of fx.steam) { p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; }
+    fx.steam = fx.steam.filter((p) => p.t < p.life);
     for (const p of fx.sparks) { p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.9; p.vy *= 0.9; }
     fx.sparks = fx.sparks.filter((p) => p.t < p.life);
     for (const r of fx.rings) r.t += dt;
@@ -2250,14 +2636,21 @@ const GrainSim = (() => {
         if (keys.has('ArrowUp')) input.y -= v; if (keys.has('ArrowDown')) input.y += v;
         input.x = clamp(input.x, 0, W); input.y = clamp(input.y, 0, view.H + 200);
       }
-      acc += dt;
+      if (fx.stop > 0) fx.stop = Math.max(0, fx.stop - dt); else acc += dt;    // hit-stop: the board holds still for a beat
       let n = 0;
       while (acc >= step && n < 24) {
         const inp = autoBot ? autoBot() : input;
         sim.step(inp); handleEvents(sim.drainEvents()); acc -= step; n++;
       }
       if (n === 24) acc = 0;
-      updateClocks();
+      // a heartbeat that quickens as a wrong grain creeps toward the open tips
+      let w = 0;
+      if (sim.sticks.phase === 'open') for (const g of sim.grains) if (g.st === ST.REST && g.type !== sim.sticks.rowType && g.warn > w) w = g.warn;
+      if (w > 0.15) {
+        fx.beatT += dt;
+        if (fx.beatT >= 0.8 - 0.58 * clamp((w - 0.15) / 0.85, 0, 1)) { fx.beatT = 0; fx.beat = 1; Sound.beat(w); if (w > 0.55) Haptics.buzz(6); }
+      } else fx.beatT = 10;
+      updateClocks(dt);
       if (pendingDone && now >= pendingDone.at) { const p = pendingDone; pendingDone = null; showDone(p.res, p.prev, p.unlocks); }
     } else if ((screen === 'title' || screen === 'levels' || screen === 'sticks') && demo) {
       const step = 1 / demo.cfg.stepHz;
@@ -2377,6 +2770,5 @@ const GrainSim = (() => {
   };
 })();
 </script>
-
 </body>
 </html>
