@@ -102,13 +102,13 @@
     font-family: var(--hand); line-height: 1.2; text-shadow: var(--halo); padding: 16px 30px; box-sizing: border-box;
     background: radial-gradient(closest-side, rgba(15, 18, 21, 0.9), rgba(15, 18, 21, 0.72) 62%, rgba(15, 18, 21, 0)); }
   #banner { top: calc(env(safe-area-inset-top, 0px) + 112px); opacity: 0; transform: translate(-50%, -6px) rotate(-1.5deg);
-    transition: opacity .2s ease, transform .2s ease; max-width: 86vw; }
+    transition: opacity .2s ease, transform .2s ease; width: max-content; max-width: min(88vw, 380px); }
   #banner.show { opacity: 1; transform: translate(-50%, 0) rotate(-1.5deg); }
   #banner b { display: block; font-weight: 400; font-size: var(--fs-34); color: var(--ember); }
   #banner span { font-size: var(--fs-20); }
   #hint { top: calc(env(safe-area-inset-top, 0px) + 112px); width: max-content; max-width: min(84vw, 360px); font-size: var(--fs-24); transition: opacity .2s ease; }
   #hint.off { opacity: 0; }
-  #toast { top: calc(env(safe-area-inset-top, 0px) + 70px); z-index: 6; font-size: var(--fs-20); opacity: 0; transition: opacity .2s ease; max-width: 88vw; }
+  #toast { top: calc(env(safe-area-inset-top, 0px) + 70px); z-index: 6; font-size: var(--fs-20); opacity: 0; transition: opacity .2s ease; width: max-content; max-width: min(88vw, 380px); }
   #toast.show { opacity: 1; }
 
   /* ---------- menus: a slate slab across the bottom ---------- */
@@ -145,6 +145,24 @@
   .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .stack { display: flex; flex-direction: column; gap: 10px; }
   .sub { margin: 0; color: var(--chalk-2); font: 400 var(--fs-15)/1.4 var(--print); }
+
+  /* the lobby: your stars, how far to the next board, the boards themselves */
+  .purse { margin: -4px 0 0; display: flex; align-items: center; gap: 10px; }
+  .purse svg { width: 30px; height: 30px; fill: var(--ember); stroke: var(--ember); stroke-width: 1.2; stroke-linejoin: round; transform: rotate(-6deg); flex: none; }
+  .purse b { font: 700 var(--fs-44)/1 var(--sketch); }
+  .purse span { font: 400 var(--fs-20)/1.2 var(--hand); color: var(--chalk-2); }
+  .meter { display: block; height: 4px; border-radius: 2px; background: var(--chalk-3); overflow: hidden; margin-top: -6px; }
+  .meter i { display: block; height: 100%; background: var(--ember); transform-origin: left; transform: scaleX(0); transition: transform .5s cubic-bezier(.2, .8, .2, 1); }
+  .boards { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(104px, 1fr); gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+  .board { scroll-snap-align: start; display: flex; flex-direction: column; gap: 6px; padding: 0 0 9px; border: 2px solid var(--chalk-3);
+    border-radius: 10px 8px 11px 9px; background: transparent; text-align: left; overflow: hidden; }
+  .board .sw { display: block; height: 56px; background-size: cover; background-position: center; }
+  .board b { font: 400 var(--fs-20)/1 var(--hand); padding: 0 10px; }
+  .board small { display: flex; align-items: center; gap: 4px; padding: 0 10px; font: 400 var(--fs-17)/1 var(--hand); color: var(--chalk-2); }
+  .board small svg { width: 15px; height: 15px; fill: var(--ember); stroke: var(--ember); flex: none; }
+  .board.here { border-color: var(--chalk); }
+  .board.locked .sw { filter: grayscale(0.5) brightness(0.5); }
+  .board.locked small svg path[fill] { fill: var(--chalk-2); }
 
   .list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
   .list li + li { border-top: 1px dashed rgba(236, 232, 222, 0.1); }
@@ -206,7 +224,7 @@
 
   @media (prefers-reduced-motion: reduce) {
     .slab, #chip.swap, .stars.big svg.stamp, #streak.up b, #streak.lost, #streak.lost b, .tally li, .total em, #tally .nw { animation: none; }
-    #hint, #toast, #banner, #fuse, #streak b { transition: none; }
+    #hint, #toast, #banner, #fuse, #streak b, .meter i { transition: none; }
   }
 </style>
 </head>
@@ -231,18 +249,18 @@
 <section id="title" class="screen" hidden>
   <div class="slab">
     <h1 class="chalk">Grain Line</h1>
-    <p class="lede chalk">Sort the spill, one kind at a time.</p>
+    <p class="purse chalk"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.4l2.8 6.3 6.8.6-5.2 4.5 1.6 6.7-6-3.6-6 3.6 1.6-6.7-5.1-4.5 6.8-.6z"/></svg><b id="starTotal">0</b><span id="starNext"></span></p>
+    <i class="meter chalk" id="starMeter" aria-hidden="true"><i></i></i>
+    <div class="boards" id="boards"></div>
     <button id="playBtn" class="primary">Play</button>
-    <div class="pair">
-      <button id="openLevelsBtn" class="ghost">Levels</button>
-      <button id="openSticksBtn" class="ghost">Chopsticks</button>
-    </div>
+    <button id="openSticksBtn" class="ghost">Chopsticks</button>
   </div>
 </section>
 
 <section id="levels" class="screen dim" hidden>
   <div class="slab">
-    <h2 class="chalk">Levels</h2>
+    <h2 class="chalk" id="levelsTitle">Levels</h2>
+    <p class="sub" id="levelsSub"></p>
     <ol id="levelList" class="list"></ol>
     <button id="levelsBackBtn" class="ghost">Back</button>
   </div>
@@ -361,6 +379,9 @@ const GrainSim = (() => {
     lentil: { label: 'Lentils', one: 'lentil', rx: 13, ry: 11.5, pitch: 25, gap: 34, size: 12 },
     rice: { label: 'Rice', one: 'rice grain', rx: 17, ry: 6.5, pitch: 34, gap: 22, size: 10.5 },
     mung: { label: 'Mung beans', one: 'mung bean', rx: 11.5, ry: 8.5, pitch: 23, gap: 26, size: 9.5 },
+    // stones are never sorted: they cannot be picked, have no pile, go for the open tips from almost the whole reach
+    // and a little faster than wrong grains do, and they are heavy to shove; they stay on the board all round
+    stone: { label: 'Stones', one: 'stone', rx: 12.5, ry: 10.5, pitch: 25, gap: 30, size: 11.5, stone: true, mass: 2.4, creepK: 1.3, reachK: 0.95 },
   };
 
   // Score. Every row pays (grains × 10, plus 100 for a full row or 50 for clearing a kind) times the multiplier.
@@ -508,6 +529,16 @@ const GrainSim = (() => {
   // every other level gets a twist as its own flavour; the climb itself never pauses for it
   const TWIST_ORDER = ['restless', null, 'short', null, 'narrow', null];
   const PAIRS = [['lentil', 'rice'], ['lentil', 'mung'], ['rice', 'mung']];
+  // Boards: the hand-made levels on slate, then one board for each new idea, then the endless climb. A board opens
+  // once you hold enough stars in total; its first level brings in what is new on it and nothing else.
+  const BOARDS = [
+    { id: 'slate', name: 'Slate', first: 0, count: 10, stars: 0 },
+    { id: 'walnut', name: 'Walnut', first: 10, count: 10, stars: 25, adds: 'stones',
+      intro: { name: 'Stones', text: 'They can\u2019t be picked, and they go for the tips. Push them aside.' } },
+    { id: 'iron', name: 'Cast iron', first: 20, count: Infinity, stars: 50, endless: true },
+  ];
+  function boardOf(i) { let b = BOARDS[0]; for (const B of BOARDS) if (i >= B.first) b = B; return b; }
+  const hasStones = (i) => BOARDS.some((B) => B.adds === 'stones' && i >= B.first);
   // Endless levels climb one step at a time. A single pressure number rises with every level and drives every
   // lever the same way: wrong grains creep faster and from further out, the kinds lie more mixed, there are more
   // grains, rows get longer and the clock and pace tighter. Three kinds from the fifth generated level on.
@@ -578,7 +609,10 @@ const GrainSim = (() => {
   const MIX_REF = { x0: 46, x1: W - 46, y0: 180, y1: 1110 };
   function mixOf(piles, seed) {
     const rng = mulberry32(seed), xs = [], ys = [], ts = [];
-    for (const p of piles) for (let i = 0; i < p.count; i++) { const xy = place(rng, p, MIX_REF); xs.push(xy[0]); ys.push(xy[1]); ts.push(p.type); }
+    for (const p of piles) {
+      if (TYPES[p.type].stone) continue;
+      for (let i = 0; i < p.count; i++) { const xy = place(rng, p, MIX_REF); xs.push(xy[0]); ys.push(xy[1]); ts.push(p.type); }
+    }
     let s = 0;
     for (let i = 0; i < xs.length; i++) {
       for (let j = i + 1; j < xs.length; j++) {
@@ -598,7 +632,8 @@ const GrainSim = (() => {
     const types = k >= 5 ? ['lentil', 'rice', 'mung'] : PAIRS[k < 3 ? 0 : Math.floor(rng() * PAIRS.length)];
     const archs = Object.keys(ARCH);
     let arch = archs[(k + Math.floor(rng() * 2)) % archs.length];
-    const twist = TWIST_ORDER[(k - 1) % TWIST_ORDER.length];
+    const board = boardOf(i), opening = board.adds && i === board.first;
+    const twist = opening ? null : TWIST_ORDER[(k - 1) % TWIST_ORDER.length];
     const total = Math.round(46 + 28 * d), want = mixTarget(d), pileSeed = 90001 + i * 7919 + 1;
     // a layout that cannot be made as mixed as this level asks for (too mixed even at its calmest, or not mixed
     // enough even at its wildest) hands over to the next one
@@ -622,9 +657,15 @@ const GrainSim = (() => {
     if (twist === 'short') { tune.zoneR *= 0.75; tune.creepR *= 0.75; }
     if (twist === 'narrow') tune.fieldCone = 70 - 25 * d;
     for (const key in tune) tune[key] = Math.round(tune[key] * (Math.abs(tune[key]) < 10 ? 100 : 10)) / (Math.abs(tune[key]) < 10 ? 100 : 10);
+    // stones last, so they move no other grain; a couple to meet them, more as the board goes on
+    if (hasStones(i)) {
+      const n = board.adds === 'stones' ? 2 + Math.round((4 * (i - board.first)) / Math.max(1, board.count - 1)) : Math.round(5 + 4 * d);
+      piles.push({ type: 'stone', kind: 'scatter', x0: 0.1, x1: 0.9, y0: 0.08, y1: 0.78, count: n });
+    }
     const L = {
       id: 'gen-' + (i + 1), name: ARCH[arch], seed: 1000 + i * 31, types, piles, tune, parK: 1 - 0.25 * d, generated: true, difficulty: d,
-      rule: twist ? TWIST[twist].name : null, ruleText: twist ? TWIST[twist].text : null,
+      board: board.id, rule: opening ? board.intro.name : twist ? TWIST[twist].name : null,
+      ruleText: opening ? board.intro.text : twist ? TWIST[twist].text : null,
     };
     genCache.set(i, L);
     return L;
@@ -702,10 +743,10 @@ const GrainSim = (() => {
     if (!Array.isArray(L.types) || !L.types.length || L.types.length > 3) errs.push(L.id + ': needs 1 to 3 types');
     for (const k in L.tune || {}) if (!(k in DEFAULTS) || !Number.isFinite(L.tune[k])) errs.push(L.id + ': bad tune ' + k);
     if (L.tune && (L.tune.creepR || DEFAULTS.creepR) >= (L.tune.zoneR || DEFAULTS.zoneR)) errs.push(L.id + ': creep reaches past the reach');
-    for (const t of L.types || []) if (!TYPES[t]) errs.push(L.id + ': unknown type ' + t);
+    for (const t of L.types || []) if (!TYPES[t]) errs.push(L.id + ': unknown type ' + t); else if (TYPES[t].stone) errs.push(L.id + ': stones are not a kind to sort');
     const counts = {};
     for (const p of L.piles || []) {
-      if (!(L.types || []).includes(p.type)) errs.push(L.id + ': pile type ' + p.type + ' not in types');
+      if (!(L.types || []).includes(p.type) && !(TYPES[p.type] && TYPES[p.type].stone)) errs.push(L.id + ': pile type ' + p.type + ' not in types');
       if (!KINDS.includes(p.kind)) errs.push(L.id + ': unknown pile kind ' + p.kind);
       if (!Number.isInteger(p.count) || p.count < 1) errs.push(L.id + ': bad count');
       counts[p.type] = (counts[p.type] || 0) + (p.count || 0);
@@ -830,7 +871,7 @@ const GrainSim = (() => {
   function makeGrain(id, type, x, y, rot, s, tint) {
     return {
       id, type, x, y, rot, s, tint, st: ST.REST, vx: 0, vy: 0, w: 0, d: 0, warn: 0, cw: false, slot: -1, pt: 0,
-      ca: 1, sa: 0, aw: true, px: NaN, py: NaN, prot: NaN, pk: -1, hx: 0, hy: 0, hd: undefined,
+      ca: 1, sa: 0, aw: true, px: NaN, py: NaN, prot: NaN, pk: -1, hit: -1, hx: 0, hy: 0, hd: undefined,
       ax: 0, ay: 0, arot: 0, bx: 0, by: 0, brot: 0,
     };
   }
@@ -886,7 +927,7 @@ const GrainSim = (() => {
     sim.drainEvents = function () { const e = sim.events; sim.events = []; return e; };
     sim.remaining = function (type) {
       let n = 0;
-      for (const g of sim.grains) if (g.st !== ST.GONE && g.st !== ST.POUR && (!type || g.type === type)) n++;
+      for (const g of sim.grains) if (g.st !== ST.GONE && g.st !== ST.POUR && (type ? g.type === type : !TYPES[g.type].stone)) n++;
       return n;
     };
     sim.timeLeft = () => sim.par - sim.clock;
@@ -1092,16 +1133,17 @@ const GrainSim = (() => {
     }
 
     function gather(dt) {
-      const G = sim.geom(), mx = G.mx, my = G.my, R = cfg.zoneR, CR = cfg.creepR, span = CR * (1 + cfg.fieldAhead);
+      const G = sim.geom(), mx = G.mx, my = G.my, R = cfg.zoneR;
       const type = S.rowType;
       // 1) grains of another kind in the creep field drift toward the tips; one reaching them breaks the row
       for (const g of sim.grains) {
         if (g.st !== ST.REST || g.type === type) continue;
+        const T = TYPES[g.type], CR = T.reachK ? Math.max(cfg.creepR, R * T.reachK) : cfg.creepR, span = CR * (1 + cfg.fieldAhead);
         if (!inField(g.x, g.y, G, CR)) continue;
         const dx = mx - g.x, dy = my - g.y, d = Math.hypot(dx, dy) || 1e-6, close = clamp(1 - d / span, 0, 1);
         g.warn = Math.max(0.15, close); g.cw = true;
-        if (d < TYPES[g.type].ry * 0.5 + 9) { breakRow(g, G); return; }
-        const m = Math.min(cfg.creepSpeed * (0.6 + 0.9 * close) * dt, d);
+        if (d < T.ry * 0.5 + 9) { breakRow(g, G); return; }
+        const m = Math.min(cfg.creepSpeed * (T.creepK || 1) * (0.6 + 0.9 * close) * dt, d);
         g.x += (dx / d) * m; g.y += (dy / d) * m;
         g.pk = sim.steps;     // a creeping grain shoulders through the crowd: packing a heap never shields the tips
       }
@@ -1180,7 +1222,7 @@ const GrainSim = (() => {
           keepOffStores(g, sim.stores);
           if (g.vx * g.vx + g.vy * g.vy < 100) { g.st = ST.REST; g.vx = 0; g.vy = 0; g.w = 0; }
         } else if (g.st === ST.REST) {
-          if (cfg.drift > 0 && !g.cw) {           // restless grains: a slow wander with a turning heading
+          if (cfg.drift > 0 && !g.cw && !TYPES[g.type].stone) {    // restless grains: a slow wander with a turning heading
             if (g.hd === undefined) g.hd = rng() * Math.PI * 2;
             g.hd += (rng() - 0.5) * 6 * dt;
             g.x += Math.cos(g.hd) * cfg.drift * dt; g.y += Math.sin(g.hd) * cfg.drift * dt;
@@ -1210,7 +1252,7 @@ const GrainSim = (() => {
     let cHead = new Int32Array(0), cNext = new Int32Array(0);
     const solid = (g) => g.st === ST.REST || g.st === ST.SLIDE || g.st === ST.WALK;
     const pinned = (g) => g.st === ST.WALK || g.pk === sim.steps;   // shoved by the sticks, or creeping, this step
-    const massOf = (g) => { const r = TYPES[g.type].size * g.s; return r * r; };
+    const massOf = (g) => { const T = TYPES[g.type], r = T.size * g.s; return r * r * (T.mass || 1); };
     function sidestep(w, nx, ny) {
       const hx = w.hx || 0, hy = w.hy || 0, f = nx * hx + ny * hy;
       if (f <= 0) return;
@@ -1231,11 +1273,11 @@ const GrainSim = (() => {
         const w = pa ? a : b, f = pa ? b : a, sx = pa ? nx : -nx, sy = pa ? ny : -ny;
         nrm.nx = sx; nrm.ny = sy;
         if (w.st === ST.WALK) sidestep(w, sx, sy);
-        f.x += nrm.nx * o; f.y += nrm.ny * o; f.aw = true;
+        f.x += nrm.nx * o; f.y += nrm.ny * o; f.aw = true; f.hit = sim.steps;
         if (ELONG[f.type] > 0.05) f.rot = turn(f.rot, Math.atan2(nrm.ny, nrm.nx) + Math.PI / 2, ELONG[f.type] * Math.min(0.3, o / 8));
       } else {
         const ia = 1 / massOf(a), ib = 1 / massOf(b), k = o / (ia + ib);
-        a.x -= nx * k * ia; a.y -= ny * k * ia; b.x += nx * k * ib; b.y += ny * k * ib; a.aw = b.aw = true;
+        a.x -= nx * k * ia; a.y -= ny * k * ia; b.x += nx * k * ib; b.y += ny * k * ib; a.aw = b.aw = true; a.hit = b.hit = sim.steps;
         const side = Math.atan2(ny, nx) + Math.PI / 2;            // a long grain pushed on turns side-on to the push
         if (ELONG[a.type] > 0.05) a.rot = turn(a.rot, side, ELONG[a.type] * Math.min(0.3, (k * ia) / 8));
         if (ELONG[b.type] > 0.05) b.rot = turn(b.rot, side, ELONG[b.type] * Math.min(0.3, (k * ib) / 8));
@@ -1291,7 +1333,8 @@ const GrainSim = (() => {
       for (const g of gs) {
         if (g.st !== ST.REST && g.st !== ST.SLIDE) continue;
         if (g.aw) { g.x = clamp(g.x, B.x0, B.x1); g.y = clamp(g.y, B.y0, B.y1); keepOffStores(g, sim.stores); }
-        g.px = g.x; g.py = g.y; g.prot = g.rot;
+        // a grain pushed by a neighbour this step is checked again next step, until nothing pushes it any more
+        if (g.hit !== sim.steps) { g.px = g.x; g.py = g.y; g.prot = g.rot; }
       }
       if (S.clackV > 60 && sim.t - S.clackT > 0.035) { emit('clack', { v: S.clackV }); S.clackT = sim.t; }
       S.clackV = 0;
@@ -1505,7 +1548,7 @@ const GrainSim = (() => {
 
   return {
     W, ST, DEFAULTS, STICK, TYPES, AUTHORED, DEMO, SCORE, MILESTONES, TWIST,
-    mulberry32, mixOf, mixTarget, capacity, totalsFor, paceFor, speedFactor, speedLabel, multGain, rowPoints, idealScore, starsFor, parTime, difficulty,
+    BOARDS, boardOf, mulberry32, mixOf, mixTarget, capacity, totalsFor, paceFor, speedFactor, speedLabel, multGain, rowPoints, idealScore, starsFor, parTime, difficulty,
     validateLevel, levelFor, create, makeBot,
     overlapOf(a, b) { orient(a); orient(b); return overlap(a, b, { nx: 0, ny: 0 }); },
   };
@@ -1660,7 +1703,7 @@ const GrainSim = (() => {
 
   // ---------- audio: synthesised, starts on the first touch ----------
   const TYPE_PITCH = { lentil: 1, rice: 1.26, mung: 1.12 };
-  const BROKE = { lentil: 'A lentil got in', rice: 'Rice got in', mung: 'A mung bean got in' };
+  const BROKE = { lentil: 'A lentil got in', rice: 'Rice got in', mung: 'A mung bean got in', stone: 'A stone got in' };
   const Sound = {
     ctx: null, out: null, noise: null, unlocked: false, lastPush: 0, lastLand: 0,
     unlock() {
@@ -1894,7 +1937,7 @@ const GrainSim = (() => {
   const view = { cw: 0, ch: 0, dpr: 1, scale: 1, offX: 0, H: 1300, top: 150, bottom: 10, safe: { t: 0, r: 0, b: 0, l: 0 } };
   const rmq = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
   const reducedMotion = () => !!(rmq && rmq.matches);
-  let bg = null, sprites = null;
+  let sprites = null;
 
   // ---------- state ----------
   let screen = 'title';
@@ -1931,7 +1974,7 @@ const GrainSim = (() => {
     if (demo) demo.setLayout(lay);
     if (!virt.set) { virt.x = W / 2; virt.y = view.H * 0.55; virt.set = true; }
     sprites = buildSprites();
-    bg = buildBackground();
+    bgCache.clear();
   }
   const K = () => view.dpr * view.scale;
   function worldTransform(sx, sy) { ctx.setTransform(K(), 0, 0, K(), view.dpr * (view.offX + (sx || 0)), view.dpr * (sy || 0)); }
@@ -1945,6 +1988,7 @@ const GrainSim = (() => {
     lentil: ['#e9874a', '#f0915a', '#e27c3f', '#f39a63', '#d97339', '#eb8c52', '#f5a26c', '#c96a33'],
     rice: ['#efece4', '#f3f1ea', '#ebe7dc', '#f6f4ee', '#e9e4d6', '#f1eee6', '#ece8de', '#e2ddcd'],
     mung: ['#5f8a32', '#6b963a', '#567f2c', '#73a042', '#5a8636', '#668f38', '#4f7628', '#79a647'],
+    stone: ['#8d9196', '#7f8489', '#9a9a95', '#87817a', '#94979b', '#767a7e', '#a29d95', '#6c7074'],
   };
   function shade(hex, f, a) {             // f > 0 toward white, f < 0 toward black
     const n = parseInt(hex.slice(1), 16), m = (v) => Math.round(f >= 0 ? v + (255 - v) * f : v * (1 + f));
@@ -1962,7 +2006,8 @@ const GrainSim = (() => {
         x = T.rx * Math.sign(c) * Math.pow(Math.abs(c), 0.78);
         y = T.ry * Math.sign(s) * Math.pow(Math.abs(s), 0.95) * (1 + 0.08 * c);
       }
-      const k = 1 + w1 * Math.sin(3 * t + ph1) + w2 * Math.sin(5 * t + ph2);
+      const rough = type === 'stone' ? 2.6 : 1;           // a pebble is far less regular than a seed
+      const k = 1 + rough * (w1 * Math.sin(3 * t + ph1) + w2 * Math.sin(5 * t + ph2));
       pts.push([x * k, y * k]);
     }
     if (type === 'rice') {                 // the small notch where the germ was
@@ -1997,6 +2042,20 @@ const GrainSim = (() => {
         c.fillStyle = rnd() < 0.55 ? 'rgba(110,35,8,0.18)' : 'rgba(255,225,195,0.16)';
         c.fillRect(X, Y, 0.8, 0.8);
       }
+    } else if (type === 'stone') {
+      // a pebble: cool grey, matte, a dusty grain of its own and one faint vein
+      const g = c.createRadialGradient(lx * 0.3, ly * 0.3, 1, 0, 0, T.rx * 1.2);
+      g.addColorStop(0, shade(base, 0.22)); g.addColorStop(0.6, base); g.addColorStop(1, shade(base, -0.38));
+      c.fillStyle = g; c.fillRect(-R, -R, 2 * R, 2 * R);
+      for (let i = 0; i < 40; i++) {
+        const a = rnd() * 6.283, r = Math.sqrt(rnd()) * 0.9, [X, Y] = rot(Math.cos(a) * r * T.rx, Math.sin(a) * r * T.ry);
+        c.fillStyle = rnd() < 0.5 ? 'rgba(20,22,26,0.22)' : 'rgba(240,240,235,0.18)';
+        c.fillRect(X, Y, 0.7 + rnd() * 0.6, 0.7 + rnd() * 0.6);
+      }
+      c.save(); c.rotate(ang + (rnd() - 0.5));
+      c.strokeStyle = 'rgba(230,230,225,0.22)'; c.lineWidth = 0.8;
+      c.beginPath(); c.moveTo(-T.rx * 0.7, -T.ry * 0.2); c.quadraticCurveTo(0, T.ry * 0.3, T.rx * 0.6, -T.ry * 0.1); c.stroke();
+      c.restore();
     } else if (type === 'rice') {
       // rice: pearly and a little see-through at the very edge, a chalky white heart, lit from the upper left
       c.fillStyle = shade(base, 0, 0.94); c.fillRect(-R, -R, 2 * R, 2 * R);
@@ -2056,51 +2115,120 @@ const GrainSim = (() => {
     return '<ellipse cx="10" cy="10" rx="7.4" ry="6.6" fill="var(--lentil)"/>';
   }
 
-  // ---------- slate board, built once per resize ----------
-  function buildBackground() {
-    const cv = document.createElement('canvas');
-    cv.width = canvas.width; cv.height = canvas.height;
-    const c = cv.getContext('2d'), Wd = cv.width, H = cv.height, d = view.dpr;
-    c.fillStyle = '#0d0f12'; c.fillRect(0, 0, Wd, H);
-    const bx = Math.round(view.offX * d), bw = Math.round(W * view.scale * d);
-    c.save(); c.beginPath(); c.rect(bx, 0, bw, H); c.clip();
+  // ---------- the board's surface: slate, walnut or cast iron; all dark, so every grain reads on them ----------
+  function paintSurface(c, bx, bw, H, d, id, flat) {
+    const rnd = GS.mulberry32(20261025 + id.length * 977);
+    const base = { slate: ['#353c44', '#262b31', '#1a1e23'], walnut: ['#3d2b1f', '#2d2017', '#1f160f'], iron: ['#323438', '#25272a', '#1b1c1f'] }[id];
     const lg = c.createLinearGradient(bx, 0, bx + bw, H);
-    lg.addColorStop(0, '#353c44'); lg.addColorStop(0.55, '#262b31'); lg.addColorStop(1, '#1a1e23');
+    lg.addColorStop(0, base[0]); lg.addColorStop(0.55, base[1]); lg.addColorStop(1, base[2]);
     c.fillStyle = lg; c.fillRect(bx, 0, bw, H);
     // the soft light pool on the left, as in the reference footage
+    const pool = id === 'walnut' ? '255,214,170' : id === 'iron' ? '200,190,175' : '185,200,216';
     const rg = c.createRadialGradient(bx + bw * 0.1, H * 0.42, 0, bx + bw * 0.1, H * 0.42, bw * 0.95);
-    rg.addColorStop(0, 'rgba(185,200,216,0.13)'); rg.addColorStop(1, 'rgba(185,200,216,0)');
+    rg.addColorStop(0, 'rgba(' + pool + ',' + (id === 'slate' ? 0.13 : 0.08) + ')'); rg.addColorStop(1, 'rgba(' + pool + ',0)');
     c.fillStyle = rg; c.fillRect(bx, 0, bw, H);
-    const rnd = GS.mulberry32(20261025);
-    for (let i = 0; i < 34; i++) {     // slate cleavage streaks
-      const y = rnd() * H, a = 0.012 + rnd() * 0.03;
-      c.strokeStyle = rnd() < 0.5 ? `rgba(255,255,255,${a})` : `rgba(0,0,0,${a * 1.7})`;
-      c.lineWidth = (0.5 + rnd() * 2.2) * d;
-      c.beginPath(); c.moveTo(bx - 20, y);
-      c.bezierCurveTo(bx + bw * 0.3, y + (rnd() - 0.5) * 50 * d, bx + bw * 0.7, y + (rnd() - 0.4) * 70 * d, bx + bw + 20, y + (rnd() - 0.3) * 90 * d);
-      c.stroke();
+    if (id === 'slate') {
+      for (let i = 0; i < 34; i++) {     // cleavage streaks across the slate
+        const y = rnd() * H, a = 0.012 + rnd() * 0.03;
+        c.strokeStyle = rnd() < 0.5 ? `rgba(255,255,255,${a})` : `rgba(0,0,0,${a * 1.7})`;
+        c.lineWidth = (0.5 + rnd() * 2.2) * d;
+        c.beginPath(); c.moveTo(bx - 20, y);
+        c.bezierCurveTo(bx + bw * 0.3, y + (rnd() - 0.5) * 50 * d, bx + bw * 0.7, y + (rnd() - 0.4) * 70 * d, bx + bw + 20, y + (rnd() - 0.3) * 90 * d);
+        c.stroke();
+      }
+    } else if (id === 'walnut') {
+      for (let i = 0; i < 90; i++) {     // the grain runs the length of the board, swaying a little
+        const x = bx + rnd() * bw, a = 0.015 + rnd() * 0.04, sway = (rnd() - 0.5) * 40 * d;
+        c.strokeStyle = rnd() < 0.45 ? `rgba(255,215,170,${a})` : `rgba(0,0,0,${a * 2.2})`;
+        c.lineWidth = (0.5 + rnd() * 2.6) * d;
+        c.beginPath(); c.moveTo(x, -20);
+        c.bezierCurveTo(x + sway, H * 0.3, x - sway * 0.8, H * 0.7, x + sway * 0.4, H + 20);
+        c.stroke();
+      }
+      const kx = bx + bw * (0.2 + rnd() * 0.6), ky = H * (0.25 + rnd() * 0.5);
+      for (let r = 4; r < 46; r += 5) {  // one knot, its rings drawn out along the grain
+        c.strokeStyle = `rgba(0,0,0,${0.12 - r * 0.002})`; c.lineWidth = 1.2 * d;
+        c.beginPath(); c.ellipse(kx, ky, r * d * 0.55, r * d * 1.6, 0, 0, Math.PI * 2); c.stroke();
+      }
+      const pores = Math.floor(bw * H / 900);
+      for (let i = 0; i < pores; i++) { c.fillStyle = `rgba(0,0,0,${0.08 + rnd() * 0.1})`; c.fillRect(bx + rnd() * bw, rnd() * H, 0.7 * d, (2 + rnd() * 5) * d); }
+    } else {
+      const dots = Math.floor(bw * H / 70);   // the fine pitting of cast iron
+      for (let i = 0; i < dots; i++) {
+        c.fillStyle = rnd() < 0.5 ? `rgba(255,255,255,${0.01 + rnd() * 0.03})` : `rgba(0,0,0,${0.05 + rnd() * 0.1})`;
+        const sz = (0.4 + rnd() * 1.1) * d; c.fillRect(bx + rnd() * bw, rnd() * H, sz, sz);
+      }
     }
-    const dots = Math.floor(bw * H / 240);
-    for (let i = 0; i < dots; i++) {   // speckle
-      c.fillStyle = rnd() < 0.5 ? `rgba(255,255,255,${0.015 + rnd() * 0.045})` : `rgba(0,0,0,${0.04 + rnd() * 0.08})`;
-      const s = (0.5 + rnd() * 1.3) * d;
-      c.fillRect(bx + rnd() * bw, rnd() * H, s, s);
+    if (id !== 'iron') {
+      const dots = Math.floor(bw * H / 240);
+      for (let i = 0; i < dots; i++) {   // speckle
+        c.fillStyle = rnd() < 0.5 ? `rgba(255,255,255,${0.015 + rnd() * 0.04})` : `rgba(0,0,0,${0.04 + rnd() * 0.08})`;
+        const sz = (0.5 + rnd() * 1.3) * d; c.fillRect(bx + rnd() * bw, rnd() * H, sz, sz);
+      }
     }
+    if (flat) return;                  // a small swatch skips the darkened edges, or a dark board turns black
     const vg = c.createRadialGradient(bx + bw / 2, H * 0.5, Math.min(bw, H) * 0.3, bx + bw / 2, H * 0.5, Math.max(bw, H) * 0.72);
-    vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.5)');
+    vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,' + (id === 'iron' ? 0.6 : 0.5) + ')');
     c.fillStyle = vg; c.fillRect(bx, 0, bw, H);
+  }
+  const bgCache = new Map();
+  function backgroundFor(id) {
+    if (bgCache.has(id)) return bgCache.get(id);
+    const cv = document.createElement('canvas');
+    cv.width = canvas.width; cv.height = canvas.height;
+    const c = cv.getContext('2d'), d = view.dpr;
+    c.fillStyle = '#0d0f12'; c.fillRect(0, 0, cv.width, cv.height);
+    const bx = Math.round(view.offX * d), bw = Math.round(W * view.scale * d);
+    c.save(); c.beginPath(); c.rect(bx, 0, bw, cv.height); c.clip();
+    paintSurface(c, bx, bw, cv.height, d, id);
     c.restore();
+    bgCache.set(id, cv);
     return cv;
+  }
+  const swatches = new Map();
+  function swatch(id) {             // a small piece of a board's surface for the lobby
+    if (!swatches.has(id)) {
+      const cv = document.createElement('canvas'); cv.width = 240; cv.height = 120;
+      paintSurface(cv.getContext('2d'), 0, 240, 120, 1, id, true);
+      swatches.set(id, cv.toDataURL('image/png'));
+    }
+    return swatches.get(id);
   }
 
   function layout() { return { H: view.H, top: view.top, bottom: view.bottom }; }
   const levelAt = (i) => GS.levelFor(i);
-  function unlocked(i) { return i >= 0 && i <= save.reached; }
-  function nextLevelIndex() {
-    for (let i = 0; i <= save.reached; i++) if (!save.levels[levelAt(i).id]) return i;
-    return save.reached;
+  // ---------- boards and progress: a board opens with enough stars in total, its levels one after another ----------
+  const idAt = (i) => (i < GS.AUTHORED.length ? GS.AUTHORED[i].id : 'gen-' + (i + 1));     // without building the level
+  function indexOfId(id) {
+    const a = GS.AUTHORED.findIndex((L) => L.id === id);
+    if (a >= 0) return a;
+    const m = /^gen-(\d+)$/.exec(id);
+    return m ? +m[1] - 1 : -1;
   }
-  function playLabel() { const i = nextLevelIndex(); return i === 0 && !save.levels[levelAt(0).id] ? 'Play' : 'Play level ' + (i + 1); }
+  const boardOpen = (B) => starCount() >= B.stars;
+  function unlocked(i) {
+    if (i < 0) return false;
+    const B = GS.boardOf(i);
+    return boardOpen(B) && (i === B.first || !!save.levels[idAt(i - 1)]);
+  }
+  function boardStars(B) {
+    let n = 0;
+    for (const id in save.levels) { const i = indexOfId(id); if (i >= B.first && i < B.first + B.count) n += save.levels[id].stars || 0; }
+    return n;
+  }
+  // where Play goes: the first level not yet cleared on the furthest open board
+  function nextLevelIndex() {
+    for (let b = GS.BOARDS.length - 1; b >= 0; b--) {
+      const B = GS.BOARDS[b];
+      if (!boardOpen(B)) continue;
+      for (let i = B.first; i < B.first + Math.min(B.count, 5000); i++) if (!save.levels[idAt(i)]) return i;
+    }
+    return 0;
+  }
+  const levelName = (i) => { const B = GS.boardOf(i); return B.name + ' ' + (i - B.first + 1); };
+  function playLabel() { const i = nextLevelIndex(); return i === 0 && !save.levels[idAt(0)] ? 'Play' : 'Play ' + levelName(i); }
+  let levelsBoard = null, hereBoard = GS.BOARDS[0];     // the board the levels list shows; the one Play goes to
+  const lobbyBoard = () => (screen === 'levels' && levelsBoard ? levelsBoard : hereBoard);
 
   function newDemo() {
     demo = GS.create(Object.assign({}, cfg), GS.DEMO, layout(), demoSeed);
@@ -2230,7 +2358,7 @@ const GrainSim = (() => {
     $('hud').hidden = !(s === 'play' || s === 'pause' || s === 'tune');
     if (s !== 'play') { $('hint').classList.add('off'); releaseInput(); } else showHint();
     if ((s === 'title' || s === 'levels' || s === 'sticks') && !demo) newDemo();
-    if (s === 'title') $('playBtn').textContent = playLabel();
+    if (s === 'title') renderLobby();
     if (s !== 'done') stopDoneAnim();
     if (s === 'levels') renderLevelList();
     if (s === 'sticks') renderSticks();
@@ -2246,26 +2374,59 @@ const GrainSim = (() => {
     return h;
   }
   const LOCK = '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.5" fill="var(--chalk-2)"/><path d="M5.2 7V5.2a2.8 2.8 0 0 1 5.6 0V7" fill="none" stroke="var(--chalk-2)" stroke-width="1.6"/></svg>';
+  // the lobby: the stars you hold, how many more open the next board, the boards, and one Play
+  const STAR_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + STAR + '"/></svg>';
+  function renderLobby() {
+    const total = starCount(), next = GS.BOARDS.find((B) => !boardOpen(B));
+    hereBoard = GS.boardOf(nextLevelIndex());
+    $('starTotal').textContent = total;
+    $('starNext').textContent = next ? (next.stars - total) + ' more open ' + next.name : 'Every board is open';
+    const prev = next ? GS.BOARDS[GS.BOARDS.indexOf(next) - 1] : null, from = prev ? prev.stars : 0;
+    $('starMeter').firstChild.style.transform = 'scaleX(' + (next ? clamp((total - from) / Math.max(1, next.stars - from), 0, 1) : 1).toFixed(3) + ')';
+    const box = $('boards'); box.innerHTML = '';
+    for (const B of GS.BOARDS) {
+      const open = boardOpen(B), got = boardStars(B), b = document.createElement('button');
+      b.className = 'board' + (open ? '' : ' locked') + (B === hereBoard ? ' here' : '');
+      b.innerHTML = '<span class="sw" style="background-image:url(' + swatch(B.id) + ')"></span><b>' + B.name + '</b><small>' +
+        (open ? STAR_SVG + got + (B.endless ? '' : ' / ' + B.count * 5) : LOCK + ' ' + B.stars + STAR_SVG) + '</small>';
+      b.setAttribute('aria-label', B.name + (open ? ', ' + got + ' stars' : ', opens with ' + B.stars + ' stars'));
+      b.addEventListener('click', () => {
+        if (!open) { toast('Collect ' + (B.stars - total) + ' more stars to open ' + B.name + '.'); return; }
+        levelsBoard = B; setScreen('levels');
+      });
+      box.appendChild(b);
+    }
+    const here = box.querySelector('.here');
+    if (here && here.scrollIntoView) here.scrollIntoView({ block: 'nearest', inline: 'center' });
+    $('playBtn').textContent = playLabel();
+    $('openSticksBtn').textContent = 'Chopsticks: ' + stickById(save.sticks.equipped).name;
+  }
+  // one board's levels; the endless board lists what you have played and the next few
   function renderLevelList() {
-    const ol = $('levelList'); ol.innerHTML = '';
-    const last = Math.max(GS.AUTHORED.length - 1, save.reached + 1);
-    for (let i = 0; i <= last; i++) {
+    const B = levelsBoard || hereBoard, ol = $('levelList');
+    levelsBoard = B; ol.innerHTML = '';
+    $('levelsTitle').textContent = B.name;
+    $('levelsSub').textContent = boardStars(B) + (B.endless ? '' : ' of ' + B.count * 5) + ' stars on this board';
+    let last = B.first + B.count - 1;
+    if (B.endless) { let i = B.first; while (save.levels[idAt(i)]) i++; last = i + 2; }
+    for (let i = B.first; i <= last; i++) {
       const L = levelAt(i), rec = save.levels[L.id], open = unlocked(i);
       const li = document.createElement('li'), b = document.createElement('button');
       b.className = 'lvl' + (open ? '' : ' locked');
       const kinds = L.types.map((t, k) => (k ? TYPES[t].label.toLowerCase() : TYPES[t].label));
-      const sub = L.rule && L.rule !== L.name ? L.rule : kinds.length > 1 ? kinds.slice(0, -1).join(', ') + ' and ' + kinds[kinds.length - 1] : kinds[0];
-      b.innerHTML = '<span class="n">' + (i + 1) + '</span><span class="nm">' + L.name + '<small>' + sub + '</small></span>' +
+      const stones = L.piles.some((p) => TYPES[p.type].stone);
+      const sub = L.rule && L.rule !== L.name ? L.rule : (kinds.length > 1 ? kinds.slice(0, -1).join(', ') + ' and ' + kinds[kinds.length - 1] : kinds[0]) + (stones ? ', with stones' : '');
+      b.innerHTML = '<span class="n">' + (i - B.first + 1) + '</span><span class="nm">' + L.name + '<small>' + sub + '</small></span>' +
         (open ? '<span class="rt"><span class="stars" role="img" aria-label="' + (rec ? rec.stars : 0) + ' of 5 stars">' + starsHtml(rec ? rec.stars : 0) + '</span>' +
                 (rec && rec.best ? '<small>' + fmt(rec.best) + '</small>' : '') + '</span>'
               : '<span class="rt" aria-label="Locked">' + LOCK + '</span>');
       b.addEventListener('click', () => {
-        if (!open) { toast('Clear level ' + i + ' to open this one.'); return; }
+        if (!open) { toast('Clear ' + levelName(i - 1) + ' to open this one.'); return; }
         startLevel(i, 'level_list');
       });
       li.appendChild(b); ol.appendChild(li);
     }
-    const cur = ol.children[Math.min(ol.children.length - 1, nextLevelIndex())];
+    const n = nextLevelIndex(), cur = ol.children[clamp(n - B.first, 0, ol.children.length - 1)];
     if (cur && cur.scrollIntoView) cur.scrollIntoView({ block: 'center' });
   }
   function stickPreview(k) {
@@ -2294,9 +2455,11 @@ const GrainSim = (() => {
   // A tap on the slab skips to the end.
   let doneAnim = null;
   function stopDoneAnim() { if (doneAnim) { cancelAnimationFrame(doneAnim.raf); doneAnim = null; } }
-  function showDone(res, prev, unlocks) {
+  function showDone(res, prev, unlocks, opened) {
     const L = levelAt(levelIndex);
-    $('doneLevel').textContent = 'Level ' + (levelIndex + 1) + ' cleared';
+    $('doneLevel').textContent = levelName(levelIndex) + ' cleared';
+    const nextOpen = unlocked(levelIndex + 1), nextBoard = GS.boardOf(levelIndex + 1);
+    $('nextBtn').textContent = nextOpen ? 'Next level' : 'Choose a level';
     $('doneName').textContent = L.name;
     const starsEl = $('doneStars');
     starsEl.innerHTML = starsHtml(0);
@@ -2323,7 +2486,9 @@ const GrainSim = (() => {
     $('doneNext').textContent = '';
     const pz = $('donePrize');
     pz.hidden = true;
-    if (unlocks.length) pz.innerHTML = 'New chopsticks: <b>' + unlocks.map((k) => k.name).join(', ') + '</b>. Pick them under Chopsticks.';
+    const prizes = (opened || []).map((B) => '<b>' + B.name + '</b> is open.');
+    if (unlocks.length) prizes.push('New chopsticks: <b>' + unlocks.map((k) => k.name).join(', ') + '</b>. Pick them under Chopsticks.');
+    pz.innerHTML = prizes.join(' ');
     setScreen('done');
 
     const svgs = starsEl.querySelectorAll('svg');
@@ -2340,8 +2505,10 @@ const GrainSim = (() => {
       totalB.textContent = fmt(res.score);
       stamp(res.stars, quiet);
       if (isBest) { const em = document.createElement('em'); em.textContent = 'New best'; $('doneTotal').appendChild(em); }
-      $('doneNext').textContent = res.stars < 5 ? 'Next star at ' + fmt(marks[res.stars]) + ' points.' : '';
-      if (unlocks.length) pz.hidden = false;
+      $('doneNext').textContent = !nextOpen && !boardOpen(nextBoard)
+        ? (nextBoard.stars - starCount()) + ' more stars open ' + nextBoard.name + '.'
+        : res.stars < 5 ? 'Next star at ' + fmt(marks[res.stars]) + ' points.' : '';
+      if (prizes.length) { pz.hidden = false; if ((opened || []).length) { Sound.fanfare(); Haptics.buzz([20, 30, 20, 30, 60]); } }
     };
     if (reducedMotion()) { finish(true); return; }
     totalB.textContent = '0';
@@ -2481,7 +2648,7 @@ const GrainSim = (() => {
         case 'level_complete': {
           Sound.chime(); Haptics.buzz([20, 30, 20, 30, 40]);
           if (!reducedMotion()) fx.shimmer = { t: 0 };
-          const prev = save.levels[L.id] ? Object.assign({}, save.levels[L.id]) : null;
+          const prev = save.levels[L.id] ? Object.assign({}, save.levels[L.id]) : null, starsBefore = starCount();
           save.levels[L.id] = {
             stars: Math.max(e.stars, prev ? prev.stars : 0),
             best: Math.max(e.score, prev && prev.best ? prev.best : 0),
@@ -2491,7 +2658,8 @@ const GrainSim = (() => {
           persist();
           levelUnlocks.push(...checkUnlocks());
           Analytics.emit('level_complete', { level: L.id, score: e.score, stars: e.stars, breaks: e.breaks, bestCombo: e.bestCombo, bestMult: e.bestMult, time: e.time });
-          pendingDone = { at: performance.now() + 1200, res: e, prev, unlocks: levelUnlocks.slice() };
+          const opened = GS.BOARDS.filter((B) => B.stars > starsBefore && B.stars <= starCount());
+          pendingDone = { at: performance.now() + 1200, res: e, prev, unlocks: levelUnlocks.slice(), opened };
           updateHud(false);
           break;
         }
@@ -2716,8 +2884,9 @@ const GrainSim = (() => {
   }
   function render() {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    if (bg) ctx.drawImage(bg, 0, 0);
-    const s = screen === 'title' || screen === 'levels' || screen === 'sticks' ? demo : sim;
+    const lobby = screen === 'title' || screen === 'levels' || screen === 'sticks';
+    ctx.drawImage(backgroundFor(lobby ? lobbyBoard().id : GS.boardOf(levelIndex).id), 0, 0);
+    const s = lobby ? demo : sim;
     if (!s || !sprites) return;
     ctx.save();                                  // nothing draws past the board on a wide screen
     ctx.beginPath(); ctx.rect(Math.round(view.offX * view.dpr), 0, Math.round(W * view.scale * view.dpr), canvas.height); ctx.clip();
@@ -2869,7 +3038,7 @@ const GrainSim = (() => {
         if (fx.beatT >= 0.8 - 0.58 * clamp((w - 0.15) / 0.85, 0, 1)) { fx.beatT = 0; fx.beat = 1; Sound.beat(w); if (w > 0.55) Haptics.buzz(6); }
       } else fx.beatT = 10;
       updateClocks(dt);
-      if (pendingDone && now >= pendingDone.at) { const p = pendingDone; pendingDone = null; showDone(p.res, p.prev, p.unlocks); }
+      if (pendingDone && now >= pendingDone.at) { const p = pendingDone; pendingDone = null; showDone(p.res, p.prev, p.unlocks, p.opened); }
     } else if ((screen === 'title' || screen === 'levels' || screen === 'sticks') && demo) {
       const step = 1 / demo.cfg.stepHz;
       acc += dt;
@@ -2956,20 +3125,22 @@ const GrainSim = (() => {
     toast(save.control === 'drag' ? 'Drag anywhere: the sticks move with your drag, your thumb can stay low.' : 'The tips sit above your finger.');
   });
   $('playBtn').addEventListener('click', () => startLevel(nextLevelIndex(), 'play'));
-  $('openLevelsBtn').addEventListener('click', () => setScreen('levels'));
   $('openSticksBtn').addEventListener('click', () => { sticksFrom = 'title'; setScreen('sticks'); });
   $('levelsBackBtn').addEventListener('click', () => setScreen('title'));
   $('sticksBackBtn').addEventListener('click', () => setScreen(sticksFrom));
   $('menuBtn').addEventListener('click', pause);
   $('resumeBtn').addEventListener('click', resume);
   $('restartBtn').addEventListener('click', () => { Analytics.emit('level_retry', { level: levelAt(levelIndex).id, from: 'pause' }); startLevel(levelIndex, 'restart'); });
-  $('pauseLevelsBtn').addEventListener('click', () => { Analytics.emit('level_exit', { level: levelAt(levelIndex).id }); setScreen('levels'); });
+  $('pauseLevelsBtn').addEventListener('click', () => { Analytics.emit('level_exit', { level: levelAt(levelIndex).id }); levelsBoard = GS.boardOf(levelIndex); setScreen('levels'); });
   const syncSound = () => { $('soundBtn').textContent = save.sound ? 'Sound on' : 'Sound off'; };
   $('soundBtn').addEventListener('click', () => { save.sound = !save.sound; persist(); syncSound(); if (save.sound) Sound.unlock(); else Sound.sleep(); });
   $('tuneBtn').addEventListener('click', () => { tuneFrom = 'pause'; buildTune(); $('tuneJson').hidden = true; setScreen('tune'); });
-  $('nextBtn').addEventListener('click', () => startLevel(levelIndex + 1, 'next'));
+  $('nextBtn').addEventListener('click', () => {
+    if (unlocked(levelIndex + 1)) startLevel(levelIndex + 1, 'next');
+    else { levelsBoard = GS.boardOf(levelIndex); setScreen('levels'); }
+  });
   $('retryBtn').addEventListener('click', () => { Analytics.emit('level_retry', { level: levelAt(levelIndex).id, from: 'done' }); startLevel(levelIndex, 'retry'); });
-  $('doneLevelsBtn').addEventListener('click', () => setScreen('levels'));
+  $('doneLevelsBtn').addEventListener('click', () => { levelsBoard = GS.boardOf(levelIndex); setScreen('levels'); });
   syncSound(); syncControl();
 
   // ---------- boot ----------
@@ -2993,7 +3164,7 @@ const GrainSim = (() => {
   // console handle for tuning and checks
   window.__grainLine = {
     get sim() { return sim; }, get demo() { return demo; }, get screen() { return screen; }, cfg, save, Analytics, Sound,
-    startLevel, autoplay(on) { autoBot = on && sim ? GS.makeBot(sim, 99) : null; releaseInput(); },
+    startLevel, levelId: idAt, autoplay(on) { autoBot = on && sim ? GS.makeBot(sim, 99) : null; releaseInput(); },
   };
 })();
 </script>
