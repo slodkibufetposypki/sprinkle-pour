@@ -2016,7 +2016,7 @@ const GrainSim = (() => {
     },
     // a wind chime: one to three notes of a pentatonic, long and quiet
     chime(t) {
-      roomFx.ring = 1;                                   // the chime in the painting swings as it rings
+      roomFx.ring = 1; HutScene.fx.ring = 1;             // the chime in the room swings as it rings
       const c = Sound.ctx, notes = [1174.7, 1318.5, 1480, 1760, 1975.5], out = this.pan((Math.random() - 0.5) * 0.8) || this.amb;
       for (let i = 0, k = 1 + Math.floor(Math.random() * 3); i < k; i++) {
         const s = t + i * (0.25 + Math.random() * 0.4), f = notes[Math.floor(Math.random() * notes.length)];
@@ -2590,9 +2590,11 @@ const GrainSim = (() => {
       li.appendChild(b); ul.appendChild(li);
     }
   }
-  // ---------- the room: a painting made for a phone held upright; tap and the camera comes down over the board ----------
-  // One painting per time of day, each a tall frame; an hour without its own painting shows the night, the only one so
-  // far. Until it has loaded the room is a warm dark under the title, and if it cannot load the hut is drawn in code.
+  // ---------- the room: a tall frame made for a phone held upright; tap and the camera comes down over the board ----------
+  // The room is drawn in code (HutScene, below), so it follows the hour and everything in it can move. The night
+  // painting it was drawn after can stand in its place with ?scene=painting: one painting per time of day, each a tall
+  // frame; an hour without its own painting shows the night, the only one so far. Until it has loaded the room is a
+  // warm dark under the title, and if it cannot load the room is drawn in code.
   // On the painting, in code: the candle flame and the lantern flicker and throw their light, the lantern and the wind
   // chime sway, the voile curtains breathe, stars twinkle and now and then one falls, the lights on the lake shimmer,
   // fireflies drift and steam rises off the tea. Where each sits is set per painting, as shares of its width and height.
@@ -2622,277 +2624,705 @@ const GrainSim = (() => {
     return im.complete && im.naturalWidth ? im : null;
   }
   // the painting on show, and the hour the room sounds like: the painting's own
+  const roomMode = () => (/[?&]scene=painting/.test(location.search) ? 'painting' : 'code');
   const scenePlate = () => (PLATE[dayPhase(hourNow())] ? dayPhase(hourNow()) : 'night');
-  function scenePhase() { const im = plateCache[PLATE[scenePlate()].file]; return im && im.failed ? dayPhase(hourNow()) : scenePlate(); }
+  function scenePhase() {
+    if (roomMode() === 'code') return dayPhase(hourNow());
+    const im = plateCache[PLATE[scenePlate()].file]; return im && im.failed ? dayPhase(hourNow()) : scenePlate();
+  }
+  // where the drawn room's board and ceiling are, as shares of its frame
+  const DRAWN = { table: [0.523, 0.748], board: 0.53, ceiling: 0.19 };
   const cam = { k: 0, to: 0 };                  // 0 = in the room, 1 = above the table
-  const roomFx = { birds: [], nextBirds: 3, flies: [], steam: [], t: 0, fade: 0, ring: 0, shoot: null, nextShoot: 9 };
+  const roomFx = { birds: [], nextBirds: 3, flies: [], steam: [], t: 0, fade: 0, ring: 0, shoot: null, nextShoot: 9, building: false };
   const easeIO = (k) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2);
   // where the painting sits on screen: it covers a phone; on a wider screen it stands at full height, a soft dim copy behind
-  function plateFit(im) {
-    const cw = canvas.width, ch = canvas.height, iw = im.naturalWidth, ih = im.naturalHeight;
+  const plateFit = (im) => frameFit(im.naturalWidth, im.naturalHeight);
+  function frameFit(iw, ih) {
+    const cw = canvas.width, ch = canvas.height;
     const wide = cw / ch > (iw / ih) * 1.25, s = wide ? ch / ih : Math.max(cw / iw, ch / ih);
     const dw = iw * s, dh = ih * s;
     return { wide, s, x0: (cw - dw) / 2, y0: (ch - dh) / 2, dw, dh };
   }
-  // ---------- the hut, drawn in code: a soft painted look, by the hour ----------
-  // Static layers are painted once per time of day and screen size: the sky with its sun or moon, and everything in
-  // front of it (hills, the room, the table) on a layer with the sky left clear, so clouds drift between the two.
-  // On a wide screen the room keeps a phone's proportions in the middle, with dark wooden walls at the sides.
-  const HUT_SKY = {
-    morning: { sky: ['#a8c4e4', '#efd6c6', '#f8e2bf'], sun: [0.27, 0.42, '#fff2d2', 0.9, 0], hills: ['#adc2bb', '#93b59d', '#719d74', '#56805a'], mist: '255,238,225', mistA: 0.5,
-      cloud: ['#fff8f0', '#e9c7b6'], wood: ['#71492f', '#523422', '#3b2518'], floor: ['#8a5d3b', '#5c3b24'], dark: 0.1, warm: 0.16 },
-    day: { sky: ['#6aa0d6', '#a7cbe8', '#e1eef2'], sun: [0.58, 0.24, '#fffbea', 1, 0], hills: ['#9cbab3', '#7ca880', '#5b9159', '#467a46'], mist: '236,246,252', mistA: 0.28,
-      cloud: ['#ffffff', '#c6d6e4'], wood: ['#7c5337', '#5b3c27', '#41291a'], floor: ['#94653f', '#62402a'], dark: 0.02, warm: 0.07 },
-    evening: { sky: ['#53608d', '#cf8d76', '#f4b67a'], sun: [0.76, 0.47, '#ffcf8a', 1, 0], hills: ['#8b809a', '#70707e', '#545e52', '#404a3e'], mist: '255,196,156', mistA: 0.32,
-      cloud: ['#ffd4b2', '#a9798a'], wood: ['#5f3d28', '#442b1c', '#2f1d13'], floor: ['#77502f', '#4a301f'], dark: 0.24, warm: 0.34 },
-    night: { sky: ['#0c1430', '#1d2a4e', '#31436a'], sun: [0.3, 0.2, '#f2eed8', 0.85, 1], hills: ['#2d3a57', '#25334b', '#1c293b', '#15202d'], mist: '150,170,220', mistA: 0.14,
-      cloud: ['#3b476a', '#1d2640'], wood: ['#3f291c', '#2b1b12', '#1d120c'], floor: ['#4a3020', '#2c1c12'], dark: 0.5, warm: 0.62 },
-  };
-  const HUT_TITLE = 'Zen Grain';
-  // where everything sits, in device pixels, for this screen
-  function hutLayout() {
-    const cw = canvas.width, ch = canvas.height, fw = Math.min(cw, Math.round(ch * 0.6)), fx = Math.round((cw - fw) / 2);
-    const X = (u) => fx + u * fw, Y = (v) => v * ch;
-    return {
-      cw, ch, fx, fw, X, Y, U: fw,
-      opening: { x0: X(0.075), x1: X(0.925), y0: Y(0.075), y1: Y(0.6) }, rodY: Y(0.085), sillY: Y(0.58),
-      lantern: { x: X(0.8), y: Y(0.075), len: Y(0.085), r: fw * 0.07 },
-      candle: { x: X(0.215), y: Y(0.718), h: Y(0.026) }, cup: { x: X(0.78), y: Y(0.738) }, table: { x: X(0.5), y: Y(0.765) },
-    };
-  }
-  const hutCache = { key: '', sky: null, front: null, clouds: [] };
-  function hutLayers(ph) {
-    const key = ph + ':' + canvas.width + 'x' + canvas.height + ':' + (document.fonts && document.fonts.check && document.fonts.check('40px "Zen Antique Soft"') ? 'f' : 'n');
-    if (hutCache.key === key) return hutCache;
-    const P = HUT_SKY[ph], L = hutLayout(), { cw, ch, fx, fw, X, Y, U } = L, rnd = GS.mulberry32(4242);
-    const mk = () => { const c = document.createElement('canvas'); c.width = cw; c.height = ch; return c; };
-    // the sky: three-colour gradient, the sun's or moon's glow, stars at night
-    const sky = mk(), s = sky.getContext('2d');
-    let g = s.createLinearGradient(0, Y(0.07), 0, Y(0.55));
-    g.addColorStop(0, P.sky[0]); g.addColorStop(0.6, P.sky[1]); g.addColorStop(1, P.sky[2]);
-    s.fillStyle = g; s.fillRect(0, 0, cw, ch);
-    const [sx, sy, sc, sa, moon] = P.sun, SX = X(sx), SY = Y(sy);
-    g = s.createRadialGradient(SX, SY, 0, SX, SY, U * (moon ? 0.35 : 0.6));
-    g.addColorStop(0, sc); g.addColorStop(1, 'rgba(255,255,255,0)');
-    s.globalAlpha = moon ? 0.35 : 0.55; s.fillStyle = g; s.fillRect(0, 0, cw, ch); s.globalAlpha = 1;
-    s.fillStyle = sc; s.globalAlpha = sa; s.beginPath(); s.arc(SX, SY, U * (moon ? 0.045 : 0.06), 0, 6.284); s.fill(); s.globalAlpha = 1;
-    if (moon) {
-      s.fillStyle = 'rgba(190,190,170,0.35)';
-      for (const [dx, dy, r] of [[-0.012, -0.01, 0.008], [0.014, 0.006, 0.006], [-0.004, 0.016, 0.005]]) { s.beginPath(); s.arc(SX + dx * U, SY + dy * U, r * U, 0, 6.284); s.fill(); }
-      for (let i = 0; i < 90; i++) { s.fillStyle = 'rgba(255,255,240,' + (0.3 + rnd() * 0.6) + ')'; const r = (0.4 + rnd() * 1.2) * view.dpr; s.fillRect(X(rnd()), Y(0.08 + rnd() * 0.3), r, r); }
+  // ---------- the hut, drawn in code, after the night painting: by the hour, and everything in it can move ----------
+  // A tall frame like the painting's, in its own units (645 wide, 1290 high). What never moves is painted once per hour
+  // and screen size onto layers: the sky, the land, the porch, each curtain and the room in front. The room's layers
+  // are painted in their own colours and then lit: a light map holds the hour's daylight and the lamps' warm pools, and
+  // each layer is multiplied by it, so the same room reads as a sunny morning or a candlelit night. On top, per frame:
+  // clouds and mist drift, stars twinkle, the lake shimmers, curtains breathe, the lantern and the chime sway, the candle
+  // flame dances and its light with it, fireflies or birds go by, steam rises off the tea.
+  const HutScene = (() => {
+    const FW = 645, FH = 1290;
+    const rnd = (seed) => () => { seed = (seed + 0x6d2b79f5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+    const rgba = (c, a) => 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + a + ')';
+    function lin(c, x0, y0, x1, y1, stops) { const g = c.createLinearGradient(x0, y0, x1, y1); for (const [o, col] of stops) g.addColorStop(o, col); return g; }
+    function pool(c, x, y, r, col, a, sy = 1) {             // a soft round light, or shade
+      c.save(); c.translate(x, y); c.scale(1, sy);
+      const g = c.createRadialGradient(0, 0, 0, 0, 0, r);
+      g.addColorStop(0, rgba(col, a)); g.addColorStop(0.45, rgba(col, a * 0.42)); g.addColorStop(1, rgba(col, 0));
+      c.fillStyle = g; c.fillRect(-r, -r, r * 2, r * 2); c.restore();
     }
-    // clouds: soft cumulus heaped from puffs that fade at their edges, shaded underneath as one, lit from the sun's side
-    hutCache.clouds = [];
-    const hexRgb = (h) => { const n = parseInt(h.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255].join(','); };
-    const cl = hexRgb(P.cloud[0]), cs = hexRgb(P.cloud[1]);
-    for (let c = 0; c < 4; c++) {
-      const w = U * (0.32 + rnd() * 0.22), h = w * 0.5, cv = document.createElement('canvas'); cv.width = Math.ceil(w); cv.height = Math.ceil(h * 1.25);
-      const k = cv.getContext('2d'), base = h * 1.05;
-      for (let i = 0; i < 34; i++) {
-        const u = 0.12 + rnd() * 0.76, hump = 1 - Math.abs(u - 0.5) * 1.5, r = h * (0.16 + rnd() * 0.22) * (0.55 + 0.7 * hump);
-        const px = w * u, py = base - r * 0.55 - rnd() * h * 0.55 * hump;
-        const cg = k.createRadialGradient(px, py, 0, px, py, r);
-        cg.addColorStop(0, 'rgba(' + cl + ',1)'); cg.addColorStop(0.55, 'rgba(' + cl + ',0.92)'); cg.addColorStop(1, 'rgba(' + cl + ',0)');
-        k.fillStyle = cg; k.beginPath(); k.arc(px, py, r, 0, 6.284); k.fill();
-      }
-      k.globalCompositeOperation = 'source-atop';
-      let sg = k.createLinearGradient(0, base - h * 0.55, 0, base);
-      sg.addColorStop(0, 'rgba(' + cs + ',0)'); sg.addColorStop(1, 'rgba(' + cs + ',0.75)');
-      k.fillStyle = sg; k.fillRect(0, 0, cv.width, cv.height);
-      sg = k.createRadialGradient(sx < 0.5 ? 0 : cv.width, 0, 0, sx < 0.5 ? 0 : cv.width, 0, w * 0.8);
-      sg.addColorStop(0, 'rgba(255,248,230,0.35)'); sg.addColorStop(1, 'rgba(255,248,230,0)');
-      k.fillStyle = sg; k.fillRect(0, 0, cv.width, cv.height);
-      k.globalCompositeOperation = 'destination-out';                 // a soft, level underside
-      sg = k.createLinearGradient(0, base - h * 0.12, 0, base + h * 0.05); sg.addColorStop(0, 'rgba(0,0,0,0)'); sg.addColorStop(1, 'rgba(0,0,0,1)');
-      k.fillStyle = sg; k.fillRect(0, base - h * 0.12, cv.width, cv.height);
-      hutCache.clouds.push({ cv, u: (c * 0.37 + rnd() * 0.2) % 1.4, v: 0.12 + rnd() * 0.17, sp: 0.004 + rnd() * 0.005, a: ph === 'night' ? 0.4 : 0.95 });
+    // shapes drawn soft-edged: the shape is drawn far off the canvas and only its blurred shadow lands
+    function soft(c, s, blur, color, fn) {
+      c.save(); c.shadowColor = color; c.shadowBlur = blur * s; c.shadowOffsetX = 20000; c.translate(-20000 / s, 0);
+      c.fillStyle = color; fn(); c.restore();
     }
-    // everything in front of the sky, the sky itself left clear
-    const front = mk(), f = front.getContext('2d');
-    const ridge = (base, amp, seed, bumps) => {
-      const r2 = GS.mulberry32(seed), p1 = r2() * 6, p2 = r2() * 6, pts = [];
-      for (let i = 0; i <= 60; i++) {
-        const u = i / 60;
-        let v = base + amp * (0.55 * Math.sin(u * 3.1 + p1) + 0.3 * Math.sin(u * 7.3 + p2) + 0.15 * Math.sin(u * 15 + p1));
-        if (bumps) v -= Math.abs(Math.sin(u * 140 + p2)) * bumps;      // tree tops along a near ridge
-        pts.push([X(-0.05 + u * 1.1), Y(v)]);
+    // the hours: the sky and the land in their own colours; the room by its daylight, the lamps, the light from the window
+    const PAL = {
+      night: {
+        sky: [[0, '#0b132d'], [0.42, '#182a58'], [0.74, '#34437a'], [0.9, '#7c6584'], [1, '#e38f56']], glow: [238, 142, 86], glowA: 0.6,
+        stars: 1, milky: 1, cloud: ['#2b3762', '#55527a'], rim: [242, 160, 112], rimA: 0.8,
+        far: ['#4b5885', '#333f66'], hill: ['#22304a', '#141e31'], mid: ['#1a2638', '#121c29'], forest: '#0d151e', tree: [40, 58, 70],
+        lake: ['#444e7c', '#1f2744'], edge: [176, 188, 230], edgeA: 0.3, mist: [140, 160, 214], mistA: 0.08, village: 1,
+        ambient: [62, 44, 42], win: [92, 104, 150], winA: 0.14, lamp: 1, leaf: [0.9, 1, 0.8], warm: 0.14, ceil: 1,
+      },
+      evening: {
+        sky: [[0, '#2d3c73'], [0.42, '#655f92'], [0.72, '#c98480'], [0.9, '#f0ac74'], [1, '#ffd394']], glow: [255, 184, 112], glowA: 0.7,
+        stars: 0.18, milky: 0, cloud: ['#6f6189', '#c98482'], rim: [255, 206, 150], rimA: 0.9,
+        far: ['#897b9d', '#6b6487'], hill: ['#565670', '#40435a'], mid: ['#3b3f50', '#2d303d'], forest: '#232731', tree: [70, 70, 84],
+        lake: ['#e0a483', '#7a6a82'], edge: [255, 204, 160], edgeA: 0.45, mist: [255, 196, 168], mistA: 0.22, village: 0.75,
+        ambient: [128, 92, 84], win: [255, 178, 120], winA: 0.4, lamp: 0.85, leaf: [1, 0.95, 0.85], warm: 0.14, ceil: 0.85,
+      },
+      morning: {
+        sky: [[0, '#86acd8'], [0.5, '#c4d0e4'], [0.82, '#f0d6c8'], [1, '#fbe5c5']], glow: [255, 226, 190], glowA: 0.5,
+        stars: 0, milky: 0, cloud: ['#f6f0f2', '#e6c6c0'], rim: [255, 242, 222], rimA: 0.85,
+        far: ['#b2bed2', '#9cabc3'], hill: ['#7e9c8e', '#658575'], mid: ['#58795f', '#476a52'], forest: '#3b5a44', tree: [150, 170, 150],
+        lake: ['#e3e7ec', '#a9b9c9'], edge: [255, 244, 228], edgeA: 0.55, mist: [255, 246, 242], mistA: 0.5, village: 0,
+        ambient: [196, 182, 176], win: [255, 236, 214], winA: 0.4, lamp: 0.25, leaf: [1, 1, 1], warm: 0.05, ceil: 0.45, dots: 0.5,
+      },
+      day: {
+        sky: [[0, '#3e7ec6'], [0.55, '#7cb2e2'], [1, '#d4ebf6']], glow: [255, 255, 242], glowA: 0.3,
+        stars: 0, milky: 0, cloud: ['#ffffff', '#c6d4e3'], rim: [255, 255, 255], rimA: 0.9,
+        far: ['#a2b9d0', '#87a3bf'], hill: ['#5b985c', '#47814e'], mid: ['#41784a', '#35693d'], forest: '#2b5832', tree: [110, 160, 100],
+        lake: ['#90c3e7', '#5d96c3'], edge: [255, 255, 255], edgeA: 0.4, mist: [255, 255, 255], mistA: 0.16, village: 0,
+        ambient: [222, 214, 204], win: [255, 250, 236], winA: 0.35, lamp: 0.15, leaf: [1, 1, 1], warm: 0, ceil: 0.4, dots: 0.45,
+      },
+    };
+    // where the moving parts sit, in frame units
+    const A = {
+      lantern: [139, 262], chime: [466, 264], wick: [80, 838], cup: [548, 793],
+      opening: [100, 268, 535, 726], sky: [110, 280, 520, 470],
+      flies: [40, 520, 520, 760], board: { tl: [192, 897], tr: [478, 897], br: [527, 1032], bl: [148, 1032] },
+    };
+
+    // ---- the layers that do not move, painted once per hour and size ----
+    const cache = { key: '', L: null };
+    function canvasFor(s, x, y, w, h) {                       // a layer covering one part of the frame, drawn in frame units
+      const cv = document.createElement('canvas'); cv.width = Math.ceil(w * s); cv.height = Math.ceil(h * s);
+      const c = cv.getContext('2d'); c.scale(s, s); c.translate(-x, -y);
+      return { cv, c, x, y, w, h };
+    }
+    function build(ph, s) {
+      const P = PAL[ph], L = { s, P };
+      L.sky = canvasFor(s, 80, 240, 480, 520); paintSky(L.sky.c, P, s);
+      L.stars = P.stars ? twinkleStars() : [];
+      L.land = canvasFor(s, 80, 460, 480, 290); paintLand(L.land.c, P, s);
+      L.clouds = cloudBanks(P, s);
+      L.mist = mistBand(P, s);
+      // the light in the room for this hour
+      const ms = Math.min(s, 0.5); L.light = canvasFor(ms, 0, 0, FW, FH); lightMap(L.light.c, P);
+      L.porch = lit(canvasFor(s, 0, 280, FW, 570), (c) => paintPorch(c, P), L.light, ms);
+      L.curtL = lit(canvasFor(s, 0, 236, 118, 520), (c) => paintCurtain(c, -1, s), L.light, ms);
+      L.curtR = lit(canvasFor(s, 522, 236, 123, 600), (c) => paintCurtain(c, 1, s), L.light, ms);
+      L.front = lit(canvasFor(s, 0, 0, FW, FH), (c) => paintFront(c, P, s), L.light, ms);
+      return L;
+    }
+    // paint a layer in its own colours, then light it: multiplied by the light map, its own shape kept
+    function lit(lay, paint, light, ms) {
+      paint(lay.c);
+      const raw = document.createElement('canvas'); raw.width = lay.cv.width; raw.height = lay.cv.height; raw.getContext('2d').drawImage(lay.cv, 0, 0);
+      const c = lay.c; c.save(); c.setTransform(1, 0, 0, 1, 0, 0);
+      const k = lay.cv.width / lay.w;
+      c.globalCompositeOperation = 'multiply';
+      c.drawImage(light.cv, lay.x * ms, lay.y * ms, lay.w * ms, lay.h * ms, 0, 0, lay.cv.width, lay.cv.height);
+      c.globalCompositeOperation = 'destination-in'; c.drawImage(raw, 0, 0);
+      c.restore(); void k;
+      return lay;
+    }
+    function lightMap(c, P) {
+      c.fillStyle = rgba(P.ambient, 1); c.fillRect(0, 0, FW, FH);
+      c.globalCompositeOperation = 'lighter';
+      pool(c, 318, 560, 380, P.win, P.winA, 0.9);                     // the window's light on the sill and the table
+      pool(c, 318, 880, 300, P.win, P.winA * 0.45, 0.6);
+      if (P.warm) { c.fillStyle = rgba([255, 140, 70], P.warm); c.fillRect(0, 0, FW, FH); }   // the room's own warm glow, light off every wall
+      if (P.lamp) {
+        pool(c, 139, 372, 470, [255, 146, 66], 1 * P.lamp);           // the lantern
+        pool(c, 139, 372, 160, [255, 214, 150], 0.7 * P.lamp);
+        pool(c, 84, 840, 560, [255, 142, 62], 1 * P.lamp, 0.8);       // the candle
+        pool(c, 84, 846, 170, [255, 216, 156], 0.8 * P.lamp);
+        pool(c, 330, 950, 320, [255, 150, 70], 0.55 * P.lamp, 0.55);  // and on the board
+        pool(c, 560, 820, 160, [255, 150, 70], 0.3 * P.lamp, 0.8);    // a little on the tea
+        pool(c, 690, 430, 330, [255, 150, 70], 0.75 * P.lamp, 1.3);   // and a lamp on the wall to the right, out of sight
       }
-      return pts;
-    };
-    const hill = (pts, top, bot) => {
-      f.beginPath(); f.moveTo(pts[0][0], Y(0.62)); for (const [x, y] of pts) f.lineTo(x, y); f.lineTo(pts[pts.length - 1][0], Y(0.62)); f.closePath();
-      const hg = f.createLinearGradient(0, Math.min(...pts.map((p) => p[1])), 0, Y(0.62)); hg.addColorStop(0, top); hg.addColorStop(1, bot);
-      f.fillStyle = hg; f.fill();
-    };
-    const haze = (a) => { const mg = f.createLinearGradient(0, Y(0.3), 0, Y(0.6)); mg.addColorStop(0, 'rgba(' + P.mist + ',0)'); mg.addColorStop(0.55, 'rgba(' + P.mist + ',' + a + ')'); mg.addColorStop(1, 'rgba(' + P.mist + ',0)'); f.fillStyle = mg; f.fillRect(0, Y(0.3), cw, Y(0.32)); };
-    const shade = (hex, k) => { const n = parseInt(hex.slice(1), 16); const m = (v) => Math.round(k >= 0 ? v + (255 - v) * k : v * (1 + k)); return 'rgb(' + m(n >> 16) + ',' + m((n >> 8) & 255) + ',' + m(n & 255) + ')'; };
-    // painterly texture inside a hill: soft dabs a little lighter and darker than the hill itself
-    const dabs = (pts, col, n, size, y0, y1, flat) => {
-      f.save(); f.beginPath(); f.moveTo(pts[0][0], Y(0.62)); for (const [x, y] of pts) f.lineTo(x, y); f.lineTo(pts[pts.length - 1][0], Y(0.62)); f.closePath(); f.clip();
+      c.globalCompositeOperation = 'multiply';                          // less reaches the ceiling and the chairs nearest us
+      const g = (v) => { const x = Math.round(255 - (255 - v) * P.ceil); return 'rgb(' + x + ',' + x + ',' + x + ')'; };
+      c.fillStyle = lin(c, 0, 0, 0, FH, [[0, g(38)], [0.09, g(68)], [0.15, g(140)], [0.21, '#ffffff'], [0.79, '#ffffff'], [0.85, g(138)], [1, g(58)]]);
+      c.fillRect(0, 0, FW, FH);
+      const v = c.createRadialGradient(300, 760, 200, 300, 760, 720); v.addColorStop(0, '#ffffff'); v.addColorStop(1, '#6a6a6a');   // and the edges fall into shadow
+      c.fillStyle = v; c.fillRect(0, 0, FW, FH);
+      c.globalCompositeOperation = 'source-over';
+    }
+
+    // ---- the sky ----
+    function paintSky(c, P, s) {
+      const R = rnd(11);
+      c.fillStyle = lin(c, 0, 250, 0, 545, P.sky); c.fillRect(80, 240, 480, 520);
+      c.globalCompositeOperation = 'lighter';
+      pool(c, 400, 530, 300, P.glow, P.glowA * 0.55, 0.32);           // the last light along the hills
+      pool(c, 470, 520, 160, P.glow, P.glowA * 0.5, 0.35);
+      if (P.milky) {                                                    // the milky way, rising out of the hills on the right
+        c.save(); c.translate(430, 420); c.rotate(-1.05);
+        for (let i = 0; i < 70; i++) {
+          const u = (R() - 0.5) * 420, v = (R() - 0.5) * 34 * (1 - Math.abs(u) / 260);
+          pool(c, u, v, 14 + R() * 26, [176, 186, 240], 0.07 * P.milky * (0.5 + R()));
+        }
+        for (let i = 0; i < 1600; i++) {
+          const u = (R() - 0.5) * 440, v = (R() + R() + R() - 1.5) * 22;
+          c.fillStyle = 'rgba(235,238,255,' + (0.25 + R() * 0.5) * P.milky + ')'; c.fillRect(u, v, 0.55, 0.55);
+        }
+        c.restore();
+      }
+      if (P.stars) {
+        for (let i = 0; i < 520; i++) {
+          const x = 90 + R() * 460, y = 250 + Math.pow(R(), 1.4) * 250, big = R();
+          const a = P.stars * (0.25 + R() * 0.75) * (1 - Math.max(0, (y - 420) / 90));
+          if (a <= 0) continue;
+          c.fillStyle = 'rgba(255,250,236,' + a + ')';
+          const r = big > 0.97 ? 1.3 : big > 0.85 ? 0.9 : 0.55;
+          c.beginPath(); c.arc(x, y, r, 0, 6.284); c.fill();
+          if (big > 0.97) pool(c, x, y, 5, [255, 246, 220], 0.35 * a);
+        }
+      }
+      c.globalCompositeOperation = 'source-over';
+    }
+    function twinkleStars() {
+      const R = rnd(23), out = [];
+      for (let i = 0; i < 32; i++) out.push([120 + R() * 400, 262 + Math.pow(R(), 1.3) * 170, R() * 6, 0.5 + R() * 1.2]);
+      return out;
+    }
+    // ---- clouds: long low banks, dark above, lit from below by the light along the hills ----
+    function cloudBanks(P, s) {
+      const R = rnd(37), banks = [];
+      const rows = [[292, 0.45, 90], [312, 0.5, 140], [338, 0.65, 180], [356, 0.7, 120], [380, 0.8, 230], [398, 0.85, 160], [418, 0.9, 280], [436, 0.95, 200], [452, 1, 300], [466, 0.95, 240], [480, 0.9, 260]];
+      for (const [y, a, w] of rows) {
+        const h = 14 + R() * 14 + (y - 290) * 0.06, lay = canvasFor(s, 0, 0, w + 40, h + 30), c = lay.c, n = 10 + Math.floor(w / 9), pts = [];
+        for (let i = 0; i < n; i++) {
+          const u = 20 + R() * w, mid = 1 - Math.abs(u - 20 - w / 2) / (w / 2);
+          pts.push([u, 15 + h * 0.6 - R() * h * 0.4 * mid, (h * 0.12 + R() * h * 0.26) * (0.35 + 0.75 * mid)]);
+        }
+        soft(c, s, 3, P.cloud[0], () => { for (const [x, yy, r] of pts) { c.beginPath(); c.ellipse(x, yy, r * (2.4 + R() * 2.2), r * 0.62, (R() - 0.5) * 0.06, 0, 6.284); c.fill(); } });
+        c.globalCompositeOperation = 'source-atop';
+        c.fillStyle = lin(c, 0, 0, 0, h + 30, [[0.15, rgba([0, 0, 0], 0)], [1, P.cloud[1]]]); c.fillRect(0, 0, w + 40, h + 30);
+        const rimA = P.rimA * (0.3 + 0.7 * (y - 290) / 190);
+        soft(c, s, 2, rgba(P.rim, rimA), () => { for (const [x, yy, r] of pts) { if (R() < 0.4) continue; c.beginPath(); c.ellipse(x + r * 0.4, yy + r * 0.42, r * 2.4, r * 0.22, 0, 0, 6.284); c.fill(); } });
+        soft(c, s, 3, 'rgba(0,0,0,0.18)', () => { for (const [x, yy, r] of pts) { if (R() < 0.6) continue; c.beginPath(); c.ellipse(x, yy - r * 0.3, r, r * 0.5, 0, 0, 6.284); c.fill(); } });
+        banks.push({ lay, y: y - 15 - h * 0.6, a, x: R() * 560, sp: 1 + R() * 2 + (y - 290) * 0.012, w: w + 40 });
+      }
+      return banks;
+    }
+    function mistBand(P, s) {
+      const lay = canvasFor(s, 0, 0, 700, 90), c = lay.c, R = rnd(41);
+      for (let i = 0; i < 40; i++) pool(c, R() * 700, 45 + (R() - 0.5) * 50, 30 + R() * 50, P.mist, P.mistA * (0.35 + R() * 0.5), 0.28);
+      return lay;
+    }
+
+    // ---- the land: far blue range, the big hill, the rolling valley, the lake and its village, the dark trees in front ----
+    function ridge(x0, x1, step, f) { const pts = []; for (let x = x0; x <= x1; x += step) pts.push([x, f(x)]); return pts; }
+    function fillRidge(c, pts, bottom, fill) { c.beginPath(); c.moveTo(pts[0][0], bottom); for (const [x, y] of pts) c.lineTo(x, y); c.lineTo(pts[pts.length - 1][0], bottom); c.closePath(); c.fillStyle = fill; c.fill(); }
+    function edgeLight(c, pts, col, a, w) { c.beginPath(); pts.forEach(([x, y], i) => (i ? c.lineTo(x, y + 0.6) : c.moveTo(x, y + 0.6))); c.strokeStyle = rgba(col, a); c.lineWidth = w; c.stroke(); }
+    function paintLand(c, P, s) {
+      const R = rnd(53), wob = (x, k, a) => a * (Math.sin(x * k) * 0.6 + Math.sin(x * k * 2.3 + 1.7) * 0.3 + Math.sin(x * k * 5.1 + 0.4) * 0.1);
+      // the far range on the right
+      const far = ridge(300, 560, 3, (x) => 540 - 28 * Math.exp(-Math.pow((x - 420) / 38, 2)) - 22 * Math.exp(-Math.pow((x - 510) / 30, 2)) - 10 * Math.exp(-Math.pow((x - 350) / 30, 2)) + wob(x, 0.09, 3));
+      fillRidge(c, far, 640, lin(c, 0, 505, 0, 600, [[0, P.far[0]], [1, P.far[1]]]));
+      edgeLight(c, far, P.edge, P.edgeA, 1.1);
+      // the big hill on the left
+      const hill = ridge(80, 520, 3, (x) => (x < 232 ? 482 + Math.pow((232 - x) / 150, 2) * 46 : 482 + Math.pow((x - 232) / 200, 1.6) * 82) + wob(x, 0.07, 4));
+      fillRidge(c, hill, 700, lin(c, 0, 478, 0, 640, [[0, P.hill[0]], [1, P.hill[1]]]));
+      c.save(); fillRidge(c, hill, 700, 'rgba(0,0,0,0)'); c.clip();
+      for (let i = 0; i < 1100; i++) {                                   // the forest on its flanks
+        const x = 80 + R() * 440, top = hill[Math.min(hill.length - 1, Math.round((x - 80) / 3))][1], y = top + 6 + R() * 120;
+        c.fillStyle = rgba(R() < 0.7 ? [0, 0, 0] : P.tree, (R() < 0.7 ? 0.1 : 0.07) * (P.dots || 1)); c.beginPath(); c.ellipse(x, y, 1.2 + R() * 1.6, 1 + R() * 1.3, 0, 0, 6.284); c.fill();
+      }
+      c.fillStyle = lin(c, 80, 0, 520, 0, [[0, 'rgba(0,0,0,0.35)'], [0.45, 'rgba(0,0,0,0.05)'], [1, rgba(P.glow, 0.1)]]); c.fillRect(80, 470, 440, 240);
+      for (let i = 0; i < 500; i++) { const x = 240 + R() * 280, top = hill[Math.min(hill.length - 1, Math.round((x - 80) / 3))][1], y = top + 3 + R() * 50; c.fillStyle = rgba(P.edge, 0.05 + R() * 0.06); c.beginPath(); c.ellipse(x, y, 1.2 + R(), 0.9, 0, 0, 6.284); c.fill(); }
+      c.fillStyle = lin(c, 0, 480, 0, 640, [[0, 'rgba(0,0,0,0)'], [1, 'rgba(0,0,0,0.35)']]); c.fillRect(80, 470, 440, 240);
+      c.restore();
+      edgeLight(c, hill, P.edge, P.edgeA * 0.8, 1);
+      // rolling hills down in the valley
+      const mid = ridge(80, 560, 3, (x) => 588 + wob(x, 0.03, 12) + wob(x + 40, 0.11, 3));
+      fillRidge(c, mid, 720, lin(c, 0, 570, 0, 680, [[0, P.mid[0]], [1, P.mid[1]]]));
+      c.save(); fillRidge(c, mid, 720, 'rgba(0,0,0,0)'); c.clip();
+      for (let i = 0; i < 1400; i++) { const x = 80 + R() * 480, y = 582 + R() * 120; c.fillStyle = rgba(R() < 0.7 ? [0, 0, 0] : P.tree, 0.12 * (P.dots || 1)); c.beginPath(); c.ellipse(x, y, 1.6 + R() * 2.2, 1.4 + R() * 1.8, 0, 0, 6.284); c.fill(); }
+      c.restore();
+      edgeLight(c, mid, P.edge, P.edgeA * 0.5, 1);
+      // the lake, holding the sky
+      c.save(); c.beginPath(); c.moveTo(330, 652); c.bezierCurveTo(380, 640, 470, 641, 560, 646); c.lineTo(560, 668); c.bezierCurveTo(470, 672, 390, 672, 330, 664); c.closePath();
+      c.fillStyle = lin(c, 0, 640, 0, 672, [[0, P.lake[0]], [1, P.lake[1]]]); c.fill(); c.clip();
+      c.globalCompositeOperation = 'lighter';
+      for (let i = 0; i < 26; i++) { c.fillStyle = rgba(P.edge, 0.08 + R() * 0.1); c.fillRect(330 + R() * 230, 644 + R() * 26, 6 + R() * 26, 0.7); }
+      c.restore();
+      // the village on the far shore: windows lit at dusk and by night, and their light on the water
+      if (P.village) {
+        c.save(); c.globalCompositeOperation = 'lighter';
+        for (let i = 0; i < 120; i++) {
+          const cl = R() < 0.6, x = cl ? 380 + R() * 170 : 290 + R() * 265, y = 626 + R() * 18 + (x - 290) * 0.02, a = P.village * (0.5 + R() * 0.5);
+          c.fillStyle = rgba([255, 204, 130], a); c.fillRect(x, y, 1.3, 1.3);
+          if (R() < 0.6) pool(c, x, y, 5, [255, 170, 90], 0.3 * a);
+          if (x > 340 && R() < 0.7) { c.fillStyle = rgba([255, 180, 110], 0.45 * a); c.fillRect(x, 652 + R() * 3, 1, 6 + R() * 10); }
+        }
+        pool(c, 470, 650, 90, [255, 160, 90], 0.12 * P.village, 0.25);
+        c.restore();
+      }
+      // the dark trees between us and the lake
+      const tree = (x, y, h, round) => {
+        c.beginPath();
+        if (round) { for (let k = 0; k < 5; k++) c.ellipse(x + (R() - 0.5) * h * 0.5, y - h * (0.3 + R() * 0.5), h * (0.22 + R() * 0.14), h * (0.2 + R() * 0.12), 0, 0, 6.284); }
+        else { c.moveTo(x, y - h); for (let k = 1; k <= 4; k++) { const yy = y - h + (h * k) / 4, ww = h * 0.13 * k; c.lineTo(x + ww, yy); c.lineTo(x + ww * 0.45, yy - h * 0.05); } for (let k = 4; k >= 1; k--) { const yy = y - h + (h * k) / 4, ww = h * 0.13 * k; c.lineTo(x - ww * 0.45, yy - h * 0.05); c.lineTo(x - ww, yy); } c.lineTo(x, y - h); }
+        c.fill();
+      };
+      c.fillStyle = P.forest;
+      for (let i = 0; i < 46; i++) { const x = 90 + R() * 460; tree(x, 700 + R() * 30, 30 + R() * 46, R() < 0.45); }
+      c.fillRect(80, 712, 480, 40);
+      c.globalCompositeOperation = 'source-atop';
+      c.fillStyle = lin(c, 0, 640, 0, 740, [[0, rgba(P.edge, P.edgeA * 0.35)], [0.5, 'rgba(0,0,0,0)']]); c.fillRect(80, 620, 480, 130);
+      c.globalCompositeOperation = 'source-over';
+    }
+
+    // ---- leaves: drawn along stems, each leaf a pointed oval, in a few greens ----
+    const GREENS = [[56, 72, 36], [66, 84, 40], [46, 60, 30], [80, 96, 46], [38, 50, 26], [72, 80, 40]];
+    function leafy(c, R, stems, size, tint) {
+      for (const st of stems) {
+        const [x0, y0, x1, y1, bend, n] = st;
+        c.strokeStyle = 'rgba(60,44,28,0.9)'; c.lineWidth = 1.1;
+        c.beginPath(); c.moveTo(x0, y0); c.quadraticCurveTo((x0 + x1) / 2 + bend, (y0 + y1) / 2, x1, y1); c.stroke();
+        for (let i = 0; i < n * 1.4; i++) {
+          const back = i < n * 0.4, node = Math.floor(R() * 9) / 9 + R() * 0.05, k = Math.min(1, node), mx = (x0 + x1) / 2 + bend;
+          const sx = (1 - k) * (1 - k) * x0 + 2 * (1 - k) * k * mx + k * k * x1, sy = (1 - k) * (1 - k) * y0 + 2 * (1 - k) * k * ((y0 + y1) / 2) + k * k * y1;
+          const spread = size * (back ? 1.9 : 1.3), x = sx + (R() - 0.5) * spread * 2, y = sy + (R() - 0.5) * spread * 2;
+          const a = R() * 6.284, l = size * (0.6 + R() * 0.7) * (1.1 - 0.3 * k), g = GREENS[Math.floor(R() * GREENS.length)], dk = back ? 0.55 : 1;
+          c.save(); c.translate(x, y); c.rotate(a);
+          c.fillStyle = 'rgb(' + Math.round(g[0] * tint[0] * dk) + ',' + Math.round(g[1] * tint[1] * dk) + ',' + Math.round(g[2] * tint[2] * dk) + ')';
+          c.beginPath(); c.moveTo(-l * 0.55, 0); c.bezierCurveTo(-l * 0.2, -l * 0.42, l * 0.3, -l * 0.34, l * 0.55, 0); c.bezierCurveTo(l * 0.3, l * 0.34, -l * 0.2, l * 0.42, -l * 0.55, 0); c.fill();
+          c.fillStyle = 'rgba(0,0,0,0.18)'; c.beginPath(); c.moveTo(-l * 0.55, 0); c.bezierCurveTo(-l * 0.2, l * 0.42, l * 0.3, l * 0.34, l * 0.55, 0); c.closePath(); c.fill();
+          c.strokeStyle = 'rgba(255,255,220,0.18)'; c.lineWidth = 0.5; c.beginPath(); c.moveTo(-l * 0.45, 0); c.lineTo(l * 0.45, 0); c.stroke();
+          c.restore();
+        }
+      }
+    }
+    // ---- wood: a plank or a log, its grain in long strokes ----
+    function wood(c, R, x, y, w, h, base, opt = {}) {
+      c.save(); c.beginPath(); c.rect(x, y, w, h); c.clip();
+      c.fillStyle = base; c.fillRect(x, y, w, h);
+      if (opt.round) { c.fillStyle = lin(c, 0, y, 0, y + h, opt.below ? [[0, 'rgba(0,0,0,0.55)'], [0.45, 'rgba(0,0,0,0.1)'], [0.78, 'rgba(255,224,170,0.22)'], [1, 'rgba(0,0,0,0.35)']] : [[0, 'rgba(0,0,0,0.45)'], [0.3, 'rgba(255,230,190,0.14)'], [0.55, 'rgba(0,0,0,0)'], [1, 'rgba(0,0,0,0.5)']]); c.fillRect(x, y, w, h); }
+      const n = Math.max(3, Math.round(h / 3.2)), vert = opt.vertical;
+      for (let i = 0; i < n * 3; i++) {
+        c.strokeStyle = R() < 0.5 ? 'rgba(40,22,10,' + (0.12 + R() * 0.2) + ')' : 'rgba(255,220,170,' + (0.05 + R() * 0.08) + ')';
+        c.lineWidth = 0.5 + R() * 0.9; c.beginPath();
+        if (vert) { const xx = x + R() * w; c.moveTo(xx, y); c.bezierCurveTo(xx + (R() - 0.5) * 3, y + h * 0.3, xx + (R() - 0.5) * 3, y + h * 0.7, xx + (R() - 0.5) * 2, y + h); }
+        else { const yy = y + R() * h, x0 = x + R() * w * 0.3 - 10; c.moveTo(x0, yy); c.bezierCurveTo(x0 + w * 0.3, yy + (R() - 0.5) * 3, x0 + w * 0.6, yy + (R() - 0.5) * 3, x0 + w * (0.5 + R() * 0.8), yy + (R() - 0.5) * 2); }
+        c.stroke();
+      }
+      if (opt.knots) for (let i = 0; i < opt.knots; i++) { const kx = x + R() * w, ky = y + h * (0.3 + R() * 0.4); c.strokeStyle = 'rgba(40,22,10,0.35)'; c.lineWidth = 0.8; c.beginPath(); c.ellipse(kx, ky, 4 + R() * 4, 1.4 + R(), 0, 0, 6.284); c.stroke(); }
+      c.restore();
+    }
+
+    // ---- the porch outside the window: the bushes below the rail, the rail and its posts, the leaves at the right ----
+    function paintPorch(c, P) {
+      const R = rnd(61);
+      leafy(c, R, [[500, 740, 540, 300, 18, 170], [520, 730, 548, 420, -10, 120], [470, 720, 530, 540, 20, 90], [430, 726, 520, 640, 10, 60], [90, 726, 170, 600, -16, 70], [170, 726, 250, 660, 10, 50], [250, 726, 330, 690, -8, 30]], 12, P.leaf);
+      c.fillStyle = '#2a3a22'; c.fillRect(0, 756, FW, 90);
+      leafy(c, R, [[0, 840, 640, 790, -30, 260], [20, 800, 620, 830, 20, 240]], 17, P.leaf.map((v) => v * 0.7));
+      wood(c, R, 0, 724, FW, 34, '#b4763f', { round: 1, knots: 3 });                 // the rail
+      for (const [x, w] of [[248, 28], [330, 36]]) { wood(c, R, x, 756, w, 90, '#94603a', { vertical: 1 }); c.fillStyle = 'rgba(0,0,0,0.3)'; c.fillRect(x + w - 5, 756, 5, 90); }
+      wood(c, R, 332, 716, 34, 16, '#b07a4a', {});                                       // the post's cap above the rail
+    }
+    // ---- the voile: sheer cream fabric in soft folds; the left falls straight, the right is tied back ----
+    function paintCurtain(c, side, s) {
+      const R = rnd(side < 0 ? 71 : 73);
+      const shape = side < 0
+        ? (v) => [0, 102 - v * 8]                                       // its left and right edges, a share v of the way down
+        : (v) => { const tie = 0.55, k = v < tie ? v / tie : (v - tie) / (1 - tie); return v < tie ? [535 + 40 * k * k, 625 - 10 * k] : [575 - 28 * k, 615 + 8 * k]; };
+      const top = 246, bot = side < 0 ? 742 : 828, N = 60, pts = [];
+      for (let i = 0; i <= N; i++) { const v = i / N; pts.push([top + (bot - top) * v, ...shape(v)]); }
+      const outline = () => { c.beginPath(); pts.forEach(([y, a], i) => (i ? c.lineTo(a, y) : c.moveTo(a, y))); for (let i = N; i >= 0; i--) c.lineTo(pts[i][2], pts[i][0]); c.closePath(); };
+      c.save(); outline(); c.fillStyle = 'rgba(236,216,184,0.82)'; c.fill(); c.clip();
+      // the folds: soft bands of light and shade that follow the fall of the cloth
+      const folds = 7, band = (p, w, col, blur) => soft(c, s, blur, col, () => {
+        c.lineWidth = w; c.lineCap = 'butt'; c.strokeStyle = col; c.beginPath();
+        pts.forEach(([y, a, b], i) => { const x = a + (b - a) * (p + 0.03 * Math.sin(y * 0.02 + p * 9)); if (i) c.lineTo(x, y); else c.moveTo(x, y); }); c.stroke();
+      });
+      for (let f = 0; f < folds; f++) {
+        const p = (f + 0.5) / folds;
+        band(p - 0.05, 8, 'rgba(110,66,36,0.42)', 4);
+        band(p + 0.045, 5, 'rgba(255,246,226,0.4)', 3);
+      }
+      c.fillStyle = lin(c, 0, top, 0, top + 34, [[0, 'rgba(80,46,24,0.5)'], [1, 'rgba(80,46,24,0)']]); c.fillRect(0, top, FW, 34);   // gathered at the rod
+      if (side > 0) { c.fillStyle = 'rgba(90,56,30,0.3)'; c.fillRect(560, 538, 70, 34); }
+      for (let i = 0; i < 90; i++) { const y = top + R() * (bot - top), [a, b] = shape((y - top) / (bot - top)); c.fillStyle = 'rgba(170,120,80,0.16)'; c.fillRect(a + R() * (b - a), y, 1, 1); }
+      c.restore();
+      if (side > 0) {                                                   // the tie: a band of the same cloth
+        c.fillStyle = '#eadbbd'; c.beginPath(); c.moveTo(570, 548); c.quadraticCurveTo(596, 543, 620, 549); c.lineTo(620, 563); c.quadraticCurveTo(596, 558, 570, 563); c.closePath(); c.fill();
+        c.strokeStyle = 'rgba(110,70,40,0.4)'; c.lineWidth = 1; c.stroke();
+      }
+    }
+    // ---- the room in front: the ceiling and the beams, the vine by the left curtain, the post, the table and all on it, the chairs ----
+    function paintFront(c, P, s) {
+      const R = rnd(83);
+      // the vine climbing in front of the left curtain
+      leafy(c, R, [[40, 772, 96, 340, 26, 150], [0, 760, 60, 440, 20, 120], [10, 770, 170, 630, -30, 130], [60, 772, 210, 700, -10, 80], [0, 660, 120, 580, -20, 100], [90, 370, 150, 310, 10, 30], [150, 772, 250, 730, -6, 50]], 12, P.leaf);
+      // the ceiling: logs side by side, into the dark
+      for (let k = 0; k < 5; k++) { const h = 40 + k * 2, y = 190 - (k + 1) * 42 + 2; wood(c, R, -4, y, FW + 8, h, '#9a6238', { round: 1, below: 1, knots: 2 }); c.fillStyle = 'rgba(20,8,2,0.6)'; c.fillRect(-4, y, FW + 8, 2); }
+      wood(c, R, -4, 186, FW + 8, 60, '#b4743e', { round: 1, below: 1, knots: 4 });              // the eave log
+      wood(c, R, 96, 244, 446, 26, '#b27a4a', {});                                      // the lintel over the window
+      c.fillStyle = 'rgba(30,16,8,0.5)'; c.fillRect(96, 266, 446, 3);
+      for (const x of [139, 314, 466]) { c.fillStyle = '#c9a77a'; c.fillRect(x - 6, 244, 12, 26); c.strokeStyle = 'rgba(70,45,25,0.6)'; c.lineWidth = 0.8; for (let i = 0; i < 4; i++) { c.beginPath(); c.moveTo(x - 6, 248 + i * 6); c.lineTo(x + 6, 251 + i * 6); c.stroke(); } }   // rope ties
+      wood(c, R, 618, 186, 27, 860, '#9a6238', { vertical: 1 });                        // the post on the right
+      c.fillStyle = 'rgba(0,0,0,0.35)'; c.fillRect(618, 186, 4, 860);
+      // the table: planks running across, nearer ones taller, the light on them warmer nearer the candle
+      const seams = [826, 846, 868, 893, 922, 956, 996, 1042];
+      for (let i = 0; i < seams.length - 1; i++) {
+        const y = seams[i], h = seams[i + 1] - y, shade = ['#b8763e', '#c07e44', '#b2703a', '#c4844a', '#b8763e', '#c07e44', '#b4723c'][i];
+        wood(c, R, -4, y, FW + 8, h, shade, { knots: 1 });
+        c.fillStyle = 'rgba(30,14,6,0.55)'; c.fillRect(-4, y, FW + 8, 1.2);
+      }
+      c.fillStyle = 'rgba(40,20,8,0.4)'; c.fillRect(-4, 826, FW + 8, 4);
+      wood(c, R, -4, 1042, FW + 8, 22, '#7d4e2c', { round: 1 });                         // the table's front edge
+      paintBoard(c, R);
+      paintBag(c, R);
+      // the candle's dish (the candle itself is lit in its own light, drawn each frame)
+      c.fillStyle = 'rgba(20,10,4,0.45)'; c.beginPath(); c.ellipse(92, 918, 82, 22, 0, 0, 6.284); c.fill();
+      c.fillStyle = lin(c, 10, 0, 150, 0, [[0, '#6a4026'], [0.5, '#9a6238'], [1, '#5a3420']]); c.beginPath(); c.ellipse(80, 906, 70, 20, 0, 0, Math.PI); c.lineTo(10, 906); c.fill();
+      c.beginPath(); c.moveTo(10, 906); c.bezierCurveTo(14, 930, 146, 930, 150, 906); c.fill();
+      c.fillStyle = '#c08a58'; c.beginPath(); c.ellipse(80, 902, 70, 18, 0, 0, 6.284); c.fill();
+      c.fillStyle = '#6e4428'; c.beginPath(); c.ellipse(80, 903, 62, 14, 0, 0, 6.284); c.fill();
+      paintMug(c, R);
+      // the chairs nearest us, in shadow, a towel over the right one
+      wood(c, R, -4, 1064, 524, 30, '#7a4a2a', { round: 1 });
+      c.fillStyle = lin(c, 0, 1090, 0, FH, [[0, '#4a2c18'], [1, '#160c06']]); c.fillRect(-4, 1092, 524, FH - 1092);
+      for (const x of [60, 180, 300, 420]) { c.fillStyle = 'rgba(0,0,0,0.25)'; c.fillRect(x, 1094, 6, FH - 1094); }
+      c.fillStyle = lin(c, 0, 1040, 0, FH, [[0, '#4e3020'], [1, '#120a05']]); c.fillRect(520, 1064, 125, FH - 1064);
+      paintTowel(c, R);
+      c.fillStyle = lin(c, 0, 1180, 0, FH, [[0, 'rgba(10,6,3,0)'], [1, 'rgba(10,6,3,0.85)']]); c.fillRect(0, 1180, FW, FH - 1180);
+      void s;
+    }
+    function paintBoard(c, R) {
+      const B = A.board, q = (k, a, b) => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k];
+      const quad = (tl, tr, br, bl) => { c.beginPath(); c.moveTo(tl[0], tl[1]); c.lineTo(tr[0], tr[1]); c.lineTo(br[0], br[1]); c.lineTo(bl[0], bl[1]); c.closePath(); };
+      c.fillStyle = 'rgba(20,10,4,0.5)'; quad([B.tl[0] - 4, B.tl[1] + 6], [B.tr[0] + 8, B.tr[1] + 6], [B.br[0] + 12, B.br[1] + 10], [B.bl[0] + 2, B.bl[1] + 10]); c.fill();   // its shadow
+      c.fillStyle = '#9a6236'; quad(B.tl, B.tr, B.br, B.bl); c.fill();                   // the frame
+      c.fillStyle = 'rgba(255,220,170,0.25)'; quad(B.tl, B.tr, q(0.04, B.tr, B.br), q(0.04, B.tl, B.bl)); c.fill();
+      const inset = (p, dx, dy) => [p[0] + dx, p[1] + dy];
+      const I = [inset(B.tl, 9, 6), inset(B.tr, -9, 6), inset(B.br, -13, -12), inset(B.bl, 13, -12)];
+      c.fillStyle = lin(c, 0, I[0][1], 0, I[2][1], [[0, '#34433f'], [1, '#2b3835']]); quad(...I); c.fill();
+      c.save(); quad(...I); c.clip();
+      for (let i = 0; i < 260; i++) { c.fillStyle = 'rgba(220,230,220,' + R() * 0.05 + ')'; c.beginPath(); c.ellipse(150 + R() * 380, 900 + R() * 130, 4 + R() * 12, 1 + R() * 2, (R() - 0.5) * 0.4, 0, 6.284); c.fill(); }   // old chalk
+      c.restore();
+      c.strokeStyle = 'rgba(30,14,6,0.5)'; c.lineWidth = 1.2; quad(...I); c.stroke();
+      grains(c, R, 70, I[0][0] + 20, I[0][1] + 6, I[1][0] - 20, I[2][1] - 30);
+    }
+    // grains in the colours of the game: red lentils, rice, mung beans
+    const GRAIN = [['#d88a3e', '#a95a22', 3.2, 2.4], ['#f2ead8', '#c9b99a', 3.8, 1.8], ['#7e9a46', '#55702c', 3, 2.2], ['#c98546', '#8d5424', 3.4, 2.6]];
+    function grains(c, R, n, x0, y0, x1, y1, bias) {
       for (let i = 0; i < n; i++) {
-        f.fillStyle = shade(col, (rnd() - 0.45) * (flat ? 0.12 : 0.22)); f.globalAlpha = flat ? 0.12 + rnd() * 0.15 : 0.35 + rnd() * 0.35;
-        f.beginPath(); f.ellipse(X(rnd()), Y(y0 + rnd() * (y1 - y0)), U * size * (0.6 + rnd()) * (flat ? 3 : 1), U * size * 0.6 * (0.6 + rnd()) * (flat ? 0.5 : 1), 0, 0, 6.284); f.fill();
+        const g = GRAIN[bias != null && R() < 0.7 ? bias : Math.floor(R() * GRAIN.length)];
+        const x = x0 + R() * (x1 - x0), y = y0 + Math.pow(R(), 1.3) * (y1 - y0), a = R() * Math.PI, sc = 0.85 + (y - 840) / 600;
+        c.fillStyle = 'rgba(20,10,4,0.4)'; c.beginPath(); c.ellipse(x + 0.8, y + 1, g[2] * sc, g[3] * sc * 0.6, a * 0.3, 0, 6.284); c.fill();
+        c.fillStyle = lin(c, x, y - 2, x, y + 2, [[0, g[0]], [1, g[1]]]); c.beginPath(); c.ellipse(x, y, g[2] * sc, g[3] * sc * 0.62, a * 0.3, 0, 6.284); c.fill();
       }
-      f.globalAlpha = 1;
-      f.strokeStyle = 'rgba(255,248,215,0.22)'; f.lineWidth = Math.max(1, U * 0.004);                // the sunlit rim of the ridge
-      f.beginPath(); pts.forEach(([x, y], k2) => (k2 ? f.lineTo(x, y + U * 0.002) : f.moveTo(x, y + U * 0.002))); f.stroke();
-      f.restore();
-    };
-    hill(ridge(0.31, 0.05, 5, 0), shade(P.hills[0], 0.2), shade(P.hills[0], 0.12)); haze(P.mistA);        // far mountains, blue with distance
-    const farR = ridge(0.37, 0.035, 11, 0); hill(farR, shade(P.hills[0], 0.08), P.hills[0]); dabs(farR, P.hills[0], 50, 0.03, 0.36, 0.45, true); haze(P.mistA * 0.8);
-    const midR = ridge(0.42, 0.03, 23, 0); hill(midR, shade(P.hills[1], 0.1), P.hills[1]); dabs(midR, P.hills[1], 70, 0.025, 0.41, 0.5, true);
-    f.save(); f.beginPath(); f.moveTo(midR[0][0], Y(0.62)); for (const [x, y] of midR) f.lineTo(x, y); f.lineTo(midR[midR.length - 1][0], Y(0.62)); f.closePath(); f.clip();
-    f.strokeStyle = 'rgba(255,255,220,0.14)'; f.lineWidth = Math.max(1, U * 0.003);
-    for (let t = 0; t < 9; t++) { const y = Y(0.44 + t * 0.011); f.beginPath(); f.moveTo(X(0.08), y); f.quadraticCurveTo(X(0.36), y - Y(0.012), X(0.64), y + Y(0.004)); f.stroke(); }   // terraced fields
-    f.restore(); haze(P.mistA * 0.6);
-    const nearR = ridge(0.475, 0.025, 37, 0.004); hill(nearR, shade(P.hills[2], 0.08), P.hills[2]); dabs(nearR, P.hills[2], 140, 0.02, 0.46, 0.56);
-    // trees on the near hills: tall cedars of soft stacked clumps, and round leafy trees
-    const lit = sx < 0.5 ? -1 : 1;
-    // a cedar: tiers of drooping branches, wide at the foot, narrowing to a point, lit on the sun's side
-    const cedar = (x, base, hgt) => {
-      f.fillStyle = shade(P.hills[3], -0.4); f.fillRect(x - hgt * 0.018, base - hgt * 0.14, hgt * 0.036, hgt * 0.14);
-      const tiers = 8;
-      for (let l = 0; l < tiers; l++) {
-        const yb = base - hgt * (0.1 + l * 0.105), yt = yb - hgt * 0.16, rw = hgt * (0.2 - l * 0.021) * (0.9 + rnd() * 0.2), sag = hgt * 0.035;
-        f.fillStyle = shade(P.hills[3], -0.24 + l * 0.025);
-        f.beginPath(); f.moveTo(x, yt);
-        f.quadraticCurveTo(x - rw * 0.4, yb - sag * 1.6, x - rw, yb + sag * 0.4);
-        f.quadraticCurveTo(x - rw * 0.5, yb - sag * 0.4, x, yb - sag * 0.2);
-        f.quadraticCurveTo(x + rw * 0.5, yb - sag * 0.4, x + rw, yb + sag * 0.4);
-        f.quadraticCurveTo(x + rw * 0.4, yb - sag * 1.6, x, yt); f.fill();
-        f.fillStyle = 'rgba(255,245,200,0.1)';
-        f.beginPath(); f.moveTo(x, yt); f.quadraticCurveTo(x + lit * rw * 0.4, yb - sag * 1.6, x + lit * rw, yb + sag * 0.4); f.quadraticCurveTo(x + lit * rw * 0.5, yb - sag * 0.6, x, yb - sag * 0.6); f.closePath(); f.fill();
+    }
+    // the cloth sack lying on its side, its mouth open to the right and grains running out across the table
+    function paintBag(c, R) {
+      c.fillStyle = 'rgba(20,10,4,0.5)'; c.beginPath(); c.ellipse(140, 886, 160, 16, 0, 0, 6.284); c.fill();
+      const body = () => {
+        c.beginPath(); c.moveTo(-20, 800);
+        c.bezierCurveTo(10, 764, 110, 752, 170, 768);              // the top of the sack
+        c.bezierCurveTo(190, 774, 204, 786, 214, 800);             // into the neck
+        c.bezierCurveTo(226, 794, 246, 790, 262, 800);             // the lip, flared open
+        c.bezierCurveTo(276, 820, 274, 862, 250, 878);
+        c.bezierCurveTo(232, 886, 214, 880, 206, 870);
+        c.bezierCurveTo(170, 888, 70, 892, -20, 884); c.closePath();
+      };
+      body(); c.fillStyle = lin(c, 0, 756, 0, 892, [[0, '#eadcc0'], [0.55, '#dcc8a4'], [1, '#b39670']]); c.fill();
+      c.save(); body(); c.clip();
+      c.fillStyle = lin(c, -20, 0, 270, 0, [[0, 'rgba(255,240,210,0.25)'], [0.6, 'rgba(0,0,0,0)'], [1, 'rgba(60,36,18,0.25)']]); c.fillRect(-20, 750, 300, 150);
+      c.lineCap = 'round';
+      for (const [x0, y0, cx, cy, x1, y1, w, a] of [[30, 786, 90, 770, 196, 794, 3, 0.3], [10, 840, 110, 812, 204, 820, 3.4, 0.34], [40, 876, 130, 852, 206, 846, 2.6, 0.3], [80, 772, 140, 790, 200, 806, 2, 0.25], [190, 796, 200, 830, 196, 866, 2.4, 0.35]]) {
+        c.strokeStyle = 'rgba(110,70,40,' + a * 1.5 + ')'; c.lineWidth = w * 1.6; c.beginPath(); c.moveTo(x0, y0); c.quadraticCurveTo(cx, cy, x1, y1); c.stroke();
+        c.strokeStyle = 'rgba(255,248,232,' + a * 0.8 + ')'; c.lineWidth = w * 0.6; c.beginPath(); c.moveTo(x0, y0 - 3); c.quadraticCurveTo(cx, cy - 3, x1, y1 - 3); c.stroke();
       }
-    };
-    const leafy = (x, base, sz) => {
-      f.fillStyle = shade(P.hills[3], -0.35); f.fillRect(x - sz * 0.05, base - sz * 0.5, sz * 0.1, sz * 0.5);
-      for (let i = 0; i < 9; i++) {
-        const a = rnd() * 6.28, rr = sz * (0.25 + rnd() * 0.2), px = x + Math.cos(a) * sz * 0.35, py = base - sz * 0.75 + Math.sin(a) * sz * 0.25;
-        f.fillStyle = shade(P.hills[2], -0.12 + rnd() * 0.12); f.beginPath(); f.arc(px, py, rr, 0, 6.284); f.fill();
-        f.fillStyle = 'rgba(255,248,205,0.12)'; f.beginPath(); f.arc(px + lit * rr * 0.3, py - rr * 0.35, rr * 0.55, 0, 6.284); f.fill();
+      for (let i = 0; i < 7; i++) { const x = 10 + R() * 140, y = 790 + R() * 70; for (let k = 0; k < 5; k++) { c.fillStyle = 'rgba(200,118,98,0.38)'; c.beginPath(); c.ellipse(x + Math.cos(k * 1.257) * 3.4, y + Math.sin(k * 1.257) * 3.4, 2.6, 1.4, k * 1.257, 0, 6.284); c.fill(); } c.fillStyle = 'rgba(150,110,60,0.45)'; c.beginPath(); c.arc(x, y, 1.2, 0, 6.284); c.fill(); }   // a printed flower here and there
+      c.restore();
+      // the open mouth, full of lentils
+      const mouth = () => { c.beginPath(); c.moveTo(222, 806); c.bezierCurveTo(240, 796, 262, 804, 264, 828); c.bezierCurveTo(266, 852, 258, 872, 240, 878); c.bezierCurveTo(226, 870, 216, 840, 222, 806); c.closePath(); };
+      mouth(); c.fillStyle = '#3e2414'; c.fill();
+      c.save(); mouth(); c.clip(); grains(c, R, 170, 214, 800, 268, 884, 0); c.fillStyle = lin(c, 214, 0, 262, 0, [[0, 'rgba(30,14,6,0.6)'], [1, 'rgba(30,14,6,0)']]); c.fillRect(210, 794, 60, 92); c.restore();
+      c.fillStyle = lin(c, 0, 794, 0, 830, [[0, '#fbf2de'], [1, '#e4d2b2']]);               // the lip, folded back over the top and the far side
+      c.beginPath(); c.moveTo(216, 810); c.bezierCurveTo(232, 790, 266, 794, 270, 826); c.bezierCurveTo(272, 846, 266, 864, 258, 874); c.bezierCurveTo(262, 856, 262, 836, 256, 820); c.bezierCurveTo(248, 804, 232, 802, 216, 810); c.closePath(); c.fill();
+      c.strokeStyle = 'rgba(120,80,48,0.35)'; c.lineWidth = 1.2; c.stroke();
+      // spilled, running out across the table towards the board and thinning out
+      c.save(); c.beginPath(); c.moveTo(232, 862); c.bezierCurveTo(300, 852, 400, 864, 486, 874); c.lineTo(478, 904); c.bezierCurveTo(390, 902, 300, 900, 226, 890); c.closePath(); c.clip();
+      grains(c, R, 320, 226, 852, 486, 904); c.restore();
+      grains(c, R, 60, 200, 878, 600, 912);
+      grains(c, R, 26, 130, 890, 620, 1030);
+    }
+    function paintMug(c, R) {
+      const x = 548, top = 793, bot = 884, rx = 44;
+      c.fillStyle = 'rgba(20,10,4,0.45)'; c.beginPath(); c.ellipse(552, 888, 56, 9, 0, 0, 6.284); c.fill();
+      c.strokeStyle = '#d9cfb6'; c.lineWidth = 9; c.beginPath(); c.ellipse(596, 836, 22, 28, 0, -1.4, 1.4); c.stroke();     // the handle
+      c.strokeStyle = 'rgba(80,60,40,0.4)'; c.lineWidth = 2; c.beginPath(); c.ellipse(596, 836, 26, 32, 0, -1.3, 1.3); c.stroke();
+      c.beginPath(); c.moveTo(x - rx, top); c.lineTo(x - rx + 6, bot - 8); c.quadraticCurveTo(x, bot + 8, x + rx - 6, bot - 8); c.lineTo(x + rx, top); c.closePath();
+      c.fillStyle = lin(c, x - rx, 0, x + rx, 0, [[0, '#cfc3a6'], [0.35, '#f2ead6'], [0.7, '#e4d9c0'], [1, '#b3a78c']]); c.fill();
+      c.save(); c.clip();
+      for (const [sx, sy, h] of [[522, 840, 44], [558, 846, 50], [584, 834, 30]]) {        // green sprigs painted on it
+        c.strokeStyle = '#4f7a3c'; c.lineWidth = 1.6; c.beginPath(); c.moveTo(sx, sy + h / 2); c.lineTo(sx, sy - h / 2); c.stroke();
+        for (let k = 0; k < 6; k++) { const d = k % 2 ? 1 : -1; c.save(); c.translate(sx, sy + h / 2 - 5 - k * (h / 6.4)); c.rotate(d * (0.7 + k * 0.05) - 0.2); c.fillStyle = k % 3 ? '#5e8a44' : '#3f6a30'; c.beginPath(); c.ellipse(d * 6, -2, 6.5, 3.4, 0, 0, 6.284); c.fill(); c.restore(); }
       }
-    };
-    for (let i = 0; i < 6; i++) cedar(X(0.08 + rnd() * 0.84), Y(0.5 + rnd() * 0.035), Y(0.07 + rnd() * 0.05));
-    for (let i = 0; i < 5; i++) leafy(X(0.05 + rnd() * 0.9), Y(0.53 + rnd() * 0.03), U * (0.06 + rnd() * 0.04));
-    const nearest = ridge(0.54, 0.014, 51, 0.006); hill(nearest, shade(P.hills[3], 0.06), P.hills[3]); dabs(nearest, P.hills[3], 160, 0.018, 0.53, 0.6);
-    // bushes along the foot of the view, right behind the sill
-    for (let i = 0; i < 70; i++) {
-      const x = X(rnd()), y = Y(0.575 + rnd() * 0.012), r = U * (0.02 + rnd() * 0.03);
-      f.fillStyle = shade(P.hills[3], -0.25 + rnd() * 0.15); f.beginPath(); f.arc(x, y, r, Math.PI, 0); f.fill();
+      c.restore();
+      c.fillStyle = '#e9dfc8'; c.beginPath(); c.ellipse(x, top, rx, 10, 0, 0, 6.284); c.fill();
+      c.fillStyle = lin(c, 0, top - 7, 0, top + 7, [[0, '#5b3a22'], [1, '#2e1c10']]); c.beginPath(); c.ellipse(x, top + 1, rx - 4, 7.5, 0, 0, 6.284); c.fill();   // the tea
+      void R;
     }
-    // the room around the opening: roof underside, beam, posts, the sill, the floor
-    const woodFill = (x, y, w, h, c0, c1, vertical) => {
-      const wg = vertical ? f.createLinearGradient(x, 0, x + w, 0) : f.createLinearGradient(0, y, 0, y + h);
-      wg.addColorStop(0, c0); wg.addColorStop(0.5, shade(c0, 0.06)); wg.addColorStop(1, c1);
-      f.fillStyle = wg; f.fillRect(x, y, w, h);
-      for (let i = 0; i < (vertical ? 9 : 14); i++) {
-        f.strokeStyle = rnd() < 0.5 ? 'rgba(0,0,0,0.12)' : 'rgba(255,220,170,0.06)'; f.lineWidth = Math.max(1, U * 0.002);
-        f.beginPath();
-        if (vertical) { const xx = x + rnd() * w; f.moveTo(xx, y); f.bezierCurveTo(xx + (rnd() - 0.5) * w * 0.2, y + h * 0.3, xx + (rnd() - 0.5) * w * 0.2, y + h * 0.7, xx, y + h); }
-        else { const yy = y + rnd() * h; f.moveTo(x, yy); f.bezierCurveTo(x + w * 0.3, yy + (rnd() - 0.5) * h * 0.2, x + w * 0.7, yy + (rnd() - 0.5) * h * 0.2, x + w, yy); }
-        f.stroke();
+    function paintTowel(c, R) {
+      c.beginPath(); c.moveTo(512, 1048); c.bezierCurveTo(560, 1036, 610, 1036, 645, 1044); c.lineTo(645, FH); c.lineTo(530, FH); c.bezierCurveTo(522, 1200, 516, 1120, 512, 1048); c.closePath();
+      c.fillStyle = lin(c, 512, 0, 645, 0, [[0, '#d8d0bf'], [0.5, '#efe8d8'], [1, '#c4bba8']]); c.fill();
+      c.save(); c.clip();
+      for (const x of [560, 600]) { c.fillStyle = 'rgba(90,110,150,0.6)'; c.fillRect(x, 1040, 7, FH); }
+      for (let i = 0; i < 6; i++) { c.strokeStyle = 'rgba(90,70,50,0.18)'; c.lineWidth = 3; c.beginPath(); const x = 520 + i * 22; c.moveTo(x, 1050); c.quadraticCurveTo(x + 6, 1160, x - 2, FH); c.stroke(); }
+      c.restore();
+      void R;
+    }
+
+    // ---- per frame ----
+    const keyOf = (f, ph) => ph + ':' + Math.min(f.dw / FW, 2.2).toFixed(3);
+    function ready(f, ph) { return cache.key === keyOf(f, ph); }
+    function prepare(f, ph) { const key = keyOf(f, ph); if (cache.key !== key) { cache.L = build(ph, Math.min(f.dw / FW, 2.2)); cache.key = key; } }
+    const fx = { t: 0, ring: 0, flies: [], steam: [], birds: [], nextBirds: 4, shoot: null, nextShoot: 8 };
+    function layer(ctx, X, Y, k, lay, dx = 0, dy = 0) { ctx.drawImage(lay.cv, X(lay.x) + dx * k, Y(lay.y) + dy * k, lay.w * k, lay.h * k); }
+    // the room at this hour, the painting's frame placed by the caller (X, Y map frame units to the screen, k is units to px)
+    function draw(ctx, f, dt, ph, still) {
+      const k = f.dw / FW, X = (u) => f.x0 + u * k, Y = (v) => f.y0 + v * k, d = window.devicePixelRatio || 1;
+      if (!ready(f, ph)) prepare(f, ph);
+      const L = cache.L, P = L.P;
+      fx.t += dt; const t = fx.t;
+      const gust = still ? 0 : 0.55 + 0.45 * Math.sin(t * 0.23) * Math.sin(t * 0.11 + 2);
+      const flick = still ? 1 : 0.93 + 0.05 * Math.sin(t * 11) * Math.sin(t * 6.3) + 0.02 * Math.sin(t * 23.7);
+      ctx.save(); ctx.beginPath(); ctx.rect(X(A.opening[0] - 20), Y(240), (A.opening[2] - A.opening[0] + 40) * k, 520 * k); ctx.clip();
+      layer(ctx, X, Y, k, L.sky);
+      ctx.globalCompositeOperation = 'lighter';
+      if (!still) for (const [x, y, p, sp] of L.stars) {
+        const a = Math.pow(0.5 + 0.5 * Math.sin(t * sp + p), 6);
+        if (a > 0.03) { ctx.fillStyle = 'rgba(255,250,232,' + 0.85 * a * P.stars + ')'; const r = Math.max(1, 1.2 * d); ctx.fillRect(X(x) - r, Y(y) - r * 0.3, r * 2, r * 0.6); ctx.fillRect(X(x) - r * 0.3, Y(y) - r, r * 0.6, r * 2); }
       }
-    };
-    const W2 = P.wood;
-    // the floor, its boards running toward the opening
-    const fy0 = Y(0.6), vpX = X(0.5), vpY = Y(0.36);
-    const fg = f.createLinearGradient(0, fy0, 0, ch); fg.addColorStop(0, P.floor[0]); fg.addColorStop(1, P.floor[1]);
-    f.fillStyle = fg; f.fillRect(fx, fy0, fw, ch - fy0);
-    f.strokeStyle = 'rgba(30,15,6,0.35)'; f.lineWidth = Math.max(1, U * 0.0025);
-    for (let i = -6; i <= 6; i++) { const xb = X(0.5 + i * 0.16); f.beginPath(); f.moveTo(vpX + (xb - vpX) * 0.18, fy0); f.lineTo(xb + (xb - vpX) * 0.9, ch); f.stroke(); }
-    const lg2 = f.createLinearGradient(0, fy0, 0, Y(0.75)); lg2.addColorStop(0, 'rgba(' + P.mist + ',0.18)'); lg2.addColorStop(1, 'rgba(' + P.mist + ',0)');
-    f.fillStyle = lg2; f.fillRect(fx, fy0, fw, Y(0.15));                      // light from outside across the boards
-    woodFill(fx, Y(0.58), fw, Y(0.025), shade(W2[0], 0.12), W2[1], false);   // the sill
-    woodFill(fx, 0, fw, Y(0.035), W2[2], W2[1], false);                       // roof underside
-    f.fillStyle = 'rgba(0,0,0,0.25)'; for (let i = 0; i < 9; i++) f.fillRect(X(i / 8) - U * 0.006, 0, U * 0.012, Y(0.035));   // rafters
-    woodFill(fx, Y(0.035), fw, Y(0.045), W2[0], W2[1], false);               // the beam
-    woodFill(fx, 0, X(0.075) - fx, Y(0.62), W2[1], W2[0], true);             // left post
-    woodFill(X(0.925), 0, fx + fw - X(0.925), Y(0.62), W2[0], W2[2], true);   // right post
-    // the walls beyond the frame on a wide screen
-    if (fx > 0) { f.fillStyle = W2[2]; f.fillRect(0, 0, fx, ch); f.fillRect(fx + fw, 0, cw - fx - fw, ch); for (let i = 0; i < 24; i++) { f.fillStyle = 'rgba(0,0,0,0.2)'; const xx = rnd() < 0.5 ? rnd() * fx : fx + fw + rnd() * (cw - fx - fw); f.fillRect(xx, 0, 2 * view.dpr, ch); } }
-    // the sign under the beam, its name painted in
-    const sw = U * 0.5, sh = Y(0.05), sxx = X(0.5) - sw / 2, syy = Y(0.088);
-    f.strokeStyle = 'rgba(30,18,10,0.8)'; f.lineWidth = Math.max(1, U * 0.003);
-    f.beginPath(); f.moveTo(sxx + sw * 0.15, Y(0.08)); f.lineTo(sxx + sw * 0.15, syy); f.moveTo(sxx + sw * 0.85, Y(0.08)); f.lineTo(sxx + sw * 0.85, syy); f.stroke();
-    woodFill(sxx, syy, sw, sh, shade(W2[0], 0.08), W2[1], false);
-    f.strokeStyle = 'rgba(255,225,180,0.18)'; f.lineWidth = Math.max(1, U * 0.004); f.strokeRect(sxx + U * 0.008, syy + U * 0.008, sw - U * 0.016, sh - U * 0.016);
-    f.fillStyle = '#f2e4c8'; f.textAlign = 'center'; f.textBaseline = 'middle';
-    f.font = Math.round(sh * 0.55) + 'px "Zen Antique Soft", "Cabin Sketch", serif';
-    f.shadowColor = 'rgba(0,0,0,0.35)'; f.shadowBlur = U * 0.006; f.fillText(HUT_TITLE, X(0.5), syy + sh * 0.54); f.shadowBlur = 0;
-    // the low table, with the slate board, a candle in its holder, a cup of tea and a pair of chopsticks
-    const tb = { y: Y(0.7), x0: X(0.15), x1: X(0.85) }, tf = { y: Y(0.83), x0: X(0.04), x1: X(0.96) };
-    f.fillStyle = 'rgba(20,10,4,0.4)'; f.beginPath(); f.ellipse(X(0.5), Y(0.875), U * 0.48, Y(0.03), 0, 0, 6.284); f.fill();   // its shadow on the floor
-    f.fillStyle = W2[2]; f.fillRect(X(0.1), tf.y, U * 0.05, Y(0.04)); f.fillRect(X(0.85), tf.y, U * 0.05, Y(0.04));                // legs
-    f.fillStyle = shade(W2[1], -0.1); f.beginPath(); f.moveTo(tf.x0, tf.y); f.lineTo(tf.x1, tf.y); f.lineTo(tf.x1, tf.y + Y(0.022)); f.lineTo(tf.x0, tf.y + Y(0.022)); f.closePath(); f.fill();   // its edge
-    const tg = f.createLinearGradient(0, tb.y, 0, tf.y); tg.addColorStop(0, shade(P.floor[0], 0.1)); tg.addColorStop(1, shade(P.floor[0], -0.12));
-    f.fillStyle = tg; f.beginPath(); f.moveTo(tb.x0, tb.y); f.lineTo(tb.x1, tb.y); f.lineTo(tf.x1, tf.y); f.lineTo(tf.x0, tf.y); f.closePath(); f.fill();
-    f.save(); f.clip();
-    for (let i = 0; i < 18; i++) { f.strokeStyle = rnd() < 0.5 ? 'rgba(0,0,0,0.1)' : 'rgba(255,225,180,0.07)'; f.lineWidth = Math.max(1, U * 0.002); const y = tb.y + rnd() * (tf.y - tb.y); f.beginPath(); f.moveTo(tf.x0, y); f.bezierCurveTo(X(0.35), y + (rnd() - 0.5) * Y(0.01), X(0.65), y + (rnd() - 0.5) * Y(0.01), tf.x1, y); f.stroke(); }
-    f.restore();
-    const bd = { y0: Y(0.712), y1: Y(0.795), xb0: X(0.34), xb1: X(0.66), xf0: X(0.3), xf1: X(0.7) };
-    f.fillStyle = 'rgba(10,5,2,0.35)'; f.beginPath(); f.moveTo(bd.xb0 + U * 0.01, bd.y0 + Y(0.006)); f.lineTo(bd.xb1 + U * 0.014, bd.y0 + Y(0.006)); f.lineTo(bd.xf1 + U * 0.016, bd.y1 + Y(0.008)); f.lineTo(bd.xf0 + U * 0.01, bd.y1 + Y(0.008)); f.closePath(); f.fill();
-    const bg2 = f.createLinearGradient(bd.xb0, bd.y0, bd.xf1, bd.y1); bg2.addColorStop(0, '#3a4149'); bg2.addColorStop(1, '#1d2126');
-    f.fillStyle = bg2; f.beginPath(); f.moveTo(bd.xb0, bd.y0); f.lineTo(bd.xb1, bd.y0); f.lineTo(bd.xf1, bd.y1); f.lineTo(bd.xf0, bd.y1); f.closePath(); f.fill();
-    f.strokeStyle = 'rgba(255,255,255,0.06)'; f.lineWidth = Math.max(1, U * 0.002); f.stroke();
-    const C = L.candle;                                                      // the candle: holder, wax, wick (the flame is drawn live)
-    f.fillStyle = '#b08a4a'; f.beginPath(); f.ellipse(C.x, C.y + Y(0.03), U * 0.045, Y(0.009), 0, 0, 6.284); f.fill();
-    const wax = f.createLinearGradient(C.x - U * 0.02, 0, C.x + U * 0.02, 0); wax.addColorStop(0, '#efe6d6'); wax.addColorStop(0.5, '#fbf6ec'); wax.addColorStop(1, '#d9ccb4');
-    f.fillStyle = wax; f.fillRect(C.x - U * 0.018, C.y, U * 0.036, Y(0.03));
-    f.beginPath(); f.ellipse(C.x, C.y, U * 0.018, Y(0.004), 0, 0, 6.284); f.fill();
-    f.strokeStyle = '#2a1c12'; f.lineWidth = Math.max(1, U * 0.003); f.beginPath(); f.moveTo(C.x, C.y); f.lineTo(C.x, C.y - Y(0.005)); f.stroke();
-    const K = L.cup;                                                         // the teacup
-    f.fillStyle = 'rgba(10,5,2,0.3)'; f.beginPath(); f.ellipse(K.x + U * 0.01, K.y + Y(0.024), U * 0.05, Y(0.008), 0, 0, 6.284); f.fill();
-    const cup = f.createLinearGradient(K.x - U * 0.04, 0, K.x + U * 0.04, 0); cup.addColorStop(0, '#d8d2c2'); cup.addColorStop(0.45, '#f3efe4'); cup.addColorStop(1, '#a9a291');
-    f.fillStyle = cup; f.beginPath(); f.moveTo(K.x - U * 0.042, K.y); f.quadraticCurveTo(K.x - U * 0.04, K.y + Y(0.024), K.x, K.y + Y(0.025)); f.quadraticCurveTo(K.x + U * 0.04, K.y + Y(0.024), K.x + U * 0.042, K.y); f.closePath(); f.fill();
-    f.fillStyle = '#7a8a5a'; f.beginPath(); f.ellipse(K.x, K.y, U * 0.042, Y(0.0055), 0, 0, 6.284); f.fill();   // green tea
-    f.strokeStyle = '#c9c2b0'; f.lineWidth = Math.max(1, U * 0.003); f.stroke();
-    f.strokeStyle = '#d8b07a'; f.lineWidth = Math.max(1, U * 0.006); f.lineCap = 'round';                        // chopsticks on the table's front
-    f.beginPath(); f.moveTo(X(0.62), Y(0.815)); f.lineTo(X(0.9), Y(0.8)); f.moveTo(X(0.63), Y(0.821)); f.lineTo(X(0.91), Y(0.807)); f.stroke();
-    // the room grows dim at dusk and dark at night; only the lantern and candle keep it warm
-    if (P.dark > 0) {
-      f.globalCompositeOperation = 'source-atop';
-      f.fillStyle = 'rgba(12,8,6,' + P.dark + ')'; f.fillRect(0, 0, cw, Y(0.075)); f.fillRect(0, Y(0.58), cw, ch - Y(0.58)); f.fillRect(0, 0, X(0.075), ch); f.fillRect(X(0.925), 0, cw - X(0.925), ch);
-      f.fillStyle = 'rgba(12,10,20,' + P.dark * 0.6 + ')'; f.fillRect(X(0.075), Y(0.075), X(0.925) - X(0.075), Y(0.58) - Y(0.075));
-      f.globalCompositeOperation = 'source-over';
+      if (P.stars > 0.5 && !still) shootingStar(ctx, X, Y, k, dt);
+      ctx.globalCompositeOperation = 'source-over';
+      for (const b of L.clouds) {                                    // the clouds go by, slowly, the low ones a little faster
+        if (!still) b.x += b.sp * dt;
+        const span = 560, x = ((b.x % span) + span) % span - 60;
+        ctx.globalAlpha = b.a; layer(ctx, X, Y, k, b.lay, x, b.y); if (x + b.w > 560) layer(ctx, X, Y, k, b.lay, x - span, b.y); ctx.globalAlpha = 1;
+      }
+      layer(ctx, X, Y, k, L.land);
+      const mx = still ? 0 : (t * 3) % 350;                           // mist lying in the valley
+      layer(ctx, X, Y, k, L.mist, 60 - mx, 552); layer(ctx, X, Y, k, L.mist, 60 - mx + 350, 552);
+      if (P.village && !still) {
+        ctx.globalCompositeOperation = 'lighter';
+        for (let i = 0; i < 14; i++) { const a = Math.pow(0.5 + 0.5 * Math.sin(t * (1.1 + i * 0.13) + i * 2.3), 3) * P.village; ctx.fillStyle = 'rgba(255,190,120,' + 0.35 * a + ')'; ctx.fillRect(X(350 + ((i * 97) % 200)), Y(652 + (i % 4) * 3), 1.6 * k, 0.6 * k); }
+        ctx.globalCompositeOperation = 'source-over';
+      }
+      if (P.stars < 0.5 && !still) birds(ctx, X, Y, k, dt, t, ph);
+      ctx.restore();
+      // the wind chime under the lintel, swinging, more when it rings
+      fx.ring *= Math.exp(-dt / 1.8);
+      chime(ctx, X(A.chime[0]), Y(A.chime[1]), k, still ? 0 : gust * (0.02 * Math.sin(t * 2.3) + 0.01 * Math.sin(t * 3.7 + 1)) + fx.ring * 0.045 * Math.sin(t * 4.4), P);
+      if (P.stars) flies(ctx, X, Y, k, dt, t, still, 0);
+      layer(ctx, X, Y, k, L.porch);
+      // the voile breathes: each fall of it in slices, a slow wave running down
+      // (the slices are laid on a canvas of the curtain's own size first, row for row, so the sheer cloth shows no seams)
+      for (const [lay, n] of [[L.curtL, 0], [L.curtR, 1]]) {
+        if (still) { layer(ctx, X, Y, k, lay); continue; }
+        if (!lay.work) { lay.work = document.createElement('canvas'); lay.work.width = lay.cv.width + 24; lay.work.height = lay.cv.height; }
+        const w = lay.work, wc = w.getContext('2d'), N = 48, amp = (n ? 4 : 4.5) * (lay.cv.width / lay.w);
+        wc.clearRect(0, 0, w.width, w.height);
+        for (let j = 0; j < N; j++) {
+          const y0 = Math.round((j * lay.cv.height) / N), y1 = Math.round(((j + 1) * lay.cv.height) / N), v = (j + 0.5) / N;
+          const env = n ? (v < 0.6 ? Math.sin(Math.PI * v / 0.6) * 0.5 : Math.sin(Math.PI * (v - 0.6) / 0.4 * 0.5) * 1.2) : Math.pow(v, 1.4);
+          const dx = Math.round(amp * env * gust * (Math.sin(t * 0.9 + v * 2.6 + n * 1.7) + 0.35 * Math.sin(t * 1.7 + v * 5 + n)));
+          wc.drawImage(lay.cv, 0, y0, lay.cv.width, y1 - y0, 12 + dx, y0, lay.cv.width, y1 - y0);
+        }
+        const q = lay.w * k / lay.cv.width;
+        ctx.drawImage(w, X(lay.x) - 12 * q, Y(lay.y), w.width * q, lay.h * k);
+      }
+      layer(ctx, X, Y, k, L.front);
+      // the lamps: the lantern on its hook and its light; the candle, its flame and its light on the table
+      const lth = still ? 0 : gust * (0.026 * Math.sin(t * 0.8) + 0.009 * Math.sin(t * 1.9 + 1));
+      lantern(ctx, X(A.lantern[0]), Y(A.lantern[1]), k, lth, flick, P);
+      candle(ctx, X(A.wick[0]), Y(A.wick[1]), k, t, flick, gust, still, P);
+      if (P.stars) flies(ctx, X, Y, k, dt, t, still, 1);
+      steam(ctx, X(A.cup[0]), Y(A.cup[1]), k, dt, still, P);
     }
-    // a paper grain over everything, so it reads as painted rather than printed
-    f.globalCompositeOperation = 'source-atop';
-    for (let i = 0; i < (cw * ch) / 900; i++) { f.fillStyle = rnd() < 0.5 ? 'rgba(255,245,225,0.035)' : 'rgba(30,20,10,0.04)'; f.fillRect(rnd() * cw, rnd() * ch, 1.5 * view.dpr, 1.5 * view.dpr); }
-    f.globalCompositeOperation = 'source-over';
-    hutCache.key = key; hutCache.sky = sky; hutCache.front = front; hutCache.L = L;
-    return hutCache;
-  }
-  if (document.fonts && document.fonts.load) { try { document.fonts.load('40px "Zen Antique Soft"').then(() => { hutCache.key = ''; }); } catch (e) { /* the sign falls back to another face */ } }
-  // the moving parts of the code-drawn room
-  function drawHutCode(dt, e, ph) {
-    const H = hutLayers(ph), L = H.L, { cw, ch, X, Y, U } = L, P = HUT_SKY[ph], still = reducedMotion();
-    const z = 1 + 2.4 * e, fxp = L.table.x, fyp = L.table.y;
-    ctx.setTransform(z, 0, 0, z, fxp * (1 - z) + (cw / 2 - fxp) * e, fyp * (1 - z) + (ch / 2 - fyp) * e);
-    ctx.drawImage(H.sky, 0, 0);
-    if (ph === 'night' && !still) {                         // a few stars twinkle
-      for (let i = 0; i < 12; i++) { const a = 0.5 + 0.5 * Math.sin(roomFx.t * (1 + i * 0.37) + i); ctx.fillStyle = 'rgba(255,255,235,' + 0.6 * a + ')'; ctx.fillRect(X((i * 0.618) % 1), Y(0.09 + ((i * 0.371) % 1) * 0.25), 1.6 * view.dpr, 1.6 * view.dpr); }
+    function shootingStar(ctx, X, Y, k, dt) {
+      fx.nextShoot -= dt;
+      if (!fx.shoot && fx.nextShoot <= 0) { fx.shoot = { k: 0, x: 160 + Math.random() * 260, y: 280 + Math.random() * 70, dir: Math.random() < 0.5 ? 1 : -1 }; fx.nextShoot = 16 + Math.random() * 30; }
+      const sh = fx.shoot; if (!sh) return;
+      sh.k += dt / 0.8;
+      const hx = X(sh.x + sh.dir * 110 * sh.k), hy = Y(sh.y + 28 * sh.k), tx = hx - sh.dir * 50 * k, ty = hy - 13 * k, a = Math.sin(Math.PI * Math.min(1, sh.k));
+      const g = ctx.createLinearGradient(hx, hy, tx, ty); g.addColorStop(0, 'rgba(255,252,240,' + 0.9 * a + ')'); g.addColorStop(1, 'rgba(255,252,240,0)');
+      ctx.strokeStyle = g; ctx.lineWidth = Math.max(1, 1.1 * k); ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(tx, ty); ctx.stroke();
+      if (sh.k >= 1) fx.shoot = null;
     }
-    for (const c of H.clouds) {                             // drifting, slowly, some quicker than others
-      if (!still) c.u = (c.u + c.sp * dt) % 1.4;
-      ctx.globalAlpha = c.a; ctx.drawImage(c.cv, X(-0.3 + c.u), Y(c.v)); ctx.globalAlpha = 1;
+    function birds(ctx, X, Y, k, dt, t, ph) {
+      fx.nextBirds -= dt;
+      if (fx.nextBirds <= 0) {
+        const n = 1 + Math.floor(Math.random() * 4), y = 300 + Math.random() * 150, dir = Math.random() < 0.5 ? 1 : -1;
+        for (let i = 0; i < n; i++) fx.birds.push({ x: dir > 0 ? 60 - i * 18 : 580 + i * 18, y: y + (Math.random() - 0.5) * 20, dir, sp: 34 + Math.random() * 14, p: Math.random() * 6, s: 4 + Math.random() * 2.5 });
+        fx.nextBirds = (ph === 'morning' ? 5 : 9) + Math.random() * 9;
+      }
+      ctx.strokeStyle = ph === 'evening' ? 'rgba(50,30,36,0.75)' : 'rgba(44,50,58,0.65)'; ctx.lineCap = 'round';
+      for (const b of fx.birds) {
+        b.x += b.dir * b.sp * dt; b.y += Math.sin(t * 1.3 + b.p) * 0.1;
+        const x = X(b.x), y = Y(b.y), w = b.s * k, fl = Math.sin(t * 9 + b.p) * w * 0.55;
+        ctx.lineWidth = Math.max(1, w * 0.18); ctx.beginPath(); ctx.moveTo(x - w, y - fl); ctx.quadraticCurveTo(x - w * 0.45, y - w * 0.25, x, y); ctx.quadraticCurveTo(x + w * 0.45, y - w * 0.25, x + w, y - fl); ctx.stroke();
+      }
+      fx.birds = fx.birds.filter((b) => b.x > 0 && b.x < 640);
     }
-    ctx.drawImage(H.front, 0, 0);
-    return L;
-  }
+    function flies(ctx, X, Y, k, dt, t, still, front) {
+      while (fx.flies.length < 16) fx.flies.push({ x: A.flies[0] + Math.random() * (A.flies[2] - A.flies[0]), y: A.flies[1] + Math.random() * (A.flies[3] - A.flies[1]), a: Math.random() * 6, p: Math.random() * 6, front: fx.flies.length % 4 === 0 });
+      ctx.globalCompositeOperation = 'lighter';
+      for (const q of fx.flies) {
+        if (q.front !== !!front) continue;
+        if (!still) { q.a += (Math.random() - 0.5) * 2 * dt; q.x = Math.min(A.flies[2], Math.max(A.flies[0], q.x + Math.cos(q.a) * 9 * dt)); q.y = Math.min(A.flies[3], Math.max(A.flies[1], q.y + Math.sin(q.a) * 7 * dt)); }
+        const glow = still ? 0.4 : Math.pow(0.5 + 0.5 * Math.sin(t * 1.3 + q.p), 2); if (glow < 0.03) continue;
+        const x = X(q.x), y = Y(q.y), r = (front ? 9 : 6) * k, g = ctx.createRadialGradient(x, y, 0, x, y, r);
+        g.addColorStop(0, 'rgba(226,255,150,' + 0.85 * glow + ')'); g.addColorStop(0.3, 'rgba(210,250,120,' + 0.25 * glow + ')'); g.addColorStop(1, 'rgba(200,240,120,0)');
+        ctx.fillStyle = g; ctx.fillRect(x - r, y - r, r * 2, r * 2);
+      }
+      ctx.globalCompositeOperation = 'source-over';
+    }
+    // a hurricane lantern: the bail, the cap, the glass with its flame, the two side tubes, the tank
+    function lantern(ctx, x, y, k, th, flick, P) {
+      const on = P.lamp > 0.3, glow = on ? flick : 0;
+      if (on) {
+        ctx.globalCompositeOperation = 'lighter';
+        const gx = x - Math.sin(th) * 108 * k, gy = y + Math.cos(th) * 108 * k, r = 230 * k, g = ctx.createRadialGradient(gx, gy, 0, gx, gy, r);
+        g.addColorStop(0, 'rgba(255,176,92,' + 0.32 * glow * P.lamp + ')'); g.addColorStop(0.3, 'rgba(255,150,70,' + 0.1 * glow * P.lamp + ')'); g.addColorStop(1, 'rgba(255,140,60,0)');
+        ctx.fillStyle = g; ctx.fillRect(gx - r, gy - r, r * 2, r * 2);
+        ctx.globalCompositeOperation = 'source-over';
+      }
+      ctx.save(); ctx.translate(x, y); ctx.rotate(th); ctx.scale(k, k);
+      const metal = on ? '#2a1a10' : '#3a3632', hi = on ? 'rgba(255,170,90,0.75)' : 'rgba(220,220,220,0.4)';
+      ctx.strokeStyle = metal; ctx.lineWidth = 2.6; ctx.beginPath(); ctx.ellipse(0, 40, 21, 34, 0, Math.PI, Math.PI * 2); ctx.stroke();       // the bail
+      ctx.fillStyle = metal; ctx.fillRect(-3, -2, 6, 10);
+      ctx.beginPath(); ctx.moveTo(-12, 44); ctx.lineTo(12, 44); ctx.lineTo(19, 66); ctx.lineTo(-19, 66); ctx.closePath(); ctx.fill();          // the cap
+      ctx.fillRect(-30, 64, 60, 8);                                                                                                         // the collar
+      ctx.fillStyle = hi; ctx.fillRect(-28, 64, 56, 1.6); ctx.fillRect(-10, 46, 20, 1.4);
+      // the glass and the flame in it
+      const gg = ctx.createRadialGradient(0, 112, 2, 0, 110, 34);
+      if (on) { gg.addColorStop(0, 'rgba(255,250,215,1)'); gg.addColorStop(0.25, 'rgba(255,214,128,' + (0.95 * glow) + ')'); gg.addColorStop(0.7, 'rgba(236,140,58,0.85)'); gg.addColorStop(1, 'rgba(150,70,28,0.9)'); }
+      else { gg.addColorStop(0, 'rgba(210,214,212,0.55)'); gg.addColorStop(1, 'rgba(120,124,128,0.6)'); }
+      ctx.fillStyle = gg; ctx.beginPath(); ctx.ellipse(0, 108, 23, 35, 0, 0, 6.284); ctx.fill();
+      if (on) { const fh = 22 * (0.92 + 0.1 * flick); ctx.fillStyle = 'rgba(255,252,236,0.95)'; ctx.beginPath(); ctx.moveTo(0, 124 - fh); ctx.quadraticCurveTo(8, 114, 0, 126); ctx.quadraticCurveTo(-8, 114, 0, 124 - fh); ctx.fill(); }
+      ctx.strokeStyle = on ? 'rgba(70,36,14,0.8)' : 'rgba(60,60,60,0.6)'; ctx.lineWidth = 1.3; ctx.beginPath(); ctx.moveTo(-20, 84); ctx.lineTo(20, 134); ctx.moveTo(20, 84); ctx.lineTo(-20, 134); ctx.stroke();   // the wire guard
+      ctx.strokeStyle = metal; ctx.lineWidth = 5;
+      ctx.beginPath(); ctx.moveTo(-30, 70); ctx.quadraticCurveTo(-38, 110, -32, 152); ctx.moveTo(30, 70); ctx.quadraticCurveTo(38, 110, 32, 152); ctx.stroke();   // the side tubes
+      ctx.strokeStyle = hi; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(-28, 72); ctx.quadraticCurveTo(-35, 110, -29.5, 150); ctx.moveTo(28, 72); ctx.quadraticCurveTo(35, 110, 29.5, 150); ctx.stroke();
+      ctx.fillStyle = metal; ctx.fillRect(-20, 140, 40, 8);
+      ctx.beginPath(); ctx.moveTo(-24, 146); ctx.lineTo(24, 146); ctx.lineTo(38, 178); ctx.quadraticCurveTo(0, 190, -38, 178); ctx.closePath(); ctx.fill();   // the tank
+      ctx.fillStyle = hi; ctx.beginPath(); ctx.moveTo(-24, 146); ctx.lineTo(24, 146); ctx.lineTo(26, 150); ctx.lineTo(-26, 150); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = on ? 'rgba(255,160,80,0.35)' : 'rgba(255,255,255,0.15)'; ctx.beginPath(); ctx.ellipse(-14, 168, 10, 4, -0.3, 0, 6.284); ctx.fill();
+      ctx.restore();
+    }
+    // the wind chime: cords to a ring, three bamboo tubes, the sail below
+    function chime(ctx, x, y, k, th, P) {
+      ctx.save(); ctx.translate(x, y); ctx.rotate(th); ctx.scale(k, k);
+      const lit = P.lamp > 0.3, wood = lit ? '#8a5226' : '#9c7550', hi = lit ? 'rgba(255,170,100,0.6)' : 'rgba(255,240,220,0.5)';
+      ctx.strokeStyle = 'rgba(40,24,14,0.9)'; ctx.lineWidth = 1;
+      ctx.beginPath(); for (const dx of [-15, 0, 15]) { ctx.moveTo(0, 0); ctx.lineTo(dx, 50); } for (const dx of [-14, 0, 14]) { ctx.moveTo(dx, 52); ctx.lineTo(dx, 92); } ctx.moveTo(0, 170); ctx.lineTo(0, 196); ctx.stroke();
+      ctx.fillStyle = wood; ctx.beginPath(); ctx.ellipse(0, 52, 19, 4, 0, 0, 6.284); ctx.fill();
+      for (const [dx, len] of [[-14, 74], [0, 80], [14, 70]]) {
+        ctx.fillStyle = lin(ctx, dx - 6, 0, dx + 6, 0, [[0, 'rgba(40,20,8,1)'], [0.4, wood], [1, 'rgba(50,26,12,1)']]); ctx.fillRect(dx - 6, 92, 12, len);
+        ctx.fillStyle = hi; ctx.fillRect(dx - 2, 94, 1.4, len - 4); ctx.fillStyle = 'rgba(30,14,6,0.6)'; ctx.fillRect(dx - 6, 92 + len * 0.45, 12, 1.2);
+      }
+      ctx.fillStyle = lin(ctx, -9, 0, 9, 0, [[0, 'rgba(40,20,8,1)'], [0.4, wood], [1, 'rgba(50,26,12,1)']]); ctx.fillRect(-9, 196, 18, 56);
+      ctx.fillStyle = hi; ctx.fillRect(-4, 198, 1.4, 50);
+      ctx.restore();
+    }
+    // the candle: lit by its own flame, the flame leaning and flickering, its light on everything round it
+    function candle(ctx, x, y, k, t, flick, gust, still, P) {
+      ctx.save(); ctx.translate(x, y); ctx.scale(k, k);
+      const lit = P.lamp > 0.1;
+      const body = ctx.createLinearGradient(-28, 0, 28, 0);
+      body.addColorStop(0, '#d9b27c'); body.addColorStop(0.35, lit ? '#fff1cc' : '#f2e6cc'); body.addColorStop(0.8, lit ? '#f6d9a0' : '#e2d2b2'); body.addColorStop(1, '#c79a62');
+      ctx.fillStyle = body; ctx.beginPath(); ctx.moveTo(-28, 0); ctx.lineTo(-28, 64); ctx.ellipse(0, 64, 28, 7, 0, Math.PI, 0, true); ctx.lineTo(28, 0); ctx.closePath(); ctx.fill();
+      if (lit) { const inner = ctx.createRadialGradient(0, 2, 0, 0, 10, 34); inner.addColorStop(0, 'rgba(255,236,170,' + 0.9 * flick + ')'); inner.addColorStop(1, 'rgba(255,200,120,0)'); ctx.fillStyle = inner; ctx.fillRect(-28, -6, 56, 50); }
+      ctx.fillStyle = lit ? '#fff4d8' : '#efe3c8'; ctx.beginPath(); ctx.ellipse(0, 0, 28, 7, 0, 0, 6.284); ctx.fill();
+      ctx.fillStyle = 'rgba(200,150,90,0.35)'; ctx.beginPath(); ctx.ellipse(0, 1, 20, 4, 0, 0, 6.284); ctx.fill();
+      for (const [dx, h] of [[-22, 14], [-8, 9], [10, 18], [22, 8]]) { ctx.fillStyle = 'rgba(255,244,214,0.9)'; ctx.beginPath(); ctx.moveTo(dx - 3, 2); ctx.quadraticCurveTo(dx - 3, h, dx, h + 2); ctx.quadraticCurveTo(dx + 3, h, dx + 3, 2); ctx.fill(); }   // drips
+      ctx.strokeStyle = '#2a1a10'; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0.6, -6); ctx.stroke();
+      if (lit) {
+        ctx.globalCompositeOperation = 'lighter';
+        const r = 190, g = ctx.createRadialGradient(0, -20, 0, 0, -20, r);
+        g.addColorStop(0, 'rgba(255,196,112,' + (0.2 + 0.6 * (flick - 0.9)) * Math.max(0.4, P.lamp) + ')'); g.addColorStop(0.4, 'rgba(255,160,80,' + 0.06 * flick + ')'); g.addColorStop(1, 'rgba(255,150,70,0)');
+        ctx.fillStyle = g; ctx.fillRect(-r, -20 - r, r * 2, r * 2);
+        ctx.globalCompositeOperation = 'source-over';
+        const lean = still ? 0 : 0.09 * Math.sin(t * 2.1) + 0.05 * Math.sin(t * 5.3) + 0.04 * gust * Math.sin(t * 0.7), fh = 46 * (0.94 + 0.9 * (flick - 0.93)), w = 8.5;
+        ctx.transform(1, 0, -lean, 1, 0, 0);
+        const fg = ctx.createLinearGradient(0, 0, 0, -fh);
+        fg.addColorStop(0, 'rgba(90,110,220,0.7)'); fg.addColorStop(0.12, 'rgba(255,150,60,0.95)'); fg.addColorStop(0.4, 'rgba(255,222,140,1)'); fg.addColorStop(1, 'rgba(255,252,236,0.9)');
+        ctx.fillStyle = fg; ctx.beginPath(); ctx.moveTo(0, -fh); ctx.bezierCurveTo(w * 0.5, -fh * 0.62, w * 1.15, -fh * 0.28, w * 0.75, -fh * 0.06); ctx.quadraticCurveTo(0, 4, -w * 0.75, -fh * 0.06); ctx.bezierCurveTo(-w * 1.15, -fh * 0.28, -w * 0.5, -fh * 0.62, 0, -fh); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,248,0.85)'; ctx.beginPath(); ctx.ellipse(0, -fh * 0.32, w * 0.32, fh * 0.2, 0, 0, 6.284); ctx.fill();
+      }
+      ctx.restore();
+    }
+    function steam(ctx, x, y, k, dt, still, P) {
+      if (still) return;
+      if (Math.random() < dt * 1.6) fx.steam.push({ t: 0, life: 3.2 + Math.random() * 1.5, ph: Math.random() * 6, dx: (Math.random() - 0.5) * 18 });
+      ctx.lineCap = 'round';
+      const a0 = P.stars ? 0.12 : 0.2;
+      for (const s of fx.steam) {
+        s.t += dt; const q = s.t / s.life, sx = x + s.dx * k, sy = y - q * 120 * k;
+        ctx.strokeStyle = 'rgba(255,244,230,' + a0 * Math.sin(Math.PI * q) + ')'; ctx.lineWidth = 5 * k * (1 + q);
+        ctx.beginPath(); ctx.moveTo(sx, sy); ctx.bezierCurveTo(sx + Math.sin(s.ph + q * 5) * 16 * k, sy - 16 * k, sx - Math.sin(s.ph + q * 4) * 16 * k, sy - 32 * k, sx + Math.sin(s.ph + q * 3) * 13 * k, sy - 48 * k); ctx.stroke();
+      }
+      fx.steam = fx.steam.filter((s) => s.t < s.life);
+    }
+    return { FW, FH, draw, ready, prepare, fx, PAL };
+  })();
+
   function drawRoom(dt) {
-    const cw = canvas.width, ch = canvas.height, e = easeIO(cam.k), P = PLATE[scenePlate()];
+    const cw = canvas.width, ch = canvas.height, e = easeIO(cam.k), P = PLATE[scenePlate()], still = reducedMotion();
     roomFx.t += dt;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.fillStyle = '#120c08'; ctx.fillRect(0, 0, cw, ch);
-    const im = plateFile(P.file), failed = plateCache[P.file].failed;
-    if (im) {
-      roomFx.fade = reducedMotion() ? 1 : Math.min(1, roomFx.fade + dt / 0.9);
-      paintedRoom(im, P, dt, e);
-      if (roomFx.fade < 1) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = 'rgba(18,12,8,' + (1 - roomFx.fade) + ')'; ctx.fillRect(0, 0, cw, ch); }
-    } else if (failed) { const ph = dayPhase(hourNow()); roomOverlays(drawHutCode(dt, e, ph), ph, dt); }
-    roomTitle(!failed, im ? plateFit(im) : null, P);
+    const painting = roomMode() === 'painting', im = painting ? plateFile(P.file) : null, drawn = !painting || plateCache[P.file].failed;
+    let f = null, A = P;
+    if (drawn) {
+      f = frameFit(HutScene.FW, HutScene.FH); A = DRAWN;
+      const ph = dayPhase(hourNow());
+      if (HutScene.ready(f, ph)) {
+        if (f.wide) { const g = ctx.createRadialGradient(cw / 2, ch * 0.6, 0, cw / 2, ch * 0.6, cw * 0.6); g.addColorStop(0, '#3a2414'); g.addColorStop(1, '#0e0905'); ctx.fillStyle = g; ctx.fillRect(0, 0, cw, ch); }
+        roomFx.fade = still ? 1 : Math.min(1, roomFx.fade + dt / 0.9);
+        roomCamera(f, A, e);
+        HutScene.draw(ctx, f, dt, ph, still);
+      } else if (!roomFx.building) {                // the room's still parts are painted first, a frame or two after the dark
+        roomFx.building = true;
+        setTimeout(() => { HutScene.prepare(f, ph); roomFx.building = false; }, 30);
+      }
+    } else if (im) {
+      roomFx.fade = still ? 1 : Math.min(1, roomFx.fade + dt / 0.9);
+      paintedRoom(im, P, dt, e); f = plateFit(im);
+    }
+    if (roomFx.fade < 1) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = 'rgba(18,12,8,' + (1 - roomFx.fade) + ')'; ctx.fillRect(0, 0, cw, ch); }
+    roomTitle(true, f, A);
     // over the last stretch of the move the room gives way to the table seen from above
     if (e > 0.45) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = Math.min(1, (e - 0.45) / 0.5); drawTableTop(); ctx.globalAlpha = 1; }
+  }
+  // the camera: down over the board until it fills the screen, never so far that an edge of the room comes into view
+  function roomCamera(f, P, e) {
+    const cw = canvas.width, ch = canvas.height, fx = f.x0 + P.table[0] * f.dw, fy = f.y0 + P.table[1] * f.dh;
+    const zEnd = clamp((0.95 * cw) / (P.board * f.dw), 1.4, 3.4), z = 1 + (zEnd - 1) * e;
+    let tx = fx * (1 - z) + (cw / 2 - fx) * e, ty = fy * (1 - z) + (ch / 2 - fy) * e;
+    if (!f.wide) tx = clamp(tx, cw - z * (f.x0 + f.dw), -z * f.x0);
+    ty = clamp(ty, ch - z * (f.y0 + f.dh), -z * f.y0);
+    ctx.setTransform(z, 0, 0, z, tx, ty);
   }
   // the title sits in the dark of the ceiling, above the window
   let titleState = '';
@@ -2926,13 +3356,7 @@ const GrainSim = (() => {
       ctx.drawImage(blurCv, (cw - 20 * s2) / 2, (ch - 40 * s2) / 2, 20 * s2, 40 * s2);
       ctx.fillStyle = 'rgba(12,8,5,0.55)'; ctx.fillRect(0, 0, cw, ch);
     }
-    // the camera: down over the board until it fills the screen
-    // (never so far that an edge of the painting comes into view)
-    const fx = X(P.table[0]), fy = Y(P.table[1]), zEnd = clamp((0.95 * cw) / (P.board * U), 1.4, 3.4), z = 1 + (zEnd - 1) * e;
-    let tx = fx * (1 - z) + (cw / 2 - fx) * e, ty = fy * (1 - z) + (ch / 2 - fy) * e;
-    if (!f.wide) tx = clamp(tx, cw - z * (f.x0 + f.dw), -z * f.x0);
-    ty = clamp(ty, ch - z * (f.y0 + f.dh), -z * f.y0);
-    ctx.setTransform(z, 0, 0, z, tx, ty);
+    roomCamera(f, P, e);
     ctx.drawImage(im, f.x0, f.y0, f.dw, f.dh);
     const gust = still ? 0 : 0.55 + 0.45 * Math.sin(t * 0.23) * Math.sin(t * 0.11 + 2);
     const flick = still ? 1 : 0.93 + 0.05 * Math.sin(t * 11) * Math.sin(t * 6.3) + 0.02 * Math.sin(t * 23.7);
@@ -3035,110 +3459,6 @@ const GrainSim = (() => {
         ctx.strokeStyle = 'rgba(255,240,225,' + 0.12 * Math.sin(Math.PI * k) + ')'; ctx.lineWidth = U * 0.008 * (1 + k);
         ctx.beginPath(); ctx.moveTo(x, y);
         ctx.bezierCurveTo(x + Math.sin(s.ph + k * 5) * U * 0.025, y - U * 0.025, x - Math.sin(s.ph + k * 4) * U * 0.025, y - U * 0.05, x + Math.sin(s.ph + k * 3) * U * 0.02, y - U * 0.075);
-        ctx.stroke();
-      }
-      roomFx.steam = roomFx.steam.filter((s) => s.t < s.life);
-    }
-  }
-  // what moves in the room, the camera's transform already set: birds or fireflies outside, the curtains, the lantern,
-  // the candle flame and its light, steam off the tea
-  function roomOverlays(A, ph, dt) {
-    const U = A.U, O = A.opening, night = ph === 'night', still = reducedMotion(), t = roomFx.t;
-    ctx.save(); ctx.beginPath(); ctx.rect(O.x0, O.y0, O.x1 - O.x0, O.y1 - O.y0); ctx.clip();
-    if (!night && !still) {
-      roomFx.nextBirds -= dt;
-      if (roomFx.nextBirds <= 0) {
-        const n = 1 + Math.floor(Math.random() * 4), v = 0.12 + Math.random() * 0.4, dir = Math.random() < 0.5 ? 1 : -1;
-        for (let i = 0; i < n; i++) roomFx.birds.push({ u: dir > 0 ? -0.05 - i * 0.04 : 1.05 + i * 0.04, v: v + (Math.random() - 0.5) * 0.05, dir, sp: 0.07 + Math.random() * 0.03, ph: Math.random() * 6, s: 0.009 + Math.random() * 0.006 });
-        roomFx.nextBirds = (ph === 'morning' ? 5 : 9) + Math.random() * 9;
-      }
-      ctx.strokeStyle = ph === 'evening' ? 'rgba(40,24,30,0.7)' : 'rgba(40,46,54,0.6)'; ctx.lineCap = 'round';
-      for (const b of roomFx.birds) {
-        b.u += b.dir * b.sp * dt; b.v += Math.sin(t * 1.3 + b.ph) * 0.0004;
-        const x = O.x0 + b.u * (O.x1 - O.x0), y = O.y0 + b.v * (O.y1 - O.y0), w = b.s * U, flap = Math.sin(t * 9 + b.ph) * w * 0.55;
-        ctx.lineWidth = Math.max(1, w * 0.16);
-        ctx.beginPath(); ctx.moveTo(x - w, y - flap); ctx.quadraticCurveTo(x - w * 0.45, y - w * 0.25, x, y); ctx.quadraticCurveTo(x + w * 0.45, y - w * 0.25, x + w, y - flap); ctx.stroke();
-      }
-      roomFx.birds = roomFx.birds.filter((b) => b.u > -0.3 && b.u < 1.3);
-    }
-    if (night) {
-      while (roomFx.flies.length < 14) roomFx.flies.push({ u: Math.random(), v: 0.5 + Math.random() * 0.5, a: Math.random() * 6, p: Math.random() * 6 });
-      ctx.globalCompositeOperation = 'lighter';
-      for (const q of roomFx.flies) {
-        if (!still) { q.a += (Math.random() - 0.5) * 2 * dt; q.u = clamp(q.u + Math.cos(q.a) * 0.015 * dt, 0, 1); q.v = clamp(q.v + Math.sin(q.a) * 0.012 * dt, 0.4, 1); }
-        const x = O.x0 + q.u * (O.x1 - O.x0), y = O.y0 + q.v * (O.y1 - O.y0), glow = 0.5 + 0.5 * Math.sin(t * 1.7 + q.p), r = U * 0.014;
-        const g = ctx.createRadialGradient(x, y, 0, x, y, r);
-        g.addColorStop(0, 'rgba(230,255,150,' + 0.75 * glow + ')'); g.addColorStop(1, 'rgba(230,255,150,0)');
-        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, 6.284); ctx.fill();
-      }
-      ctx.globalCompositeOperation = 'source-over';
-    }
-    ctx.restore();
-    // voile curtains on both sides of the opening, moving with the breeze
-    const gust = still ? 0 : 0.6 + 0.4 * Math.sin(t * 0.23) * Math.sin(t * 0.11 + 2), top = A.rodY, bot = A.sillY;
-    for (const side of [-1, 1]) {
-      const xEdge = side < 0 ? O.x0 : O.x1, wpx = U * 0.19;
-      for (let fold = 0; fold < 5; fold++) {
-        ctx.beginPath();
-        for (let i = 0; i <= 18; i++) {
-          const v = i / 18, y = top + (bot - top) * v, wv = gust * U * 0.014 * Math.pow(v, 1.6) * Math.sin(t * 0.9 + v * 3 + fold * 0.8);
-          const x = xEdge - side * (wpx * (fold / 5)) + wv * (1 + fold * 0.2);
-          if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y);
-        }
-        for (let i = 18; i >= 0; i--) {
-          const v = i / 18, y = top + (bot - top) * v, wv = gust * U * 0.014 * Math.pow(v, 1.6) * Math.sin(t * 0.9 + v * 3 + (fold + 1) * 0.8);
-          ctx.lineTo(xEdge - side * (wpx * ((fold + 1) / 5)) + wv * (1 + (fold + 1) * 0.2), y);
-        }
-        ctx.closePath();
-        ctx.fillStyle = 'rgba(255,250,242,' + (night ? 0.09 : 0.17) * (fold % 2 ? 0.75 : 1.2) + ')'; ctx.fill();
-      }
-      ctx.fillStyle = 'rgba(60,40,26,0.9)'; ctx.fillRect(Math.min(xEdge, xEdge - side * wpx) - U * 0.01, top - U * 0.006, wpx + U * 0.02, U * 0.008);   // the rod
-    }
-    const warm = { morning: 0.12, day: 0.06, evening: 0.26, night: 0.45 }[ph], flick = still ? 1 : 0.9 + 0.1 * Math.sin(t * 11) * Math.sin(t * 6.3);
-    // the paper lantern, swaying a little on its cord
-    const Ln = A.lantern;
-    let lx = Ln.x, ly = Ln.y;
-    if (!Ln.painted) {
-      const sw = still ? 0 : Math.sin(t * 0.7) * 0.025 + Math.sin(t * 1.9) * 0.008, len = Ln.len;
-      lx = Ln.x + Math.sin(sw) * len; ly = Ln.y + Math.cos(sw) * len;
-      ctx.strokeStyle = 'rgba(30,18,10,0.9)'; ctx.lineWidth = Math.max(1, U * 0.003);
-      ctx.beginPath(); ctx.moveTo(Ln.x, Ln.y); ctx.lineTo(lx, ly - Ln.r * 1.1); ctx.stroke();
-      ctx.save(); ctx.translate(lx, ly); ctx.rotate(sw);
-      const pg = ctx.createRadialGradient(-Ln.r * 0.2, -Ln.r * 0.2, Ln.r * 0.1, 0, 0, Ln.r * 1.1);
-      pg.addColorStop(0, '#fff0cc'); pg.addColorStop(0.55, '#f6bd73'); pg.addColorStop(1, '#c97a36');
-      ctx.fillStyle = pg; ctx.beginPath(); ctx.ellipse(0, 0, Ln.r, Ln.r * 1.12, 0, 0, 6.284); ctx.fill();
-      ctx.strokeStyle = 'rgba(140,70,25,0.35)'; ctx.lineWidth = Math.max(1, U * 0.002);
-      for (let i = -3; i <= 3; i++) { const yy = (i / 4) * Ln.r * 1.05, hw = Math.sqrt(Math.max(0, 1 - Math.pow(yy / (Ln.r * 1.12), 2))) * Ln.r; ctx.beginPath(); ctx.moveTo(-hw, yy); ctx.quadraticCurveTo(0, yy + Ln.r * 0.08, hw, yy); ctx.stroke(); }
-      ctx.fillStyle = '#2a1a10'; ctx.fillRect(-Ln.r * 0.42, -Ln.r * 1.2, Ln.r * 0.84, Ln.r * 0.16); ctx.fillRect(-Ln.r * 0.42, Ln.r * 1.04, Ln.r * 0.84, Ln.r * 0.16);
-      ctx.restore();
-    }
-    ctx.globalCompositeOperation = 'lighter';
-    const lg = ctx.createRadialGradient(lx, ly, 0, lx, ly, Ln.r * 4);
-    lg.addColorStop(0, 'rgba(255,190,110,' + (0.1 + warm * 0.7) * flick + ')'); lg.addColorStop(1, 'rgba(255,170,90,0)');
-    ctx.fillStyle = lg; ctx.fillRect(lx - Ln.r * 4, ly - Ln.r * 4, Ln.r * 8, Ln.r * 8);
-    // the candle flame, dancing, and its warm light on the table
-    const C = A.candle, cx = C.x, cy = C.y - U * 0.004, fh = C.h * (0.92 + 0.12 * flick);
-    const cg = ctx.createRadialGradient(cx, cy - fh * 0.4, 0, cx, cy - fh * 0.4, U * 0.2);
-    cg.addColorStop(0, 'rgba(255,200,120,' + (0.16 + warm * 0.55) * flick + ')'); cg.addColorStop(1, 'rgba(255,160,80,0)');
-    ctx.fillStyle = cg; ctx.fillRect(cx - U * 0.2, cy - fh * 0.4 - U * 0.2, U * 0.4, U * 0.4);
-    ctx.globalCompositeOperation = 'source-over';
-    const lean = still ? 0 : Math.sin(t * 2.1) * 0.12 + Math.sin(t * 5.3) * 0.05, w2 = fh * 0.3;
-    const fg = ctx.createLinearGradient(cx, cy, cx, cy - fh);
-    fg.addColorStop(0, 'rgba(255,130,40,0.9)'); fg.addColorStop(0.35, 'rgba(255,215,130,0.97)'); fg.addColorStop(1, 'rgba(255,250,232,0.92)');
-    ctx.fillStyle = fg;
-    ctx.beginPath(); ctx.moveTo(cx - w2, cy);
-    ctx.bezierCurveTo(cx - w2 * 1.1, cy - fh * 0.5, cx + lean * fh - w2 * 0.2, cy - fh * 0.8, cx + lean * fh, cy - fh);
-    ctx.bezierCurveTo(cx + lean * fh + w2 * 0.2, cy - fh * 0.8, cx + w2 * 1.1, cy - fh * 0.5, cx + w2, cy);
-    ctx.quadraticCurveTo(cx, cy + w2 * 0.6, cx - w2, cy); ctx.fill();
-    // steam off the tea
-    if (!still) {
-      if (Math.random() < dt * 2.2) roomFx.steam.push({ t: 0, life: 3 + Math.random() * 1.5, ph: Math.random() * 6, dx: (Math.random() - 0.5) * 0.02 });
-      ctx.lineCap = 'round';
-      for (const s of roomFx.steam) {
-        s.t += dt; const k = s.t / s.life, x = A.cup.x + s.dx * U, y = A.cup.y - k * U * 0.16;
-        ctx.strokeStyle = 'rgba(255,255,255,' + 0.16 * Math.sin(Math.PI * k) + ')'; ctx.lineWidth = U * 0.006 * (1 + k);
-        ctx.beginPath(); ctx.moveTo(x, y);
-        ctx.bezierCurveTo(x + Math.sin(s.ph + k * 5) * U * 0.02, y - U * 0.02, x - Math.sin(s.ph + k * 4) * U * 0.02, y - U * 0.04, x + Math.sin(s.ph + k * 3) * U * 0.015, y - U * 0.06);
         ctx.stroke();
       }
       roomFx.steam = roomFx.steam.filter((s) => s.t < s.life);
