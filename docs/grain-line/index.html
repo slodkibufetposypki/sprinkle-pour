@@ -1,0 +1,2382 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="description" content="Sort a spilled mess of lentils, rice and mung beans with chopsticks, one straight row at a time.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23262b31'/%3E%3Cpath d='M12 30 L15 4 M20 30 L17 4' stroke='%23d9ae72' stroke-width='2.4' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='9' r='2.6' fill='%23ef8a40'/%3E%3Ccircle cx='16' cy='14.5' r='2.6' fill='%23ef8a40'/%3E%3Ccircle cx='16' cy='20' r='2.6' fill='%23ef8a40'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23262b31'/%3E%3Cpath d='M12 30 L15 4 M20 30 L17 4' stroke='%23d9ae72' stroke-width='2.4' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='9' r='2.6' fill='%23ef8a40'/%3E%3Ccircle cx='16' cy='14.5' r='2.6' fill='%23ef8a40'/%3E%3Ccircle cx='16' cy='20' r='2.6' fill='%23ef8a40'/%3E%3C/svg%3E">
+<title>Grain Line</title>
+<meta name="theme-color" content="#121519">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Young+Serif&display=swap">
+<style>
+  /* Layout: one full-bleed slate board drawn on canvas; a thin HUD floats in the safe top band;
+     every other screen is a sheet that rises from the bottom, inside thumb reach. Single dark look on purpose. */
+  :root {
+    --night: #121519;
+    --rice: #f2ede3;
+    --dim: #a7adb5;
+    --lentil: #ef8a40;
+    --lentil-ink: #2a1607;
+    --mung: #7fa84a;
+    --gold: #f3c75a;
+    --warn: #ff6b5e;
+    --sheet: rgba(22, 25, 30, 0.95);
+    --glass: rgba(12, 14, 17, 0.58);
+    --line: rgba(242, 237, 227, 0.14);
+    --display: "Young Serif", "Iowan Old Style", Georgia, serif;
+    --ui: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --fs-11: 11px; --fs-13: 13px; --fs-15: 15px; --fs-17: 17px; --fs-20: 20px; --fs-28: 28px; --fs-44: 44px;
+    color-scheme: dark;
+  }
+  html, body { height: 100%; }
+  [hidden] { display: none !important; }
+  body {
+    margin: 0; background: var(--night); color: var(--rice); font: 400 var(--fs-15)/1.45 var(--ui);
+    overflow: hidden; overscroll-behavior: none; -webkit-user-select: none; user-select: none;
+    -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent;
+  }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  button:focus-visible { outline: 2px solid var(--lentil); outline-offset: 2px; }
+  #game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+  #safe { position: fixed; inset: 0; visibility: hidden; pointer-events: none;
+    padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); }
+  .haptic { position: fixed; left: -100px; top: 0; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+
+  /* ---------- HUD ---------- */
+  #hud {
+    position: fixed; left: 50%; top: 0; z-index: 2; pointer-events: none; box-sizing: border-box;
+    width: min(100%, var(--board-w, 100%)); transform: translateX(-50%);
+    padding-top: calc(env(safe-area-inset-top, 0px) + 10px);
+    padding-left: max(12px, env(safe-area-inset-left, 0px)); padding-right: max(12px, env(safe-area-inset-right, 0px));
+    display: grid; grid-template-columns: 44px 1fr 72px; align-items: start; gap: 8px;
+  }
+  #hud > * { pointer-events: auto; }
+  .iconbtn {
+    width: 44px; height: 44px; border-radius: 22px; border: 1px solid var(--line); background: var(--glass);
+    display: grid; place-items: center; padding: 0;
+  }
+  .iconbtn svg { width: 16px; height: 16px; fill: var(--rice); }
+  .mid { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; }
+  #chip {
+    display: flex; align-items: center; gap: 8px; height: 42px; padding: 0 16px 0 12px; max-width: 100%; box-sizing: border-box;
+    border-radius: 21px; background: var(--glass); border: 1px solid var(--line); white-space: nowrap;
+  }
+  #chip.swap { animation: swap .22s cubic-bezier(.2, .8, .2, 1); }
+  @keyframes swap { from { transform: scale(.86); opacity: .35; } }
+  #chip .ico { width: 20px; height: 20px; display: block; flex: none; }
+  #chip .name { font-weight: 700; font-size: var(--fs-17); }
+  #chip .left { color: var(--dim); font-variant-numeric: tabular-nums; }
+  #streak {
+    position: relative; overflow: hidden; display: flex; align-items: center; gap: 8px; height: 26px; padding: 0 10px; border-radius: 13px;
+    background: var(--glass); border: 1px solid var(--line); font-variant-numeric: tabular-nums;
+  }
+  #streak b { font-size: var(--fs-15); font-weight: 700; min-width: 2ch; text-align: center; }
+  #streak.hot b { color: var(--lentil); }
+  #streak.max b { color: var(--gold); }
+  #streak .combo { color: var(--dim); font-size: var(--fs-13); white-space: nowrap; }
+  /* pace bar: drains from the moment of the last pull; gold while a full row would still count as Lightning */
+  #streak .bar { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: var(--dim); transform-origin: left; transform: scaleX(0); }
+  #streak[data-pace="Lightning"] .bar { background: var(--gold); }
+  #streak[data-pace="Quick"] .bar { background: var(--lentil); }
+  #streak[data-pace="Slow"] .bar { background: var(--warn); }
+  #streak.up { animation: up .38s cubic-bezier(.3, 1.6, .5, 1); }
+  @keyframes up { 40% { transform: scale(1.28); } }
+  #streak.lost { animation: lost .4s ease; }
+  @keyframes lost { 20%, 60% { transform: translateX(-5px); border-color: var(--warn); } 40%, 80% { transform: translateX(5px); border-color: var(--warn); } }
+  #score { justify-self: end; text-align: right; line-height: 1.05; font-variant-numeric: tabular-nums; }
+  #score b { display: block; font: 700 var(--fs-20)/1.1 var(--ui); }
+  #score span { color: var(--dim); font-size: var(--fs-15); font-weight: 700; }
+  #score span.low { color: var(--gold); }
+  #score span.over { color: var(--warn); }
+  #score.bump b { animation: bump .25s ease; }
+  @keyframes bump { 40% { transform: scale(1.18); color: var(--gold); } }
+
+  #banner {
+    position: fixed; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 96px); z-index: 3; pointer-events: none;
+    transform: translate(-50%, -8px); opacity: 0; transition: opacity .2s ease, transform .2s ease;
+    text-align: center; padding: 10px 18px; border-radius: 16px; background: var(--sheet); border: 1px solid rgba(243, 199, 90, 0.5);
+    max-width: 86vw; box-sizing: border-box;
+  }
+  #banner.show { opacity: 1; transform: translate(-50%, 0); }
+  #banner b { display: block; font: 400 var(--fs-20)/1.15 var(--display); color: var(--gold); }
+  #banner span { font-size: var(--fs-15); color: var(--rice); }
+
+  #hint {
+    position: fixed; left: 50%; z-index: 2; transform: translateX(-50%); pointer-events: none;
+    top: calc(env(safe-area-inset-top, 0px) + 100px); width: max-content; max-width: min(84vw, 340px);
+    padding: 10px 16px; border-radius: 16px; background: var(--glass); border: 1px solid var(--line);
+    text-align: center; font-size: var(--fs-15); transition: opacity .2s ease;
+  }
+  #hint.off { opacity: 0; }
+
+  /* ---------- sheets ---------- */
+  .screen {
+    position: fixed; inset: 0; z-index: 4; display: flex; flex-direction: column; justify-content: flex-end; align-items: center;
+    padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+    background: linear-gradient(to bottom, rgba(10, 12, 15, 0) 35%, rgba(10, 12, 15, 0.72));
+  }
+  .screen.dim { background: rgba(10, 12, 15, 0.55); }
+  .sheet {
+    width: 100%; max-width: 420px; box-sizing: border-box; background: var(--sheet); border: 1px solid var(--line);
+    border-radius: 24px; padding: 22px 20px 18px; display: flex; flex-direction: column; gap: 14px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5); animation: rise .24s cubic-bezier(.2, .8, .2, 1);
+    max-height: calc(100% - env(safe-area-inset-top, 0px) - 32px); overflow-y: auto; -webkit-overflow-scrolling: touch;
+  }
+  @keyframes rise { from { transform: translateY(18px); opacity: 0; } }
+  h1, h2 { margin: 0; font-family: var(--display); font-weight: 400; text-wrap: balance; }
+  h1 { font-size: var(--fs-44); line-height: 1; letter-spacing: -0.01em; }
+  h2 { font-size: var(--fs-28); line-height: 1.1; }
+  .lede { margin: 0; color: var(--dim); font-size: var(--fs-17); max-width: 34ch; }
+  .eyebrow { margin: 0; color: var(--dim); font-size: var(--fs-13); letter-spacing: 0.08em; text-transform: uppercase; }
+  .primary {
+    height: 56px; border: 0; border-radius: 16px; background: var(--lentil); color: var(--lentil-ink); flex: none;
+    font-weight: 700; font-size: var(--fs-17); display: flex; align-items: center; justify-content: center; gap: 10px; padding: 0 18px;
+  }
+  .primary small { font-weight: 400; font-size: var(--fs-15); opacity: 0.78; }
+  .primary:active { transform: scale(0.985); }
+  .ghost {
+    min-height: 48px; border-radius: 14px; border: 1px solid var(--line); background: transparent; padding: 0 16px;
+    font-size: var(--fs-15); display: flex; align-items: center; justify-content: center; gap: 8px; flex: none;
+  }
+  .ghost:active { background: rgba(242, 237, 227, 0.06); }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .stack { display: flex; flex-direction: column; gap: 10px; }
+
+  .list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+  .lvl {
+    width: 100%; min-height: 54px; display: grid; grid-template-columns: 34px 1fr auto; align-items: center; gap: 12px;
+    background: transparent; border: 0; border-radius: 12px; padding: 4px 10px; text-align: left;
+  }
+  .lvl:active { background: rgba(242, 237, 227, 0.06); }
+  .lvl .n { font: 400 var(--fs-20)/1 var(--display); color: var(--dim); text-align: center; font-variant-numeric: tabular-nums; }
+  .lvl .nm { font-size: var(--fs-17); min-width: 0; }
+  .lvl .nm small { display: block; color: var(--dim); font-size: var(--fs-13); }
+  .lvl.locked { opacity: 0.45; }
+  .stars { letter-spacing: 0.08em; color: rgba(242, 237, 227, 0.2); white-space: nowrap; }
+  .stars .on { color: var(--lentil); }
+  .stars.big { font-size: 38px; line-height: 1; letter-spacing: 0.08em; }
+  .stars.big span { display: inline-block; animation: pop .32s cubic-bezier(.3, 1.6, .5, 1) backwards; }
+  .stars.big span:nth-child(2) { animation-delay: .09s; }
+  .stars.big span:nth-child(3) { animation-delay: .18s; }
+  .stars.big span:nth-child(4) { animation-delay: .27s; }
+  .stars.big span:nth-child(5) { animation-delay: .36s; }
+  @keyframes pop { from { transform: scale(.3); opacity: 0; } }
+  .result { margin: 0; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .result b { font: 400 var(--fs-44)/1 var(--display); font-variant-numeric: tabular-nums; }
+  .result span { color: var(--dim); }
+  .result .best { color: var(--lentil-ink); background: var(--gold); border-radius: 8px; padding: 2px 8px; font-size: var(--fs-13); font-weight: 700; }
+  .sub { margin: 0; color: var(--dim); }
+  .prize { margin: 0; padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(243, 199, 90, 0.45); color: var(--rice); }
+  .prize b { color: var(--gold); }
+
+  .pairrow {
+    width: 100%; display: grid; grid-template-columns: 96px 1fr auto; gap: 12px; align-items: center; min-height: 58px;
+    background: transparent; border: 0; border-radius: 12px; padding: 4px 8px; text-align: left;
+  }
+  .pairrow:active { background: rgba(242, 237, 227, 0.06); }
+  .pairrow .pv { display: flex; flex-direction: column; gap: 5px; }
+  .pairrow .pv i { display: block; height: 8px; clip-path: polygon(0 32%, 100% 0, 100% 100%, 0 68%); border-radius: 2px; }
+  .pairrow .nm { min-width: 0; font-size: var(--fs-17); }
+  .pairrow .nm small { display: block; color: var(--dim); font-size: var(--fs-13); }
+  .pairrow .st { font-size: var(--fs-13); color: var(--dim); white-space: nowrap; }
+  .pairrow.on .st { color: var(--gold); font-weight: 700; }
+  .pairrow.locked .pv, .pairrow.locked .nm b { opacity: 0.4; }
+
+  #tuneList { display: flex; flex-direction: column; gap: 6px; }
+  .trow { display: grid; grid-template-columns: 1fr 64px; gap: 4px 10px; align-items: center; }
+  .trow label { font-size: var(--fs-13); color: var(--dim); }
+  .trow output { text-align: right; font-variant-numeric: tabular-nums; font-size: var(--fs-13); }
+  .trow input[type=range] { grid-column: 1 / -1; width: 100%; accent-color: var(--lentil); }
+  .check { display: flex; align-items: center; gap: 10px; font-size: var(--fs-15); min-height: 40px; }
+  .check input { width: 20px; height: 20px; accent-color: var(--lentil); }
+  #tuneJson { width: 100%; box-sizing: border-box; background: #0d0f12; color: var(--rice); border: 1px solid var(--line); border-radius: 10px; font: 12px ui-monospace, Menlo, monospace; }
+
+  #toast {
+    position: fixed; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 66px); transform: translateX(-50%); z-index: 6;
+    background: var(--sheet); border: 1px solid var(--line); padding: 9px 14px; border-radius: 14px; font-size: var(--fs-15);
+    opacity: 0; transition: opacity .2s ease; pointer-events: none; max-width: 88vw; text-align: center;
+  }
+  #toast.show { opacity: 1; }
+  @media (prefers-reduced-motion: reduce) {
+    .sheet, #chip.swap, .stars.big span, #streak.up, #streak.lost, #score.bump b { animation: none; }
+    #hint, #toast, #banner { transition: none; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="game" aria-label="Game board"></canvas>
+<div id="safe"></div>
+
+<div id="hud" hidden>
+  <button id="menuBtn" class="iconbtn" aria-label="Pause"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="2" width="3.5" height="12" rx="1"/><rect x="9.5" y="2" width="3.5" height="12" rx="1"/></svg></button>
+  <div class="mid">
+    <div id="chip" aria-live="polite"><svg class="ico" viewBox="0 0 20 20" aria-hidden="true"></svg><span class="name">Lentils</span><span class="left">0</span></div>
+    <div id="streak"><b>×1.0</b><span class="combo"></span><i class="bar"></i></div>
+  </div>
+  <div id="score"><b>0</b><span id="clock">0:00</span></div>
+</div>
+<div id="banner" role="status"><b></b><span></span></div>
+<div id="hint" class="off" aria-live="polite"></div>
+
+<section id="title" class="screen" hidden>
+  <div class="sheet">
+    <h1>Grain Line</h1>
+    <p class="lede">Sort a spilled mess one kind at a time. Quick full rows in a row grow your multiplier. A wrong grain resets it.</p>
+    <button id="playBtn" class="primary">Play <small id="playSub"></small></button>
+    <div class="pair">
+      <button id="openLevelsBtn" class="ghost">Levels</button>
+      <button id="openSticksBtn" class="ghost">Chopsticks</button>
+    </div>
+  </div>
+</section>
+
+<section id="levels" class="screen dim" hidden>
+  <div class="sheet">
+    <h2>Levels</h2>
+    <ol id="levelList" class="list"></ol>
+    <button id="levelsBackBtn" class="ghost">Back</button>
+  </div>
+</section>
+
+<section id="sticks" class="screen dim" hidden>
+  <div class="sheet">
+    <h2>Chopsticks</h2>
+    <p class="sub" id="sticksSub"></p>
+    <ul id="sticksList" class="list"></ul>
+    <button id="sticksBackBtn" class="ghost">Back</button>
+  </div>
+</section>
+
+<section id="pause" class="screen dim" hidden>
+  <div class="sheet">
+    <h2>Paused</h2>
+    <button id="resumeBtn" class="primary">Resume</button>
+    <div class="stack">
+      <button id="controlBtn" class="ghost"></button>
+      <button id="restartBtn" class="ghost">Restart level</button>
+      <button id="pauseLevelsBtn" class="ghost">Levels</button>
+      <div class="pair">
+        <button id="soundBtn" class="ghost">Sound on</button>
+        <button id="tuneBtn" class="ghost">Tune feel</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="done" class="screen" hidden>
+  <div class="sheet">
+    <p class="eyebrow" id="doneEyebrow"></p>
+    <h2>Board clear</h2>
+    <div class="stars big" id="doneStars"></div>
+    <p class="result" id="doneResult"></p>
+    <p class="sub" id="doneSub"></p>
+    <p class="prize" id="donePrize" hidden></p>
+    <button id="nextBtn" class="primary">Next level</button>
+    <div class="pair">
+      <button id="retryBtn" class="ghost">Retry</button>
+      <button id="doneLevelsBtn" class="ghost">Levels</button>
+    </div>
+  </div>
+</section>
+
+<section id="tune" class="screen dim" hidden>
+  <div class="sheet">
+    <h2>Tune feel</h2>
+    <p class="sub">Changes apply right away and stay on this device. Row length applies from the next level. A level with its own rule keeps it.</p>
+    <div id="tuneList"></div>
+    <label class="check"><input type="checkbox" id="showReach"> Show how far the sticks reach</label>
+    <label class="check"><input type="checkbox" id="hapticsOn"> Vibrate</label>
+    <div class="pair">
+      <button id="tuneResetBtn" class="ghost">Reset</button>
+      <button id="tuneCopyBtn" class="ghost">Copy values</button>
+    </div>
+    <textarea id="tuneJson" rows="5" readonly hidden></textarea>
+    <button id="tuneDoneBtn" class="primary">Done</button>
+  </div>
+</section>
+
+<div id="toast" role="status"></div>
+
+<script>
+// ===== GRAIN-SIM BEGIN =====
+// Pure, seeded simulation: no DOM, no Math.random, no Date. Fixed step. The board is W units wide, seen from
+// above; nothing falls. Grains of the row's kind walk in single file into the open sticks, the sticks' sides
+// shove other grains aside, and every finished row is poured onto its kind's pile in a bottom corner.
+const GrainSim = (() => {
+  'use strict';
+
+  const W = 600;
+  const ST = { REST: 0, WALK: 1, ROW: 2, SLIDE: 3, POUR: 4, GONE: 5 };
+
+  const DEFAULTS = {
+    stepHz: 120,
+    fingerOffset: 180,   // the tips sit this far above the finger, so the thumb never hides them
+    followOmega: 28,     // tip spring, critically damped (1/s)
+    zoneR: 160,          // reach: grains of the row's kind inside it walk in
+    creepR: 100,         // grains of another kind this close to the tips creep in
+    fieldAhead: 0.45,    // both circles sit this share of their radius in front of the tips, away from the thumb
+    fieldCone: 180,      // half-angle in degrees the sticks pull from; 180 = all around
+    callInterval: 0.07,  // a new grain joins the file at most this often (s)
+    maxTrail: 10,        // grains walking at once
+    walkSpeed: 520,      // lead grain speed (units/s)
+    catchUp: 1.7,        // followers move faster to close gaps in the file
+    creepSpeed: 55,      // how fast a wrong grain creeps toward the tips (units/s)
+    loseDist: 2.4,       // a walking grain stops when the tips are this many reaches away
+    channelLen: 330,     // how much row fits between the sticks
+    enterTime: 0.16,
+    enterDist: 900,
+    closeTime: 0.08,
+    carryTime: 0.34,     // the closed sticks carry the row to its pile
+    pourTime: 0.2,
+    pourStagger: 0.016,
+    retractSpeed: 6000,
+    breakScatter: 120,   // how far a broken row scatters (units)
+    friction: 7,         // sliding grains slow down (1/s)
+    flick: 0.55,         // share of the sticks' sideways speed a shoved grain keeps
+    drift: 0,            // loose grains wander this fast (units/s); 0 = they stay put
+    paceBase: 1.4, pacePerGrain: 0.12,   // seconds a quick row of n grains takes: paceBase + pacePerGrain × n
+    paceK: 1,            // scales that pace; above 1 is more forgiving
+    parBase: 8, parPerGrain: 0.5, parPerRow: 1.4,   // the level clock
+    stickSpread: 0.04,   // the channel widens toward the hand
+    leanK: 0.45,         // how far the hand follows the tips sideways
+    baseBelow: 420,      // the hand sits this far below the board
+  };
+  const STICK = { len: 1500, tipW: 7, baseW: 24 };
+
+  // rx is the long half-axis; every grain is drawn with its long axis along its rotation.
+  const TYPES = {
+    lentil: { label: 'Lentils', one: 'lentil', rx: 13, ry: 11.5, pitch: 25, gap: 34, size: 12 },
+    rice: { label: 'Rice', one: 'rice grain', rx: 17, ry: 6.5, pitch: 34, gap: 22, size: 10.5 },
+    mung: { label: 'Mung beans', one: 'mung bean', rx: 11.5, ry: 8.5, pitch: 23, gap: 26, size: 9.5 },
+  };
+
+  // Score. Every row pays (grains × 10, plus 100 for a full row or 50 for clearing a kind) times the multiplier.
+  // The multiplier starts at ×1 and only grows with full rows: each one adds more the longer the combo of full rows
+  // in a row and the faster it was pulled. A short row keeps the multiplier but shrinks it and ends the combo.
+  // A wrong grain getting in drops the multiplier to ×1, ends the combo and costs points.
+  const SCORE = {
+    grain: 10, full: 100, clear: 50, breakPenalty: 50, noBreaks: 0.2, perSecond: 25,
+    growth: 0.3, comboStep: 0.2, comboCap: 10, shortDecay: 0.85, maxMult: 10,
+    stars: [0.15, 0.3, 0.45, 0.62, 0.8],     // share of the perfect run each star needs
+  };
+  const MILESTONES = { 5: { name: 'Steady hands', bonus: 500 }, 10: { name: 'Grain master', bonus: 1500 }, 15: { name: 'Zen hands', bonus: 3000 } };
+  // how long a quick row of n grains takes, and how fast this one was against it
+  function paceFor(n, cfg) { return (cfg.paceBase + cfg.pacePerGrain * n) * cfg.paceK; }
+  function speedFactor(ratio) { return Math.max(0.2, Math.min(1.6, 1.8 - 0.75 * ratio)); }
+  function speedLabel(ratio) { return ratio < 0.75 ? 'Lightning' : ratio < 1.25 ? 'Quick' : ratio < 2 ? 'Steady' : 'Slow'; }
+  // how much a full (or clearing) row adds to the multiplier: combo is the count of full rows in a row, this one included
+  function multGain(combo, ratio, kind) {
+    return SCORE.growth * (1 + SCORE.comboStep * Math.min(combo - 1, SCORE.comboCap)) * speedFactor(ratio) * (kind === 'clear' ? 0.5 : 1);
+  }
+  // kind: 'full' | 'clear' | 'short'
+  function rowPoints(n, kind, mult) {
+    return Math.round((n * SCORE.grain + (kind === 'full' ? SCORE.full : kind === 'clear' ? SCORE.clear : 0)) * mult);
+  }
+
+  // Pile coordinates are fractions of the playable board; depth and r are fractions of its width.
+  // The bottom corners are kept free: that is where the sorted piles grow.
+  // tune overrides feel numbers for one level. After these, levels are generated without end.
+  const AUTHORED = [
+    {
+      id: 'first-row', name: 'First row', seed: 11, types: ['lentil'],
+      hint: ['Touch and hold. The lentils walk into the sticks.', 'Fill the row to grow your multiplier.'],
+      tune: { paceK: 2 },
+      piles: [{ type: 'lentil', kind: 'blob', cx: 0.5, cy: 0.4, r: 0.11, count: 18 }],
+    },
+    {
+      id: 'two-heaps', name: 'Two heaps', seed: 23, types: ['lentil', 'rice'],
+      hint: ['After every row the sticks switch to the other kind.'],
+      tune: { paceK: 1.6 },
+      piles: [
+        { type: 'lentil', kind: 'blob', cx: 0.3, cy: 0.3, r: 0.12, count: 22 },
+        { type: 'rice', kind: 'blob', cx: 0.7, cy: 0.52, r: 0.12, count: 18 },
+      ],
+    },
+    {
+      id: 'touching', name: 'Touching', seed: 37, types: ['lentil', 'rice'], hintRows: 2,
+      hint: ['Rice next to the tips creeps in. Push it aside with the side of the sticks.'],
+      tune: { paceK: 1.3 },
+      piles: [
+        { type: 'lentil', kind: 'blob', cx: 0.42, cy: 0.36, r: 0.14, count: 24 },
+        { type: 'rice', kind: 'blob', cx: 0.6, cy: 0.48, r: 0.13, count: 20 },
+      ],
+    },
+    {
+      id: 'strays', name: 'Strays', seed: 41, types: ['lentil', 'rice'], hintRows: 2,
+      hint: ['Quick full rows grow the multiplier a lot, slow ones barely. A short row shrinks it.'],
+      tune: { zoneR: 150, paceK: 1.15 },
+      piles: [
+        { type: 'lentil', kind: 'blob', cx: 0.32, cy: 0.3, r: 0.14, count: 20 },
+        { type: 'rice', kind: 'blob', cx: 0.66, cy: 0.42, r: 0.14, count: 18 },
+        { type: 'lentil', kind: 'scatter', x0: 0.06, x1: 0.94, y0: 0.06, y1: 0.8, count: 8 },
+        { type: 'rice', kind: 'scatter', x0: 0.06, x1: 0.94, y0: 0.06, y1: 0.8, count: 8 },
+      ],
+    },
+    {
+      id: 'the-slate', name: 'The slate', seed: 53, types: ['lentil', 'rice'],
+      tune: { zoneR: 145 },
+      piles: [
+        { type: 'lentil', kind: 'edge', side: 'top', from: 0, to: 0.66, depth: 0.12, count: 26 },
+        { type: 'rice', kind: 'edge', side: 'top', from: 0.54, to: 1, depth: 0.1, count: 14 },
+        { type: 'lentil', kind: 'edge', side: 'left', from: 0.1, to: 0.6, depth: 0.1, count: 12 },
+        { type: 'rice', kind: 'scatter', x0: 0.25, x1: 0.95, y0: 0.08, y1: 0.7, count: 10 },
+        { type: 'lentil', kind: 'scatter', x0: 0.1, x1: 0.75, y0: 0.15, y1: 0.65, count: 6 },
+      ],
+    },
+    {
+      id: 'short-reach', name: 'Short reach', seed: 59, types: ['lentil', 'rice'], rule: 'Short reach',
+      ruleText: 'The sticks pull from close by. Drive the tips through the grains.',
+      tune: { zoneR: 105, creepR: 70 },
+      piles: [
+        { type: 'lentil', kind: 'scatter', x0: 0.05, x1: 0.95, y0: 0.05, y1: 0.8, count: 22 },
+        { type: 'rice', kind: 'scatter', x0: 0.05, x1: 0.95, y0: 0.05, y1: 0.8, count: 18 },
+        { type: 'lentil', kind: 'blob', cx: 0.25, cy: 0.25, r: 0.08, count: 6 },
+        { type: 'rice', kind: 'blob', cx: 0.75, cy: 0.55, r: 0.08, count: 6 },
+      ],
+    },
+    {
+      id: 'mixed-heap', name: 'Mixed heap', seed: 67, types: ['lentil', 'rice'], rule: 'Pushy rice',
+      ruleText: 'Rice creeps in from further away. Sweep the heap apart, then gather.',
+      tune: { zoneR: 135, creepR: 115, creepSpeed: 80 },
+      piles: [
+        { type: 'lentil', kind: 'blob', cx: 0.46, cy: 0.42, r: 0.21, count: 26 },
+        { type: 'rice', kind: 'blob', cx: 0.55, cy: 0.47, r: 0.21, count: 22 },
+      ],
+    },
+    {
+      id: 'mung-beans', name: 'Mung beans', seed: 71, types: ['lentil', 'rice', 'mung'],
+      hint: ['A third kind, with its own pile in the middle.'],
+      tune: { zoneR: 140 },
+      piles: [
+        { type: 'lentil', kind: 'blob', cx: 0.28, cy: 0.26, r: 0.12, count: 17 },
+        { type: 'rice', kind: 'blob', cx: 0.72, cy: 0.3, r: 0.12, count: 15 },
+        { type: 'mung', kind: 'blob', cx: 0.5, cy: 0.58, r: 0.12, count: 16 },
+        { type: 'lentil', kind: 'scatter', x0: 0.1, x1: 0.9, y0: 0.1, y1: 0.75, count: 4 },
+        { type: 'rice', kind: 'scatter', x0: 0.1, x1: 0.9, y0: 0.1, y1: 0.75, count: 4 },
+        { type: 'mung', kind: 'scatter', x0: 0.1, x1: 0.9, y0: 0.1, y1: 0.75, count: 4 },
+      ],
+    },
+    {
+      id: 'restless', name: 'Restless', seed: 79, types: ['lentil', 'rice'], rule: 'Restless grains',
+      ruleText: 'They wander and mix again. Sort them before they spread.',
+      tune: { zoneR: 130, drift: 22 },
+      piles: [
+        { type: 'lentil', kind: 'blob', cx: 0.3, cy: 0.32, r: 0.14, count: 22 },
+        { type: 'rice', kind: 'blob', cx: 0.7, cy: 0.38, r: 0.14, count: 20 },
+        { type: 'lentil', kind: 'scatter', x0: 0.1, x1: 0.9, y0: 0.5, y1: 0.8, count: 6 },
+        { type: 'rice', kind: 'scatter', x0: 0.1, x1: 0.9, y0: 0.05, y1: 0.3, count: 6 },
+      ],
+    },
+    {
+      id: 'pantry-spill', name: 'Pantry spill', seed: 89, types: ['lentil', 'rice', 'mung'], rule: 'Short reach, restless',
+      ruleText: 'Close reach and wandering grains, all three kinds.',
+      tune: { zoneR: 118, creepR: 85, drift: 14 },
+      piles: [
+        { type: 'lentil', kind: 'blob', cx: 0.42, cy: 0.38, r: 0.17, count: 18 },
+        { type: 'rice', kind: 'blob', cx: 0.58, cy: 0.42, r: 0.17, count: 17 },
+        { type: 'mung', kind: 'blob', cx: 0.5, cy: 0.58, r: 0.17, count: 17 },
+        { type: 'lentil', kind: 'scatter', x0: 0.05, x1: 0.95, y0: 0.05, y1: 0.8, count: 4 },
+        { type: 'rice', kind: 'scatter', x0: 0.05, x1: 0.95, y0: 0.05, y1: 0.8, count: 4 },
+        { type: 'mung', kind: 'scatter', x0: 0.05, x1: 0.95, y0: 0.05, y1: 0.8, count: 4 },
+      ],
+    },
+  ];
+
+  // ---------- endless levels ----------
+  // After the authored ones, every level is built from a seed. A difficulty number d climbs toward 1 and never
+  // quite gets there: wrong grains pull harder and from further away, the reach shrinks, layouts mix more,
+  // rows get longer, and the clocks get tighter. Layout styles and twists rotate on top.
+  const ARCH = { heaps: 'Heaps', spill: 'Spill', edges: 'Edges', stripes: 'Stripes', clusters: 'Clusters' };
+  const TWIST = {
+    restless: { name: 'Restless grains', text: 'They wander and mix again. Sort them before they spread.' },
+    short: { name: 'Short reach', text: 'The sticks pull from close by. Drive the tips through the grains.' },
+    pushy: { name: 'Pushy grains', text: 'Wrong grains creep in from further away. Push them aside first.' },
+    narrow: { name: 'Narrow reach', text: 'The sticks only pull from straight ahead. Come at grains from below.' },
+  };
+  const TWIST_ORDER = [null, 'restless', 'short', null, 'pushy', 'narrow'];
+  const PAIRS = [['lentil', 'rice'], ['lentil', 'mung'], ['rice', 'mung']];
+  function difficulty(i) { const k = i - AUTHORED.length + 1; return k <= 0 ? 0 : 1 - Math.pow(0.5, k / 12); }
+  function buildPiles(arch, types, total, mix, rng) {
+    const n = types.length, per = Math.floor(total / n), piles = [];
+    const scatter = Math.round(per * (0.1 + 0.3 * mix));
+    const add = (p) => { if (p.count > 0) piles.push(p); };
+    if (arch === 'heaps') {
+      const a0 = rng() * Math.PI * 2, sep = 0.3 * (1 - mix) + 0.06;
+      types.forEach((t, j) => {
+        const a = a0 + (j * Math.PI * 2) / n;
+        add({ type: t, kind: 'blob', cx: 0.5 + Math.cos(a) * sep, cy: 0.4 + Math.sin(a) * sep * 0.8, r: 0.16, count: per - scatter });
+        add({ type: t, kind: 'scatter', x0: 0.06, x1: 0.94, y0: 0.05, y1: 0.8, count: scatter });
+      });
+    } else if (arch === 'spill') {
+      types.forEach((t) => {
+        const loose = Math.round(per * 0.7);
+        add({ type: t, kind: 'scatter', x0: 0.05, x1: 0.95, y0: 0.04, y1: 0.82, count: loose });
+        add({ type: t, kind: 'blob', cx: 0.15 + rng() * 0.7, cy: 0.1 + rng() * 0.6, r: 0.1, count: per - loose });
+      });
+    } else if (arch === 'edges') {
+      const sides = [['top', 0, 0.5 + 0.4 * mix], ['top', 0.5 - 0.4 * mix, 1], ['left', 0.05, 0.75]];
+      types.forEach((t, j) => {
+        const [side, from, to] = sides[j];
+        add({ type: t, kind: 'edge', side, from, to, depth: 0.12, count: per - scatter });
+        add({ type: t, kind: 'scatter', x0: 0.1, x1: 0.9, y0: 0.08, y1: 0.78, count: scatter });
+      });
+    } else if (arch === 'stripes') {
+      const bands = 4 + Math.floor(rng() * 2), h = 0.74 / bands;
+      for (let b = 0; b < bands; b++) {
+        const y0 = 0.05 + b * h;
+        add({ type: types[b % n], kind: 'scatter', x0: 0.05, x1: 0.95, y0, y1: Math.min(0.85, y0 + h * (0.5 + mix)), count: Math.round(total / bands) });
+      }
+    } else {
+      const cells = [];
+      for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) cells.push([0.2 + c * 0.3 + (rng() - 0.5) * 0.08, 0.12 + r * 0.28 + (rng() - 0.5) * 0.06]);
+      cells.forEach(([cx, cy], j) => add({ type: types[j % n], kind: 'blob', cx, cy, r: 0.07 + 0.06 * mix, count: Math.round(total / cells.length) }));
+    }
+    return piles;
+  }
+  const genCache = new Map();
+  function generatedLevel(i) {
+    if (genCache.has(i)) return genCache.get(i);
+    const k = i - AUTHORED.length + 1, d = difficulty(i);
+    const rng = mulberry32(90001 + i * 7919);
+    const three = k % 3 === 0 || (d > 0.55 && k % 2 === 0);
+    const types = three ? ['lentil', 'rice', 'mung'] : PAIRS[k < 4 ? 0 : Math.floor(rng() * PAIRS.length)];
+    const archs = Object.keys(ARCH);
+    const arch = archs[(k + Math.floor(rng() * 2)) % archs.length];
+    const twist = TWIST_ORDER[k % TWIST_ORDER.length];
+    const mix = 0.25 + 0.65 * d;
+    const piles = buildPiles(arch, types, Math.round(44 + 26 * d), mix, rng);
+    const tune = { zoneR: 155 - 40 * d, creepSpeed: 50 + 85 * d, channelLen: 330 + 50 * d, paceK: 1 - 0.3 * d };
+    tune.creepR = tune.zoneR * (0.62 + 0.24 * d);
+    if (twist === 'restless') tune.drift = 10 + 18 * d;
+    if (twist === 'short') { tune.zoneR *= 0.72; tune.creepR *= 0.72; }
+    if (twist === 'pushy') { tune.creepR = tune.zoneR * 0.92; tune.creepSpeed *= 1.35; }
+    if (twist === 'narrow') tune.fieldCone = 70 - 25 * d;
+    for (const key in tune) tune[key] = Math.round(tune[key] * 10) / 10;
+    const L = {
+      id: 'gen-' + (i + 1), name: ARCH[arch], seed: 1000 + i * 31, types, piles, tune, parK: 1 - 0.2 * d, generated: true, difficulty: d,
+      rule: twist ? TWIST[twist].name : null, ruleText: twist ? TWIST[twist].text : null,
+    };
+    genCache.set(i, L);
+    return L;
+  }
+  function levelFor(i) { return i < AUTHORED.length ? AUTHORED[i] : generatedLevel(i); }
+
+  // The title screen plays this board by itself, in its top half.
+  const DEMO = {
+    id: 'demo', name: 'Demo', seed: 5, types: ['lentil', 'rice'],
+    piles: [
+      { type: 'lentil', kind: 'edge', side: 'top', from: 0, to: 0.66, depth: 0.12, count: 34 },
+      { type: 'rice', kind: 'edge', side: 'top', from: 0.56, to: 1, depth: 0.1, count: 16 },
+      { type: 'lentil', kind: 'edge', side: 'left', from: 0.06, to: 0.4, depth: 0.09, count: 12 },
+      { type: 'rice', kind: 'scatter', x0: 0.25, x1: 0.95, y0: 0.06, y1: 0.4, count: 8 },
+      { type: 'lentil', kind: 'scatter', x0: 0.15, x1: 0.7, y0: 0.08, y1: 0.38, count: 6 },
+    ],
+  };
+
+  const KINDS = ['edge', 'corner', 'blob', 'scatter'];
+  // piles by kind order: the first kind always bottom-left, the second bottom-right, a third in the middle
+  const SPOTS = { 1: ['bl'], 2: ['bl', 'br'], 3: ['bl', 'br', 'bc'] };
+
+  function mulberry32(seed) {
+    let a = seed >>> 0;
+    return function () {
+      a = (a + 0x6D2B79F5) >>> 0;
+      let t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+  // every grain shape is symmetric under a half turn, so turn the short way modulo pi
+  function turn(a, b, k) {
+    let d = (b - a) % Math.PI;
+    if (d > Math.PI / 2) d -= Math.PI; else if (d < -Math.PI / 2) d += Math.PI;
+    return a + d * Math.min(1, k);
+  }
+  const easeInOut = (k) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2);
+
+  function capacity(type, cfg) { return Math.max(3, Math.floor(cfg.channelLen / TYPES[type].pitch)); }
+  function totalsFor(level) {
+    const t = {};
+    for (const k of level.types) t[k] = 0;
+    for (const p of level.piles) t[p.type] = (t[p.type] || 0) + p.count;
+    return t;
+  }
+  // The perfect run the stars are measured against: every row full (or clearing its kind), pulled at a quick
+  // pace, never broken, kinds in turn, finished with half the clock left.
+  function idealScore(types, totals, caps, par) {
+    const rem = Object.assign({}, totals);
+    let t = types.find((x) => rem[x] > 0), combo = 0, mult = 1, score = 0;
+    while (t) {
+      const n = Math.min(caps[t], rem[t]), kind = n >= caps[t] ? 'full' : 'clear';
+      rem[t] -= n; combo++;
+      mult = Math.min(SCORE.maxMult, mult + multGain(combo, 0.9, kind));
+      score += rowPoints(n, kind, mult) + (MILESTONES[combo] ? MILESTONES[combo].bonus : 0);
+      const i = types.indexOf(t);
+      t = null;
+      for (let k = 1; k <= types.length; k++) { const c = types[(i + k) % types.length]; if (rem[c] > 0) { t = c; break; } }
+    }
+    return score + Math.round(score * SCORE.noBreaks) + Math.round(par * 0.5) * SCORE.perSecond;
+  }
+  function starsFor(score, ideal) { return SCORE.stars.filter((f) => score >= ideal * f).length; }
+  function parTime(level, totals, caps, cfg) {
+    let grains = 0, rows = 0;
+    for (const t of level.types) { grains += totals[t]; rows += Math.ceil(totals[t] / caps[t]); }
+    return Math.round((cfg.parBase + grains * cfg.parPerGrain + rows * cfg.parPerRow) * (level.parK || 1));
+  }
+
+  function validateLevel(L) {
+    const errs = [];
+    if (!L.id || !L.name) errs.push('missing id/name');
+    if (!Array.isArray(L.types) || !L.types.length || L.types.length > 3) errs.push(L.id + ': needs 1 to 3 types');
+    for (const k in L.tune || {}) if (!(k in DEFAULTS) || !Number.isFinite(L.tune[k])) errs.push(L.id + ': bad tune ' + k);
+    if (L.tune && (L.tune.creepR || DEFAULTS.creepR) >= (L.tune.zoneR || DEFAULTS.zoneR)) errs.push(L.id + ': creep reaches past the reach');
+    for (const t of L.types || []) if (!TYPES[t]) errs.push(L.id + ': unknown type ' + t);
+    const counts = {};
+    for (const p of L.piles || []) {
+      if (!(L.types || []).includes(p.type)) errs.push(L.id + ': pile type ' + p.type + ' not in types');
+      if (!KINDS.includes(p.kind)) errs.push(L.id + ': unknown pile kind ' + p.kind);
+      if (!Number.isInteger(p.count) || p.count < 1) errs.push(L.id + ': bad count');
+      counts[p.type] = (counts[p.type] || 0) + (p.count || 0);
+    }
+    for (const t of L.types || []) if (!counts[t]) errs.push(L.id + ': no grains of ' + t);
+    return errs;
+  }
+
+  // ---------- the sorted piles at the bottom ----------
+  function storeLayout(types, totals, yb) {
+    const out = {};
+    types.forEach((t, i) => {
+      const kind = SPOTS[types.length][i];
+      const A = Math.pow(TYPES[t].size * 2, 2) * 0.62;         // board area one stored grain takes
+      const sector = kind === 'bc' ? Math.PI : Math.PI / 2;
+      const heapR = Math.sqrt((2 * (totals[t] || 0) * A) / sector) + 14;
+      // set in from the edges so rounded phone corners never hide the pile
+      out[t] = { type: t, kind, x: kind === 'bl' ? 30 : kind === 'br' ? W - 30 : W / 2, y: yb - 22, sector, A, r: Math.min(260, heapR + 22), n: 0, ids: [] };
+    });
+    return out;
+  }
+  // where the k-th grain of a pile lands: the pile grows outward from its corner
+  function slotPos(st, k) {
+    const r = Math.sqrt((2 * (k + 0.7) * st.A) / st.sector) + 14;
+    const f = (k * 0.6180339887 + 0.137) % 1;
+    const j1 = ((k * 7919) % 97) / 97 - 0.5, j2 = ((k * 104729) % 89) / 89 - 0.5;
+    let x, y;
+    if (st.kind === 'bc') { const th = 0.12 + f * (Math.PI - 0.24); x = st.x + Math.cos(th) * r; y = st.y - Math.sin(th) * r; }
+    else {
+      const th = 0.1 + f * (Math.PI / 2 - 0.2);
+      x = st.kind === 'bl' ? st.x + Math.cos(th) * r : st.x - Math.cos(th) * r;
+      y = st.y - Math.sin(th) * r;
+    }
+    return { x: x + j1 * 6, y: y + j2 * 6, rot: f * 37.7 + k };
+  }
+  function inStore(x, y, stores, pad) {
+    for (const k in stores) { const s = stores[k]; if (Math.hypot(x - s.x, y - s.y) < s.r + pad) return s; }
+    return null;
+  }
+  // loose grains never lie on a sorted pile
+  function keepOffStores(g, stores) {
+    for (const k in stores) {
+      const s = stores[k], dx = g.x - s.x, dy = g.y - s.y, d = Math.hypot(dx, dy), min = s.r + TYPES[g.type].size + 16;
+      if (d >= min) continue;
+      const nx = d > 1e-6 ? dx / d : 0, ny = d > 1e-6 ? dy / d : -1;
+      g.x = s.x + nx * min; g.y = s.y + ny * min;
+      const vn = g.vx * nx + g.vy * ny;
+      if (vn < 0) { g.vx -= 1.4 * vn * nx; g.vy -= 1.4 * vn * ny; }
+    }
+  }
+
+  function place(rng, p, B) {
+    const w = B.x1 - B.x0, h = B.y1 - B.y0;
+    let x, y;
+    if (p.kind === 'edge') {
+      const a = p.from + rng() * (p.to - p.from);
+      const d = Math.pow(rng(), p.falloff || 2) * p.depth * W;
+      if (p.side === 'top') { x = B.x0 + a * w; y = B.y0 + d; }
+      else if (p.side === 'bottom') { x = B.x0 + a * w; y = B.y1 - d; }
+      else if (p.side === 'left') { x = B.x0 + d; y = B.y0 + a * h; }
+      else { x = B.x1 - d; y = B.y0 + a * h; }
+    } else if (p.kind === 'corner') {
+      const ang = rng() * Math.PI / 2, r = Math.pow(rng(), p.falloff || 0.8) * p.r * W;
+      const right = p.corner[1] === 'r', bottom = p.corner[0] === 'b';
+      x = (right ? B.x1 : B.x0) + (right ? -1 : 1) * Math.cos(ang) * r;
+      y = (bottom ? B.y1 : B.y0) + (bottom ? -1 : 1) * Math.sin(ang) * r;
+    } else if (p.kind === 'blob') {
+      const ang = rng() * Math.PI * 2, r = Math.pow(rng(), p.falloff || 0.75) * p.r * W;
+      x = B.x0 + p.cx * w + Math.cos(ang) * r; y = B.y0 + p.cy * h + Math.sin(ang) * r;
+    } else {
+      x = B.x0 + (p.x0 + rng() * (p.x1 - p.x0)) * w; y = B.y0 + (p.y0 + rng() * (p.y1 - p.y0)) * h;
+    }
+    return [clamp(x, B.x0, B.x1), clamp(y, B.y0, B.y1)];
+  }
+
+  // push overlapping grains apart a little, so heaps look heaped rather than stacked on one point
+  function relax(gs, B, iters, stores) {
+    for (let it = 0; it < iters; it++) {
+      for (let i = 0; i < gs.length; i++) {
+        const a = gs[i], ra = TYPES[a.type].size;
+        for (let j = i + 1; j < gs.length; j++) {
+          const b = gs[j], min = 0.72 * (ra + TYPES[b.type].size);
+          const dx = b.x - a.x, dy = b.y - a.y;
+          if (dx >= min || dx <= -min || dy >= min || dy <= -min) continue;
+          let d = Math.hypot(dx, dy);
+          if (d >= min) continue;
+          let nx, ny;
+          if (d < 1e-6) { const ang = (i * 2.399 + j * 0.7) % (Math.PI * 2); nx = Math.cos(ang); ny = Math.sin(ang); d = 0; }
+          else { nx = dx / d; ny = dy / d; }
+          const push = (min - d) * 0.42;
+          a.x -= nx * push; a.y -= ny * push; b.x += nx * push; b.y += ny * push;
+        }
+      }
+      for (const g of gs) { g.x = clamp(g.x, B.x0, B.x1); g.y = clamp(g.y, B.y0, B.y1); keepOffStores(g, stores); }
+    }
+  }
+
+  function generate(level, B, stores) {
+    const rng = mulberry32(level.seed);
+    const gs = [];
+    for (const p of level.piles) {
+      for (let i = 0; i < p.count; i++) {
+        let xy = place(rng, p, B);
+        for (let tries = 0; tries < 24 && inStore(xy[0], xy[1], stores, 14); tries++) xy = place(rng, p, B);
+        gs.push({
+          id: gs.length, type: p.type, x: xy[0], y: xy[1], rot: rng() * Math.PI * 2, s: 0.9 + rng() * 0.2,
+          tint: Math.floor(rng() * 4), st: ST.REST, vx: 0, vy: 0, w: 0, d: 0, warn: 0, cw: false, slot: -1, pt: 0,
+        });
+      }
+    }
+    relax(gs, B, 3, stores);
+    return gs;
+  }
+
+  // layout: { H, top, bottom } in board units. seed only drives how a broken row scatters and grains wander.
+  function create(cfgIn, level, layout, seed) {
+    const cfg = Object.assign({}, DEFAULTS, cfgIn || {}, level.tune || {});
+    const rng = mulberry32((seed >>> 0) || 1);
+    const sim = {
+      cfg, level, W, H: layout.H, top: layout.top, bottom: layout.bottom,
+      t: 0, steps: 0, events: [], done: false, waitLift: false, result: null,
+      score: 0, mult: 1, combo: 0, bestCombo: 0, bestMult: 1, lastPull: 0, clock: 0, started: false,
+    };
+    // loose grains stay out of a bottom strip deep enough that the tips can always come at them from below,
+    // given how far above the finger the tips sit and how far behind the tips the sticks still pull
+    const bottomMargin = () => Math.max(130, cfg.fingerOffset + 20 - (cfg.fieldCone < 180 ? -40 : (1 - cfg.fieldAhead) * cfg.zoneR * 0.8));
+    // and away from the walls, so the last grains of a level never wedge into a corner
+    const bounds = () => ({ x0: 46, x1: W - 46, y0: sim.top + 30, y1: sim.H - sim.bottom - bottomMargin() });
+    sim.bounds = bounds;
+    sim.total = totalsFor(level);
+    sim.stores = storeLayout(level.types, sim.total, sim.H - sim.bottom);
+    sim.grains = generate(level, bounds(), sim.stores);
+    sim.caps = {};
+    for (const t of level.types) sim.caps[t] = capacity(t, cfg);
+    sim.par = parTime(level, sim.total, sim.caps, cfg);
+    sim.ideal = idealScore(level.types, sim.total, sim.caps, sim.par);
+    // how quick the row being gathered is so far: below 0.75 a full row counts as Lightning, above 2 as Slow
+    sim.paceRatio = () => (sim.clock - sim.lastPull) / paceFor(Math.max(1, S.need || sim.caps[sim.target]), cfg);
+    sim.target = level.types.find((t) => sim.total[t] > 0);
+    sim.stats = { rows: 0, fullRows: 0, breaks: 0, penalty: 0, taken: {} };
+    const S = sim.sticks = {
+      phase: 'away', pt: 0, tx: W / 2, ty: sim.H * 0.6, vx: 0, vy: 0, carry: cfg.enterDist, carryTo: 1600,
+      gap: 3, row: [], trail: [], callT: 0, kind: 'short', rowType: sim.target, need: 0, cap: 0,
+      cx0: 0, cy0: 0, cdx: 0, cdy: 0, pushN: 0, pushT: 0,
+    };
+
+    function emit(type, data) { sim.events.push(Object.assign({ type, t: sim.t }, data || {})); }
+    sim.drainEvents = function () { const e = sim.events; sim.events = []; return e; };
+    sim.remaining = function (type) {
+      let n = 0;
+      for (const g of sim.grains) if (g.st !== ST.GONE && g.st !== ST.POUR && (!type || g.type === type)) n++;
+      return n;
+    };
+    sim.timeLeft = () => sim.par - sim.clock;
+    sim.slotPos = (type, k) => slotPos(sim.stores[type], k);
+    sim.setLayout = function (l) {
+      sim.H = l.H; sim.top = l.top; sim.bottom = l.bottom;
+      for (const t in sim.stores) {
+        const st = sim.stores[t];
+        st.y = sim.H - sim.bottom - 22;
+        for (const id of st.ids) {
+          const g = sim.grains[id], p = slotPos(st, g.slot);
+          if (g.st === ST.GONE) { g.x = p.x; g.y = p.y; } else { g.bx = p.x; g.by = p.y; }
+        }
+      }
+    };
+
+    function axis() {
+      const bx = W / 2 + (S.tx - W / 2) * cfg.leanK, by = sim.H + cfg.baseBelow;
+      const ux = S.tx - bx, uy = S.ty - by, l = Math.hypot(ux, uy) || 1;
+      return { ux: ux / l, uy: uy / l };
+    }
+    const openGap = () => TYPES[S.rowType || sim.target].gap;
+    function liftNow() {
+      if (S.phase === 'enter') return Math.max(0, 1 - S.pt / cfg.enterTime);
+      if (S.phase === 'open' || S.phase === 'close' || S.phase === 'snap') return 0;
+      if (S.phase === 'carry') return Math.min(1, S.pt / 0.08);
+      return 1;
+    }
+    // T = tip centre, u = unit vector from the hand toward the tips, n = across the channel, m = mouth
+    sim.geom = function () {
+      const a = axis();
+      const Tx = S.tx - a.ux * S.carry, Ty = S.ty - a.uy * S.carry;
+      const spread = cfg.stickSpread + Math.max(0, openGap() - S.gap) / 420;
+      return {
+        Tx, Ty, ux: a.ux, uy: a.uy, nx: -a.uy, ny: a.ux, gap: S.gap, spread,
+        mx: Tx + a.ux * 6, my: Ty + a.uy * 6, phase: S.phase, lift: liftNow(),
+      };
+    };
+    sim.slot0 = (type) => TYPES[type].pitch * 0.5 + 8;
+    // the sticks pull from a circle set in front of the tips, optionally cut to a cone straight ahead
+    const coneCos = () => Math.cos((Math.min(180, cfg.fieldCone) * Math.PI) / 180);
+    function inField(x, y, G, R) {
+      const cx = G.mx + G.ux * cfg.fieldAhead * R, cy = G.my + G.uy * cfg.fieldAhead * R;
+      const ex = x - cx, ey = y - cy;
+      if (ex * ex + ey * ey > R * R) return false;
+      if (cfg.fieldCone >= 180) return true;
+      const dx = x - G.mx, dy = y - G.my, l = Math.hypot(dx, dy);
+      return l < 1e-6 || (dx * G.ux + dy * G.uy) / l >= coneCos();
+    }
+    sim.inReach = (g) => inField(g.x, g.y, sim.geom(), cfg.zoneR);
+
+    function follow(ax, ay, dt) {
+      const w = cfg.followOmega;
+      S.vx += (w * w * (ax - S.tx) - 2 * w * S.vx) * dt;
+      S.vy += (w * w * (ay - S.ty) - 2 * w * S.vy) * dt;
+      S.tx += S.vx * dt; S.ty += S.vy * dt;
+    }
+    function approachGap(target, rate, dt) { S.gap += (target - S.gap) * (1 - Math.exp(-rate * dt)); }
+    function computeCarryTo() {
+      const a = axis();
+      S.carryTo = S.carry + Math.max(700, (sim.H + 80 - S.ty) / Math.max(0.25, -a.uy) + cfg.channelLen + 80);
+    }
+    function dropTrail() {
+      for (const id of S.trail) sim.grains[id].st = ST.REST;
+      S.trail = [];
+    }
+    function beginEnter(ax, ay) {
+      S.phase = 'enter'; S.pt = 0; S.tx = ax; S.ty = ay; S.vx = 0; S.vy = 0; S.carry = cfg.enterDist;
+      S.gap = 3; S.row = []; S.trail = []; S.callT = 0; S.kind = 'short'; S.rowType = sim.target;
+      S.cap = sim.caps[sim.target];
+      S.need = Math.min(S.cap, sim.remaining(sim.target));
+      if (!sim.started) { sim.started = true; emit('clock_start', { par: sim.par }); }
+      emit('sticks_in', { grain: sim.target });
+    }
+    function startClose() {
+      const n = S.row.length;
+      S.kind = n >= S.cap ? 'full' : n >= S.need ? 'clear' : 'short';
+      S.phase = 'close'; S.pt = 0; dropTrail(); sim.waitLift = true;
+      emit('close', { n, kind: S.kind, full: S.kind !== 'short', grain: S.rowType });
+    }
+    function startRetract() {
+      dropTrail(); S.phase = 'retract'; S.pt = 0; computeCarryTo();
+    }
+    function startCarry() {
+      const type = S.rowType, st = sim.stores[type], n = S.row.length;
+      const mid = slotPos(st, st.n + Math.floor(n / 2));
+      const G = sim.geom();
+      const depth = sim.slot0(type) + ((n - 1) * TYPES[type].pitch) / 2;
+      const rcx = G.Tx - G.ux * depth, rcy = G.Ty - G.uy * depth;
+      const tx = mid.x + (W / 2 - mid.x) * 0.18, ty = mid.y - 130;
+      S.cx0 = S.tx; S.cy0 = S.ty; S.cdx = tx - rcx; S.cdy = ty - rcy; S.vx = 0; S.vy = 0;
+      S.phase = 'carry'; S.pt = 0;
+      emit('carry', { n, grain: type });
+    }
+    function startPour() {
+      const type = S.rowType, st = sim.stores[type], ids = S.row.slice().reverse(), n = ids.length;
+      S.row = [];
+      ids.forEach((id, i) => {
+        const g = sim.grains[id], p = slotPos(st, st.n);
+        g.st = ST.POUR; g.slot = st.n; st.n++; st.ids.push(id);
+        g.pt = -i * cfg.pourStagger; g.ax = g.x; g.ay = g.y; g.arot = g.rot; g.bx = p.x; g.by = p.y; g.brot = p.rot;
+      });
+      const kind = S.kind, before = sim.mult;
+      const rowTime = sim.clock - sim.lastPull, ratio = rowTime / paceFor(n, cfg), speed = speedLabel(ratio);
+      sim.lastPull = sim.clock;
+      let points, milestone = null, bonus = 0, gain = 0;
+      if (kind !== 'short') {
+        sim.combo++;
+        gain = multGain(sim.combo, ratio, kind);
+        sim.mult = Math.min(SCORE.maxMult, sim.mult + gain);
+        points = rowPoints(n, kind, sim.mult);
+        const ms = MILESTONES[sim.combo];
+        if (ms) { milestone = ms.name; bonus = ms.bonus; points += bonus; }
+        sim.stats.fullRows++;
+      } else {
+        points = rowPoints(n, kind, sim.mult);
+        sim.combo = 0;
+        sim.mult = Math.max(1, sim.mult * SCORE.shortDecay);
+      }
+      sim.score += points;
+      sim.bestCombo = Math.max(sim.bestCombo, sim.combo);
+      sim.bestMult = Math.max(sim.bestMult, sim.mult);
+      sim.stats.rows++;
+      sim.stats.taken[type] = (sim.stats.taken[type] || 0) + n;
+      const hp = slotPos(st, Math.max(0, st.n - Math.ceil(n / 2)));
+      const cleared = sim.remaining(type) === 0;
+      emit('row_taken', {
+        grain: type, n, kind, full: kind !== 'short', cleared, points, rowTime, speed, gain,
+        multBefore: before, mult: sim.mult, combo: sim.combo, milestone, bonus, score: sim.score, x: hp.x, y: hp.y,
+      });
+      S.phase = 'pour'; S.pt = 0;
+      if (sim.remaining() === 0) finish(); else switchTarget();
+    }
+    function finish() {
+      sim.done = true;
+      const noBreak = sim.stats.breaks === 0 ? Math.round(sim.score * SCORE.noBreaks) : 0;
+      const left = Math.max(0, Math.ceil(sim.timeLeft()));
+      const timeBonus = left * SCORE.perSecond;
+      sim.score += noBreak + timeBonus;
+      sim.result = {
+        score: sim.score, ideal: sim.ideal, stars: starsFor(sim.score, sim.ideal), bestCombo: sim.bestCombo, bestMult: sim.bestMult,
+        fullRows: sim.stats.fullRows, rows: sim.stats.rows, breaks: sim.stats.breaks, penalty: sim.stats.penalty, noBreak,
+        time: sim.clock, par: sim.par, timeBonus, sorted: Object.values(sim.stats.taken).reduce((a, b) => a + b, 0),
+      };
+      emit('level_complete', sim.result);
+    }
+
+    function breakRow(bad, G) {
+      const lost = S.row.concat(S.trail);
+      lost.push(bad.id);
+      const base = Math.atan2(G.uy, G.ux);
+      for (const id of lost) {
+        const g = sim.grains[id];
+        const ang = base + (rng() - 0.5) * 2.6;
+        const v = cfg.breakScatter * cfg.friction * (0.45 + rng() * 0.8);
+        g.st = ST.SLIDE; g.vx = Math.cos(ang) * v; g.vy = Math.sin(ang) * v; g.w = (rng() - 0.5) * 18; g.warn = 0;
+      }
+      const inRow = S.row.length, comboLost = sim.combo, multLost = sim.mult;
+      const penalty = Math.min(sim.score, Math.round(SCORE.breakPenalty * sim.mult));
+      S.row = []; S.trail = [];
+      sim.combo = 0; sim.mult = 1; sim.score -= penalty; sim.lastPull = sim.clock;
+      sim.stats.rows++; sim.stats.breaks++; sim.stats.penalty += penalty;
+      S.phase = 'snap'; S.pt = 0; sim.waitLift = true;
+      emit('break', { id: bad.id, wrong: bad.type, grain: S.rowType, x: bad.x, y: bad.y, lost: lost.length, inRow, comboLost, multLost, penalty, score: sim.score });
+    }
+
+    // the sticks are solid on the board: their sides shove loose grains out of the way
+    function pushGrains(G) {
+      const L = STICK.len, tw = STICK.tipW, bw = STICK.baseW;
+      let n = 0;
+      for (const g of sim.grains) {
+        if (g.st !== ST.REST && g.st !== ST.SLIDE) continue;
+        const rx = g.x - G.Tx, ry = g.y - G.Ty;
+        const a = -(rx * G.ux + ry * G.uy);                  // depth behind the tip line
+        if (a < 0 || a > L) continue;                        // in front of the tips is the open mouth
+        const c = rx * G.nx + ry * G.ny, r = TYPES[g.type].size * 0.85;
+        const hw = G.gap / 2 + G.spread * a + tw + ((bw - tw) * a) / L;
+        if (c >= hw + r || c <= -(hw + r)) continue;
+        const side = c > 0 ? 1 : c < 0 ? -1 : (g.id & 1 ? 1 : -1);
+        const d = side * (hw + r) - c;
+        g.x += G.nx * d; g.y += G.ny * d;
+        const vn = (S.vx * G.nx + S.vy * G.ny) * side;
+        if (vn > 80) {                                      // a quick sweep flicks grains away
+          const k = vn * cfg.flick;
+          g.st = ST.SLIDE;
+          g.vx = G.nx * side * k + S.vx * 0.15; g.vy = G.ny * side * k + S.vy * 0.15;
+          g.w = (g.id % 2 ? 1 : -1) * Math.min(20, vn / 120);
+        }
+        n++;
+      }
+      return n;
+    }
+
+    function gather(dt) {
+      const G = sim.geom(), mx = G.mx, my = G.my, R = cfg.zoneR, CR = cfg.creepR, span = CR * (1 + cfg.fieldAhead);
+      const type = S.rowType;
+      // 1) grains of another kind in the creep field drift toward the tips; one reaching them breaks the row
+      for (const g of sim.grains) {
+        if (g.st !== ST.REST || g.type === type) continue;
+        if (!inField(g.x, g.y, G, CR)) continue;
+        const dx = mx - g.x, dy = my - g.y, d = Math.hypot(dx, dy) || 1e-6, close = clamp(1 - d / span, 0, 1);
+        g.warn = Math.max(0.15, close); g.cw = true;
+        if (d < TYPES[g.type].ry * 0.5 + 9) { breakRow(g, G); return; }
+        const m = Math.min(cfg.creepSpeed * (0.6 + 0.9 * close) * dt, d);
+        g.x += (dx / d) * m; g.y += (dy / d) * m;
+      }
+      // 2) call the next grain of the row's kind: the nearest one to the end of the file
+      S.callT -= dt;
+      if (S.callT <= 0 && S.trail.length < cfg.maxTrail && S.row.length + S.trail.length < S.need) {
+        let fx = mx, fy = my;
+        if (S.trail.length) { const tail = sim.grains[S.trail[S.trail.length - 1]]; fx = tail.x; fy = tail.y; }
+        let best = null, bd = Infinity;
+        for (const g of sim.grains) {
+          if (g.st !== ST.REST || g.type !== type) continue;
+          if (!inField(g.x, g.y, G, R)) continue;
+          const ex = g.x - fx, ey = g.y - fy, e2 = ex * ex + ey * ey;
+          if (e2 < bd) { bd = e2; best = g; }
+        }
+        if (best) { best.st = ST.WALK; S.trail.push(best.id); S.callT = cfg.callInterval; emit('call', { id: best.id }); }
+      }
+      // 3) the file walks: the lead heads for the tips, every other grain follows the one ahead of it
+      const lose2 = Math.pow(R * cfg.loseDist, 2), spacing = TYPES[type].pitch * 1.05;
+      for (let k = 0; k < S.trail.length; k++) {
+        const g = sim.grains[S.trail[k]];
+        let tx = mx, ty = my, want = 0, sp = cfg.walkSpeed;
+        if (k > 0) { const p = sim.grains[S.trail[k - 1]]; tx = p.x; ty = p.y; want = spacing; sp *= cfg.catchUp; }
+        const dx = tx - g.x, dy = ty - g.y, d = Math.hypot(dx, dy);
+        const m = Math.min(sp * dt, Math.max(0, d - want));
+        if (d > 1e-6 && m > 0) { g.x += (dx / d) * m; g.y += (dy / d) * m; g.rot = turn(g.rot, Math.atan2(dy, dx), 14 * dt); }
+        const ox = g.x - mx, oy = g.y - my;
+        if (ox * ox + oy * oy > lose2) { g.st = ST.REST; S.trail.splice(k, 1); k--; }
+      }
+      // 4) the lead slots in at the tips and the row ratchets one place deeper
+      if (S.trail.length) {
+        const g = sim.grains[S.trail[0]];
+        if (Math.hypot(g.x - mx, g.y - my) < 7) {
+          S.trail.shift(); g.st = ST.ROW; g.d = -4; S.row.unshift(g.id);
+          emit('slot', { id: g.id, index: S.row.length - 1, n: S.row.length, need: S.need, cap: S.cap, grain: type });
+        }
+      }
+    }
+
+    function placeRow(dt) {
+      if (!S.row.length) return;
+      const G = sim.geom(), T = TYPES[S.rowType], slot0 = sim.slot0(S.rowType), rot = Math.atan2(G.uy, G.ux);
+      const k = 1 - Math.exp(-38 * dt);
+      for (let i = 0; i < S.row.length; i++) {
+        const g = sim.grains[S.row[i]];
+        g.d += (slot0 + i * T.pitch - g.d) * k;
+        g.x = G.Tx - G.ux * g.d; g.y = G.Ty - G.uy * g.d; g.rot = rot;
+      }
+    }
+
+    function updateFree(dt) {
+      const f = Math.exp(-cfg.friction * dt), B = bounds();
+      for (const g of sim.grains) {
+        if (g.st === ST.SLIDE) {
+          g.vx *= f; g.vy *= f; g.x += g.vx * dt; g.y += g.vy * dt; g.rot += g.w * dt; g.w *= f;
+          if (g.x < B.x0) { g.x = B.x0; g.vx = Math.abs(g.vx) * 0.4; } else if (g.x > B.x1) { g.x = B.x1; g.vx = -Math.abs(g.vx) * 0.4; }
+          if (g.y < B.y0) { g.y = B.y0; g.vy = Math.abs(g.vy) * 0.4; } else if (g.y > B.y1) { g.y = B.y1; g.vy = -Math.abs(g.vy) * 0.4; }
+          keepOffStores(g, sim.stores);
+          if (g.vx * g.vx + g.vy * g.vy < 100) { g.st = ST.REST; g.vx = 0; g.vy = 0; g.w = 0; }
+        } else if (g.st === ST.REST) {
+          if (cfg.drift > 0 && !g.cw) {           // restless grains: a slow wander with a turning heading
+            if (g.hd === undefined) g.hd = rng() * Math.PI * 2;
+            g.hd += (rng() - 0.5) * 6 * dt;
+            g.x += Math.cos(g.hd) * cfg.drift * dt; g.y += Math.sin(g.hd) * cfg.drift * dt;
+            if (g.x <= B.x0 || g.x >= B.x1) g.hd = Math.PI - g.hd;
+            if (g.y <= B.y0 || g.y >= B.y1) g.hd = -g.hd;
+          }
+          g.x = clamp(g.x, B.x0, B.x1); g.y = clamp(g.y, B.y0, B.y1);
+          keepOffStores(g, sim.stores);
+        } else if (g.st === ST.POUR) {
+          g.pt += dt;
+          if (g.pt >= 0) {
+            const k = Math.min(1, g.pt / cfg.pourTime), e = 1 - (1 - k) * (1 - k);
+            g.x = g.ax + (g.bx - g.ax) * e; g.y = g.ay + (g.by - g.ay) * e; g.rot = g.arot + (g.brot - g.arot) * e;
+            if (k >= 1) { g.st = ST.GONE; g.x = g.bx; g.y = g.by; g.rot = g.brot; }
+          }
+        }
+        if (!g.cw && g.warn > 0) g.warn = Math.max(0, g.warn - 4 * dt);
+        g.cw = false;
+      }
+    }
+
+    function tickClocks(dt) {
+      if (sim.started && !sim.done) sim.clock += dt;
+    }
+
+    function switchTarget() {
+      const order = level.types, i = order.indexOf(sim.target);
+      for (let k = 1; k <= order.length; k++) {
+        const t = order[(i + k) % order.length];
+        if (sim.remaining(t) > 0) {
+          if (t !== sim.target) { sim.target = t; emit('target', { grain: t }); }
+          return;
+        }
+      }
+    }
+
+    // input: { down, x, y } with x, y the finger in board units
+    sim.step = function (input) {
+      const dt = 1 / cfg.stepHz;
+      sim.t += dt; sim.steps++;
+      const down = !!(input && input.down) && !sim.done;
+      if (!down) sim.waitLift = false;
+      const ix = input && Number.isFinite(input.x) ? input.x : W / 2;
+      const iy = input && Number.isFinite(input.y) ? input.y : sim.H * 0.7;
+      const ax = clamp(ix, 24, W - 24), ay = clamp(iy - cfg.fingerOffset, sim.top - 40, sim.H - 90);
+      switch (S.phase) {
+        case 'away':
+          if (down && !sim.waitLift) beginEnter(ax, ay);
+          break;
+        case 'enter': {
+          follow(ax, ay, dt); S.pt += dt;
+          const k = Math.min(1, S.pt / cfg.enterTime);
+          S.carry = cfg.enterDist * Math.pow(1 - k, 3);
+          approachGap(openGap(), 18, dt);
+          if (!down) startRetract();
+          else if (k >= 1) { S.phase = 'open'; S.pt = 0; }
+          break;
+        }
+        case 'open': {
+          follow(ax, ay, dt); approachGap(openGap(), 20, dt); S.pt += dt;
+          S.pushN += pushGrains(sim.geom());
+          if (S.pushN && sim.t - S.pushT > 0.06) { emit('push', { n: S.pushN, speed: Math.hypot(S.vx, S.vy) }); S.pushN = 0; S.pushT = sim.t; }
+          gather(dt);
+          if (S.phase !== 'open') break;
+          if (S.row.length >= S.need) startClose();
+          else if (!down) { if (S.row.length) startClose(); else startRetract(); }
+          break;
+        }
+        case 'close':
+          S.pt += dt; approachGap(3, 40, dt);
+          if (S.pt >= cfg.closeTime) startCarry();
+          break;
+        case 'carry': {
+          S.pt += dt;
+          const k = Math.min(1, S.pt / cfg.carryTime), e = easeInOut(k);
+          S.tx = S.cx0 + S.cdx * e; S.ty = S.cy0 + S.cdy * e;
+          if (k >= 1) startPour();
+          break;
+        }
+        case 'pour':
+          S.pt += dt; approachGap(openGap() + 10, 30, dt);
+          if (S.pt >= 0.1) startRetract();
+          break;
+        case 'retract':
+          S.carry += cfg.retractSpeed * dt;
+          if (down && !sim.waitLift) beginEnter(ax, ay);
+          else if (S.carry >= S.carryTo) S.phase = 'away';
+          break;
+        case 'snap':
+          S.pt += dt; approachGap(3, 50, dt);
+          if (S.pt >= 0.14) startRetract();
+          break;
+      }
+      placeRow(dt);
+      updateFree(dt);
+      tickClocks(dt);
+    };
+
+    sim.hash = function () {
+      let h = 2166136261;
+      const mix = (v) => { h ^= v | 0; h = Math.imul(h, 16777619); };
+      for (const g of sim.grains) { mix(Math.round(g.x * 100)); mix(Math.round(g.y * 100)); mix(g.st); }
+      mix(sim.stats.rows); mix(sim.stats.breaks); mix(sim.score); mix(Math.round(S.tx * 100)); mix(Math.round(S.ty * 100));
+      return h >>> 0;
+    };
+    sim.debugPut = function (type, x, y) {
+      const g = { id: sim.grains.length, type, x, y, rot: 0, s: 1, tint: 0, st: ST.REST, vx: 0, vy: 0, w: 0, d: 0, warn: 0, cw: false, slot: -1, pt: 0 };
+      sim.grains.push(g); sim.total[type] = (sim.total[type] || 0) + 1;
+      return g;
+    };
+    return sim;
+  }
+
+  // A simple player: aims just below the densest clean patch of the row's kind, coming at it from the side away
+  // from wrong grains, and lets go when a wrong grain gets close. Used by the tests and by the title screen.
+  function makeBot(sim, seed, opts) {
+    const rng = mulberry32((seed >>> 0) || 7);
+    opts = opts || {};
+    const maxMoves = opts.moves == null ? 3 : opts.moves;
+    let aim = null, cool = 0, hold = 0, moves = 0;
+    const tabu = [];
+    const finger = (a) => ({ down: true, x: a.x, y: Math.min(sim.H, a.y + sim.cfg.fingerOffset) });
+    const up = () => ({ down: false, x: aim ? aim.x : W / 2, y: aim ? aim.y + sim.cfg.fingerOffset : sim.H * 0.7 });
+    function pick() {
+      const type = sim.target, R = sim.cfg.zoneR, cands = [];
+      for (const g of sim.grains) if (g.st === ST.REST && g.type === type && (!opts.maxY || g.y < opts.maxY)) cands.push(g);
+      if (!cands.length) return null;
+      let best = null, bs = -Infinity;
+      const n = Math.min(40, cands.length);
+      for (let i = 0; i < n; i++) {
+        const c = cands[Math.floor(rng() * cands.length)];
+        let s = rng() * 0.5, wx = 0, wy = 0, wn = 0;
+        for (const g of sim.grains) {
+          if (g.st !== ST.REST) continue;
+          const d = Math.hypot(g.x - c.x, g.y - c.y);
+          if (g.type === type) { if (d < R * 0.75) s += 1; }
+          else if (d < R * 1.05) { s -= 5 * (1.2 - d / R); wx += g.x; wy += g.y; wn++; }
+        }
+        let ax = c.x, ay = c.y + R * 0.35;                  // tips a little below: the sticks pull from ahead
+        if (wn) {
+          let dx = c.x - wx / wn, dy = c.y - wy / wn;
+          const l = Math.hypot(dx, dy) || 1;
+          dx /= l; dy /= l;
+          ax = c.x + dx * R * 0.5; ay = c.y + Math.max(dy * R * 0.5, R * 0.2);
+        }
+        ax = Math.max(24, Math.min(W - 24, ax));
+        ay = Math.max(sim.top - 40, Math.min(opts.maxY || sim.H - sim.cfg.fingerOffset, ay));
+        for (const t of tabu) if (Math.hypot(t.x - ax, t.y - ay) < 90) s -= 30;
+        if (s > bs) { bs = s; best = { x: ax, y: ay }; }
+      }
+      return best;
+    }
+    return function next() {
+      const S = sim.sticks;
+      if (sim.done) return { down: false, x: W / 2, y: sim.H * 0.7 };
+      if (S.phase === 'close' || S.phase === 'carry' || S.phase === 'pour' || S.phase === 'snap') return up();
+      if (S.phase === 'away' || S.phase === 'retract') {
+        if (cool > 0) { cool--; return up(); }
+        if (sim.waitLift) return up();
+        aim = pick(); hold = 0; moves = 0;
+        if (!aim) { cool = 20; return up(); }
+        return finger(aim);
+      }
+      hold += 1 / sim.cfg.stepHz;
+      const G = sim.geom();
+      if (S.phase === 'open') {
+        for (const g of sim.grains) {
+          if (g.st !== ST.REST || g.type === S.rowType) continue;
+          if (Math.hypot(g.x - G.mx, g.y - G.my) < 48) {
+            tabu.push({ x: aim.x, y: aim.y }); if (tabu.length > 4) tabu.shift();
+            cool = 4 + Math.floor(rng() * 8);
+            return up();
+          }
+        }
+      }
+      if (S.phase === 'open' && S.trail.length === 0 && hold > 0.3) {
+        let any = false;
+        for (const g of sim.grains) if (g.st === ST.REST && g.type === S.rowType && sim.inReach(g)) { any = true; break; }
+        if (!any) {
+          const next = moves < maxMoves ? pick() : null;
+          if (!next) { cool = 6; return up(); }
+          aim = next; moves++; hold = 0;
+        }
+      }
+      return finger(aim);
+    };
+  }
+
+  return {
+    W, ST, DEFAULTS, STICK, TYPES, AUTHORED, DEMO, SCORE, MILESTONES, TWIST,
+    mulberry32, capacity, totalsFor, paceFor, speedFactor, speedLabel, multGain, rowPoints, idealScore, starsFor, parTime, difficulty,
+    validateLevel, levelFor, create, makeBot,
+  };
+})();
+// ===== GRAIN-SIM END =====
+</script>
+
+<script>
+// ===== HOST: storage, prizes, audio, haptics, input, rendering, screens =====
+(() => {
+  'use strict';
+  const GS = GrainSim, ST = GS.ST, TYPES = GS.TYPES, W = GS.W;
+  const SAVE_KEY = 'grainline.save', TUNE_KEY = 'grainline.tuning', SAVE_VERSION = 4;
+  const $ = (id) => document.getElementById(id);
+  const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+  const fmt = (n) => Math.round(n).toLocaleString('en-US');
+  const mmss = (s) => { const v = Math.abs(Math.ceil(s)); return Math.floor(v / 60) + ':' + String(v % 60).padStart(2, '0'); };
+
+  // ---------- chopsticks you can earn ----------
+  const STICKS = [
+    { id: 'bamboo', name: 'Bamboo', body: ['#7a522d', '#c8955a', '#eccb96', '#d4a667', '#85592f'] },
+    { id: 'cherry', name: 'Cherry lacquer', body: ['#43100d', '#8e1d1a', '#d0473d', '#a3271f', '#4d0f0d'], tip: ['#140d0b', '#3a2c26', '#140d0b'],
+      req: { kind: 'mult', n: 3, text: 'Reach a ×3 multiplier' } },
+    { id: 'ebony', name: 'Ebony', body: ['#0e0b09', '#2a211c', '#4d3e35', '#2e241e', '#110d0b'],
+      req: { kind: 'combo', n: 7, text: 'Make 7 full rows in a row' } },
+    { id: 'jade', name: 'Jade', body: ['#1c4532', '#3f8a66', '#97d6b3', '#4f9c76', '#214d39'],
+      req: { kind: 'grains', n: 1000, text: 'Sort 1,000 grains' } },
+    { id: 'steel', name: 'Steel', body: ['#535b63', '#a6afb7', '#f0f3f6', '#b8c0c7', '#5a626a'],
+      req: { kind: 'stars', n: 20, text: 'Collect 20 stars' } },
+    { id: 'gold', name: 'Gold leaf', body: ['#684710', '#c39a3d', '#f8e09a', '#d4ab4a', '#775414'], tip: ['#3a1a0e', '#7a2e1c', '#3a1a0e'],
+      req: { kind: 'mult', n: 6, text: 'Reach a ×6 multiplier' } },
+  ];
+  const stickById = (id) => STICKS.find((s) => s.id === id) || STICKS[0];
+
+  // ---------- storage: every access wrapped, the game runs with storage blocked ----------
+  const Store = {
+    get(k) { try { const v = window.localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch (e) { return null; } },
+    set(k, v) { try { window.localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } },
+    del(k) { try { window.localStorage.removeItem(k); } catch (e) { /* ignore */ } },
+  };
+  const num = (v, min) => (Number.isFinite(v) ? Math.max(min || 0, Math.floor(v)) : null);
+  function loadSave() {
+    const fresh = {
+      saveVersion: SAVE_VERSION, levels: {}, reached: 0, sound: true, haptics: true, showReach: true, control: 'direct',
+      totals: { grains: 0, bestCombo: 0, bestMult: 1 }, sticks: { owned: ['bamboo'], equipped: 'bamboo' },
+    };
+    const s = Store.get(SAVE_KEY);
+    if (!s || typeof s !== 'object' || ![1, 2, 3, 4].includes(s.saveVersion)) return fresh;
+    fresh.sound = s.sound !== false; fresh.haptics = s.haptics !== false; fresh.showReach = s.showReach !== false;
+    if (s.control === 'drag') fresh.control = 'drag';
+    if (s.levels && typeof s.levels === 'object') {
+      for (const id of Object.keys(s.levels)) {
+        const r = s.levels[id];
+        if (!r || !Number.isFinite(r.stars) || typeof id !== 'string' || id.length > 40) continue;
+        // versions before 4 scored on a different scale: keep their stars, drop their best score
+        fresh.levels[id] = { stars: clamp(Math.floor(r.stars), 0, 5), best: s.saveVersion >= 4 ? num(r.best) : null, plays: num(r.plays, 1) || 1 };
+      }
+    }
+    // the furthest level you may play: one past the last one you cleared
+    let reached = num(s.reached) || 0;
+    for (let i = 0; i < GS.AUTHORED.length; i++) if (fresh.levels[GS.AUTHORED[i].id]) reached = Math.max(reached, i + 1);
+    fresh.reached = reached;
+    if (s.saveVersion >= 2) {
+      if (s.totals) {
+        fresh.totals.grains = num(s.totals.grains) || 0;
+        fresh.totals.bestCombo = num(s.totals.bestCombo != null ? s.totals.bestCombo : s.totals.bestStreak) || 0;
+        fresh.totals.bestMult = Number.isFinite(s.totals.bestMult) ? clamp(s.totals.bestMult, 1, 10) : 1;
+      }
+      if (s.sticks && Array.isArray(s.sticks.owned)) {
+        fresh.sticks.owned = ['bamboo'].concat(s.sticks.owned.filter((id) => id !== 'bamboo' && STICKS.some((k) => k.id === id)));
+        if (fresh.sticks.owned.includes(s.sticks.equipped)) fresh.sticks.equipped = s.sticks.equipped;
+      }
+    }
+    return fresh;
+  }
+  const save = loadSave();
+  const persist = () => Store.set(SAVE_KEY, save);
+  const starCount = () => Object.values(save.levels).reduce((a, r) => a + (r.stars || 0), 0);
+  function reqProgress(req) {
+    if (req.kind === 'combo') return save.totals.bestCombo;
+    if (req.kind === 'mult') return save.totals.bestMult;
+    if (req.kind === 'grains') return save.totals.grains;
+    return starCount();
+  }
+  // returns the chopsticks this call unlocked
+  function checkUnlocks() {
+    const out = [];
+    for (const k of STICKS) {
+      if (!k.req || save.sticks.owned.includes(k.id)) continue;
+      if (reqProgress(k.req) >= k.req.n) { save.sticks.owned.push(k.id); out.push(k); }
+    }
+    if (out.length) persist();
+    return out;
+  }
+
+  // ---------- tuning: a handful of feel numbers, live ----------
+  const TUNE = [
+    { key: 'fingerOffset', label: 'Tips above the finger', min: 60, max: 320, step: 5 },
+    { key: 'followOmega', label: 'How tightly the sticks follow', min: 10, max: 60, step: 1 },
+    { key: 'zoneR', label: 'Reach of the open sticks', min: 80, max: 260, step: 5 },
+    { key: 'fieldAhead', label: 'How far ahead of the tips they pull', min: 0, max: 0.8, step: 0.05 },
+    { key: 'creepR', label: 'Wrong grains creep from', min: 40, max: 200, step: 5 },
+    { key: 'creepSpeed', label: 'Wrong grain creep speed', min: 0, max: 200, step: 2 },
+    { key: 'flick', label: 'How far a sweep flicks grains', min: 0, max: 1.2, step: 0.05 },
+    { key: 'callInterval', label: 'Next grain joins every (s)', min: 0.02, max: 0.2, step: 0.005 },
+    { key: 'walkSpeed', label: 'Walking speed', min: 200, max: 1000, step: 10 },
+    { key: 'paceK', label: 'Pace (higher is more forgiving)', min: 0.5, max: 3, step: 0.05 },
+    { key: 'channelLen', label: 'Row length', min: 220, max: 480, step: 5 },
+  ];
+  const cfg = {};
+  const tsave = Store.get(TUNE_KEY);
+  if (tsave && tsave.saveVersion === 3 && tsave.cfg) {
+    for (const t of TUNE) { const v = tsave.cfg[t.key]; if (Number.isFinite(v) && v >= t.min && v <= t.max) cfg[t.key] = v; }
+  }
+  const DRAG_GAIN = 1.5;
+
+  // ---------- analytics: in memory only, nothing leaves the device ----------
+  const Analytics = {
+    log: [],
+    emit(name, props) {
+      this.log.push(Object.assign({ name, ms: Math.round(performance.now()) }, props || {}));
+      if (this.log.length > 1000) this.log.shift();
+    },
+  };
+
+  // ---------- haptics: the Vibration API on Android; on iPhone (iOS 18+) a hidden switch gives a light tick ----------
+  const Haptics = {
+    ok: typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function',
+    ios: null, last: 0,
+    init() {
+      const ua = navigator.userAgent || '';
+      const isIOS = /iP(hone|ad|od)/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      if (this.ok || !isIOS) return;
+      const label = document.createElement('label'), inp = document.createElement('input');
+      inp.type = 'checkbox'; inp.setAttribute('switch', ''); inp.tabIndex = -1;
+      label.className = 'haptic'; label.setAttribute('aria-hidden', 'true'); label.appendChild(inp);
+      document.body.appendChild(label);
+      this.ios = () => { try { label.click(); inp.blur(); } catch (e) { /* ignore */ } };
+    },
+    buzz(p) {
+      if (!save.haptics) return;
+      const now = performance.now();
+      if (this.ok) { try { navigator.vibrate(p); } catch (e) { /* ignore */ } return; }
+      if (!this.ios || now - this.last < 45) return;
+      this.last = now;
+      this.ios();
+      if (Array.isArray(p) && p.length > 2) setTimeout(() => this.ios && this.ios(), p[0] + p[1]);
+    },
+  };
+  Haptics.init();
+
+  // ---------- audio: synthesised, starts on the first touch ----------
+  const TYPE_PITCH = { lentil: 1, rice: 1.26, mung: 1.12 };
+  const BROKE = { lentil: 'A lentil got in', rice: 'Rice got in', mung: 'A mung bean got in' };
+  const Sound = {
+    ctx: null, out: null, noise: null, unlocked: false, lastPush: 0,
+    unlock() {
+      try {
+        // iPhone: play through the silent switch, like a game would (Safari 16.4+)
+        if (navigator.audioSession && navigator.audioSession.type !== 'playback') navigator.audioSession.type = 'playback';
+        if (!this.ctx) {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (!AC) return;
+          const ctx = new AC();
+          const comp = ctx.createDynamicsCompressor();
+          comp.threshold.value = -14; comp.knee.value = 10; comp.ratio.value = 4; comp.attack.value = 0.002; comp.release.value = 0.12;
+          const out = ctx.createGain(); out.gain.value = 0.8;
+          out.connect(comp).connect(ctx.destination);
+          const len = Math.floor(ctx.sampleRate * 0.6), buf = ctx.createBuffer(1, len, ctx.sampleRate), ch = buf.getChannelData(0);
+          for (let i = 0; i < len; i++) ch[i] = Math.random() * 2 - 1;
+          this.ctx = ctx; this.out = out; this.noise = buf;
+        }
+        if (this.ctx.state !== 'running') this.ctx.resume();     // 'suspended', or 'interrupted' on iPhone after a call
+        if (!this.unlocked) {
+          const s = this.ctx.createBufferSource();
+          s.buffer = this.ctx.createBuffer(1, 1, 22050); s.connect(this.ctx.destination); s.start(0);
+          this.unlocked = this.ctx.state === 'running';
+        }
+        this.keepAwake();
+      } catch (e) { /* sound is optional */ }
+    },
+    // Older iPhones mute Web Audio with the silent switch unless a media element is playing. A looping,
+    // silent clip moves the page into the "playback" audio category, as games and video do.
+    keepAwake() {
+      if (!save.sound || document.hidden) return;
+      if (!this.tag) {
+        const n = 4000, buf = new ArrayBuffer(44 + n), v = new DataView(buf);
+        const str = (o, t) => { for (let i = 0; i < t.length; i++) v.setUint8(o + i, t.charCodeAt(i)); };
+        str(0, 'RIFF'); v.setUint32(4, 36 + n, true); str(8, 'WAVE'); str(12, 'fmt ');
+        v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, 8000, true);
+        v.setUint32(28, 8000, true); v.setUint16(32, 1, true); v.setUint16(34, 8, true); str(36, 'data'); v.setUint32(40, n, true);
+        for (let i = 0; i < n; i++) v.setUint8(44 + i, 128);
+        const a = document.createElement('audio');
+        a.setAttribute('x-webkit-airplay', 'deny'); a.preload = 'auto'; a.loop = true; a.playsInline = true;
+        try { a.src = URL.createObjectURL(new Blob([buf], { type: 'audio/wav' })); } catch (e) { return; }
+        this.tag = a;
+      }
+      if (this.tag.paused) { const p = this.tag.play(); if (p && p.catch) p.catch(() => {}); }
+    },
+    sleep() { if (this.tag && !this.tag.paused) this.tag.pause(); },
+    ready() { return save.sound && this.ctx && this.ctx.state === 'running'; },
+    env(g, t, peak, decay) {
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(Math.max(0.0002, peak), t + 0.0015);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + decay);
+    },
+    noiseBurst(t, type, freq, q, peak, decay) {
+      const c = this.ctx, src = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+      src.buffer = this.noise; f.type = type; f.frequency.value = freq; f.Q.value = q;
+      this.env(g, t, peak, decay);
+      src.connect(f).connect(g).connect(this.out);
+      src.start(t, Math.random() * 0.4, decay + 0.05);
+    },
+    tone(t, type, f0, f1, peak, decay, glide) {
+      const c = this.ctx, o = c.createOscillator(), g = c.createGain();
+      o.type = type; o.frequency.setValueAtTime(f0, t);
+      if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(f1, t + (glide || decay));
+      this.env(g, t, peak, decay);
+      o.connect(g).connect(this.out); o.start(t); o.stop(t + decay + 0.05);
+    },
+    sweep(t, f0, f1, peak, dur, q) {
+      const c = this.ctx, src = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+      src.buffer = this.noise; f.type = 'bandpass'; f.Q.value = q || 1.2;
+      f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(f1, t + dur);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + dur * 0.4); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      src.connect(f).connect(g).connect(this.out); src.start(t, Math.random() * 0.2, dur + 0.05);
+    },
+    // a grain clicking into the row; each grain a semitone higher than the one before
+    slot(index, type, full) {
+      if (!this.ready()) return;
+      const t = this.ctx.currentTime, f = 520 * (TYPE_PITCH[type] || 1) * Math.pow(2, Math.min(index, 19) / 12);
+      this.noiseBurst(t, 'bandpass', Math.min(12000, f * 3.4), 6, 0.42, 0.022);
+      this.tone(t, 'triangle', f * 1.05, f, 0.24, full ? 0.16 : 0.07, 0.012);
+      if (full) { this.tone(t, 'sine', f * 2, f * 2, 0.13, 0.34); this.tone(t + 0.02, 'sine', f * 3, f * 3, 0.06, 0.26); }
+    },
+    swish() { if (this.ready()) this.sweep(this.ctx.currentTime, 2600, 1100, 0.1, 0.14, 1.4); },
+    push(n, speed) {
+      if (!this.ready()) return;
+      const now = this.ctx.currentTime;
+      if (now - this.lastPush < 0.07) return;
+      this.lastPush = now;
+      const v = Math.min(1, 0.25 + speed / 3000) * Math.min(1, 0.3 + n * 0.12);
+      this.sweep(now, 900 + Math.random() * 600, 500, 0.12 * v, 0.09, 2);
+      if (speed > 900) for (let i = 0; i < Math.min(n, 4); i++) { const t = now + Math.random() * 0.06, f = 900 + Math.random() * 900; this.noiseBurst(t, 'bandpass', f * 3, 6, 0.1 * v, 0.02); }
+    },
+    clack() {
+      if (!this.ready()) return;
+      const t = this.ctx.currentTime;
+      this.noiseBurst(t, 'bandpass', 2500, 4, 0.5, 0.03);
+      this.tone(t, 'triangle', 390, 270, 0.22, 0.06);
+      this.noiseBurst(t + 0.032, 'bandpass', 3300, 5, 0.3, 0.025);
+    },
+    fullRow() {
+      if (!this.ready()) return;
+      const t = this.ctx.currentTime;
+      [987.8, 1318.5, 1975.5].forEach((f, i) => { this.tone(t + i * 0.045, 'sine', f, f, 0.12, 0.35); });
+      this.noiseBurst(t, 'highpass', 6000, 0.7, 0.12, 0.25);
+    },
+    slide() { if (this.ready()) this.sweep(this.ctx.currentTime, 700, 1900, 0.16, 0.34, 1.1); },
+    pour(n) {
+      if (!this.ready()) return;
+      const t0 = this.ctx.currentTime;
+      for (let i = 0; i < Math.min(n, 16); i++) {
+        const t = t0 + i * 0.018 + 0.12, f = 1500 - i * 30;
+        this.noiseBurst(t, 'bandpass', f * 2.6, 5, 0.12, 0.025);
+        this.tone(t, 'triangle', f, f * 0.96, 0.05, 0.04);
+      }
+    },
+    thud() {
+      if (!this.ready()) return;
+      const t = this.ctx.currentTime;
+      this.tone(t, 'sine', 170, 50, 0.7, 0.22, 0.16);
+      this.noiseBurst(t, 'lowpass', 480, 1, 0.45, 0.08);
+    },
+    scatter(n) {
+      if (!this.ready()) return;
+      const t0 = this.ctx.currentTime;
+      for (let i = 0; i < Math.min(n, 14); i++) {
+        const t = t0 + 0.02 + Math.random() * 0.32, f = 700 + Math.random() * 1400;
+        this.noiseBurst(t, 'bandpass', f * 3, 6, 0.16, 0.02);
+        this.tone(t, 'triangle', f, f * 0.95, 0.07, 0.04);
+      }
+    },
+    swap() {
+      if (!this.ready()) return;
+      const t = this.ctx.currentTime;
+      this.tone(t, 'sine', 660, 660, 0.08, 0.1); this.tone(t + 0.06, 'sine', 880, 880, 0.08, 0.14);
+    },
+    tick(hi) { if (this.ready()) this.tone(this.ctx.currentTime, 'square', hi ? 1760 : 1320, hi ? 1760 : 1320, 0.035, 0.03); },
+    multUp(m) {
+      if (!this.ready()) return;
+      const t = this.ctx.currentTime, base = 523.25 * Math.pow(2, (m - 2) * 2 / 12);
+      [1, 1.25, 1.5, 2].forEach((r, i) => this.tone(t + 0.1 + i * 0.055, 'triangle', base * r, base * r, 0.13, 0.22));
+    },
+    lost() {
+      if (!this.ready()) return;
+      const t = this.ctx.currentTime;
+      this.tone(t, 'triangle', 440, 415, 0.12, 0.16); this.tone(t + 0.12, 'triangle', 349, 330, 0.12, 0.3);
+    },
+    fanfare() {
+      if (!this.ready()) return;
+      const t = this.ctx.currentTime;
+      [523.25, 659.25, 783.99, 1046.5, 1318.5].forEach((f, i) => { this.tone(t + 0.15 + i * 0.07, 'triangle', f, f, 0.15, 0.45); this.tone(t + 0.15 + i * 0.07, 'sine', f * 2, f * 2, 0.05, 0.3); });
+    },
+    chime() {
+      if (!this.ready()) return;
+      const t = this.ctx.currentTime;
+      [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => this.tone(t + i * 0.08, 'triangle', f, f, 0.15, 0.4));
+    },
+  };
+
+  // ---------- canvas & layout ----------
+  const canvas = $('game'), ctx = canvas.getContext('2d');
+  const view = { cw: 0, ch: 0, dpr: 1, scale: 1, offX: 0, H: 1300, top: 150, bottom: 10, safe: { t: 0, r: 0, b: 0, l: 0 } };
+  const rmq = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+  const reducedMotion = () => !!(rmq && rmq.matches);
+  let bg = null, sprites = null;
+
+  // ---------- state ----------
+  let screen = 'title';
+  let sim = null, levelIndex = 0, demo = null, demoBot = null, demoIdle = 0, demoSeed = 1, autoBot = null;
+  let hintStage = -1, hintRows = 0, pendingDone = null, levelUnlocks = [];
+  const input = { down: false, x: W / 2, y: 1100, id: null };
+  const virt = { x: W / 2, y: 700, set: false };   // where the tips go in drag-anywhere mode
+  const drag = { sx: 0, sy: 0, x0: 0, y0: 0 };
+  const keys = new Set();
+  const fx = { pops: new Map(), sparks: [], floats: [], rings: [], wave: null, shakeT: 0, bad: null };
+
+  function readSafe() {
+    const cs = getComputedStyle($('safe'));
+    view.safe = { t: parseFloat(cs.paddingTop) || 0, r: parseFloat(cs.paddingRight) || 0, b: parseFloat(cs.paddingBottom) || 0, l: parseFloat(cs.paddingLeft) || 0 };
+  }
+  function resize() {
+    readSafe();
+    view.dpr = Math.min(3, window.devicePixelRatio || 1);
+    view.cw = window.innerWidth || 390; view.ch = window.innerHeight || 844;
+    canvas.width = Math.round(view.cw * view.dpr); canvas.height = Math.round(view.ch * view.dpr);
+    // a portrait board: full width on a phone, a centred column on a wide screen
+    const boardPx = Math.min(view.cw, view.ch / 1.45);
+    view.scale = boardPx / W;
+    view.offX = (view.cw - boardPx) / 2;
+    document.documentElement.style.setProperty('--board-w', boardPx + 'px');
+    view.H = view.ch / view.scale;
+    view.top = (view.safe.t + 92) / view.scale;
+    view.bottom = (view.safe.b + 4) / view.scale;
+    const lay = { H: view.H, top: view.top, bottom: view.bottom };
+    if (sim) sim.setLayout(lay);
+    if (demo) demo.setLayout(lay);
+    if (!virt.set) { virt.x = W / 2; virt.y = view.H * 0.55; virt.set = true; }
+    sprites = buildSprites();
+    bg = buildBackground();
+  }
+  const K = () => view.dpr * view.scale;
+  function worldTransform(sx, sy) { ctx.setTransform(K(), 0, 0, K(), view.dpr * (view.offX + (sx || 0)), view.dpr * (sy || 0)); }
+
+  // ---------- grain sprites ----------
+  const PALETTE = {
+    lentil: [['#f29452', '#ffc493', '#c4612b'], ['#ec8543', '#fdb27c', '#b95522'], ['#f6a060', '#ffcfa2', '#c96b35'], ['#e97b3c', '#f8a66f', '#ad4d1f']],
+    rice: [['#efebe2', '#ffffff', '#c9c1b0'], ['#f4f1ea', '#ffffff', '#d2cbbb'], ['#e8e3d7', '#fbfaf6', '#c2baa8'], ['#f7f5f0', '#ffffff', '#d9d2c4']],
+    mung: [['#6f9b3a', '#a8d070', '#44661e'], ['#7ba646', '#b4d77e', '#4e7226'], ['#66903a', '#9ec566', '#3f5e1c'], ['#83ae4e', '#bbdc88', '#557a2c']],
+  };
+  function grainPath(c, type, rx, ry) {
+    c.beginPath();
+    if (type === 'rice') {
+      c.moveTo(-rx, 0);
+      c.bezierCurveTo(-rx * 0.45, -ry * 1.32, rx * 0.45, -ry * 1.32, rx, 0);
+      c.bezierCurveTo(rx * 0.45, ry * 1.32, -rx * 0.45, ry * 1.32, -rx, 0);
+    } else {
+      c.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
+    }
+  }
+  function makeSprite(type, tint) {
+    const T = TYPES[type], P = PALETTE[type][tint], pad = 5, kk = K() * 1.25;
+    const w = T.rx * 2 + pad * 2, h = T.ry * 2 + pad * 2;
+    const cv = document.createElement('canvas');
+    cv.width = Math.max(2, Math.ceil(w * kk)); cv.height = Math.max(2, Math.ceil(h * kk));
+    const c = cv.getContext('2d');
+    c.scale(kk, kk); c.translate(w / 2, h / 2);
+    // soft contact shadow, centred so it reads right at any rotation
+    const sg = c.createRadialGradient(0, 0, Math.min(T.rx, T.ry) * 0.6, 0, 0, Math.max(T.rx, T.ry) * 1.25);
+    sg.addColorStop(0, 'rgba(0,0,0,0.5)'); sg.addColorStop(1, 'rgba(0,0,0,0)');
+    c.save(); c.scale(1, (T.ry + 3) / (T.rx + 3)); c.fillStyle = sg; c.beginPath(); c.arc(0, 0, T.rx + 4, 0, Math.PI * 2); c.fill(); c.restore();
+    const gr = c.createRadialGradient(-T.rx * 0.25, -T.ry * 0.3, 0.5, 0, 0, Math.max(T.rx, T.ry) * 1.05);
+    gr.addColorStop(0, P[1]); gr.addColorStop(0.5, P[0]); gr.addColorStop(1, P[2]);
+    c.fillStyle = gr; grainPath(c, type, T.rx, T.ry); c.fill();
+    c.strokeStyle = 'rgba(0,0,0,0.16)'; c.lineWidth = 0.7; c.stroke();
+    if (type === 'lentil') {           // the flat split face catches the light
+      c.fillStyle = 'rgba(255,235,210,0.22)';
+      c.beginPath(); c.ellipse(-1, -1, T.rx * 0.62, T.ry * 0.58, 0.3, 0, Math.PI * 2); c.fill();
+    } else if (type === 'rice') {      // the chalky white heart of a rice grain
+      c.fillStyle = 'rgba(255,255,255,0.75)';
+      c.beginPath(); c.ellipse(T.rx * 0.18, -0.4, T.rx * 0.34, T.ry * 0.42, 0, 0, Math.PI * 2); c.fill();
+    } else {                           // the white hilum on a mung bean
+      c.strokeStyle = 'rgba(245,250,235,0.8)'; c.lineWidth = 1.3; c.lineCap = 'round';
+      c.beginPath(); c.moveTo(-T.rx * 0.32, T.ry * 0.38); c.lineTo(T.rx * 0.32, T.ry * 0.38); c.stroke();
+    }
+    c.fillStyle = 'rgba(255,255,255,0.45)';
+    c.beginPath(); c.ellipse(-T.rx * 0.32, -T.ry * 0.4, T.rx * 0.22, T.ry * 0.16, -0.4, 0, Math.PI * 2); c.fill();
+    return { cv, w, h };
+  }
+  function buildSprites() {
+    const out = {};
+    for (const t of Object.keys(TYPES)) out[t] = [0, 1, 2, 3].map((i) => makeSprite(t, i));
+    return out;
+  }
+  function chipIcon(type) {
+    if (type === 'rice') return '<ellipse cx="10" cy="10" rx="8.5" ry="3.4" transform="rotate(-32 10 10)" fill="var(--rice)"/>';
+    if (type === 'mung') return '<ellipse cx="10" cy="10" rx="6.6" ry="5" fill="var(--mung)"/>';
+    return '<ellipse cx="10" cy="10" rx="7.4" ry="6.6" fill="var(--lentil)"/>';
+  }
+
+  // ---------- slate board, built once per resize ----------
+  function buildBackground() {
+    const cv = document.createElement('canvas');
+    cv.width = canvas.width; cv.height = canvas.height;
+    const c = cv.getContext('2d'), Wd = cv.width, H = cv.height, d = view.dpr;
+    c.fillStyle = '#0d0f12'; c.fillRect(0, 0, Wd, H);
+    const bx = Math.round(view.offX * d), bw = Math.round(W * view.scale * d);
+    c.save(); c.beginPath(); c.rect(bx, 0, bw, H); c.clip();
+    const lg = c.createLinearGradient(bx, 0, bx + bw, H);
+    lg.addColorStop(0, '#353c44'); lg.addColorStop(0.55, '#262b31'); lg.addColorStop(1, '#1a1e23');
+    c.fillStyle = lg; c.fillRect(bx, 0, bw, H);
+    // the soft light pool on the left, as in the reference footage
+    const rg = c.createRadialGradient(bx + bw * 0.1, H * 0.42, 0, bx + bw * 0.1, H * 0.42, bw * 0.95);
+    rg.addColorStop(0, 'rgba(185,200,216,0.13)'); rg.addColorStop(1, 'rgba(185,200,216,0)');
+    c.fillStyle = rg; c.fillRect(bx, 0, bw, H);
+    const rnd = GS.mulberry32(20261025);
+    for (let i = 0; i < 34; i++) {     // slate cleavage streaks
+      const y = rnd() * H, a = 0.012 + rnd() * 0.03;
+      c.strokeStyle = rnd() < 0.5 ? `rgba(255,255,255,${a})` : `rgba(0,0,0,${a * 1.7})`;
+      c.lineWidth = (0.5 + rnd() * 2.2) * d;
+      c.beginPath(); c.moveTo(bx - 20, y);
+      c.bezierCurveTo(bx + bw * 0.3, y + (rnd() - 0.5) * 50 * d, bx + bw * 0.7, y + (rnd() - 0.4) * 70 * d, bx + bw + 20, y + (rnd() - 0.3) * 90 * d);
+      c.stroke();
+    }
+    const dots = Math.floor(bw * H / 240);
+    for (let i = 0; i < dots; i++) {   // speckle
+      c.fillStyle = rnd() < 0.5 ? `rgba(255,255,255,${0.015 + rnd() * 0.045})` : `rgba(0,0,0,${0.04 + rnd() * 0.08})`;
+      const s = (0.5 + rnd() * 1.3) * d;
+      c.fillRect(bx + rnd() * bw, rnd() * H, s, s);
+    }
+    const vg = c.createRadialGradient(bx + bw / 2, H * 0.5, Math.min(bw, H) * 0.3, bx + bw / 2, H * 0.5, Math.max(bw, H) * 0.72);
+    vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.5)');
+    c.fillStyle = vg; c.fillRect(bx, 0, bw, H);
+    c.restore();
+    return cv;
+  }
+
+  function layout() { return { H: view.H, top: view.top, bottom: view.bottom }; }
+  const levelAt = (i) => GS.levelFor(i);
+  function unlocked(i) { return i >= 0 && i <= save.reached; }
+  function nextLevelIndex() {
+    for (let i = 0; i <= save.reached; i++) if (!save.levels[levelAt(i).id]) return i;
+    return save.reached;
+  }
+  function levelLabel(i) { return 'Level ' + (i + 1) + ' · ' + levelAt(i).name; }
+
+  function newDemo() {
+    demo = GS.create(Object.assign({}, cfg), GS.DEMO, layout(), demoSeed);
+    demoBot = GS.makeBot(demo, demoSeed * 31 + 7, { maxY: view.H * 0.42 });
+    demoSeed++; demoIdle = 0;
+  }
+
+  function startLevel(i, cause) {
+    levelIndex = Math.max(0, i);
+    const L = levelAt(levelIndex);
+    sim = GS.create(cfg, L, layout(), ((Date.now() >>> 0) ^ (levelIndex * 7919)) >>> 0);
+    autoBot = null; pendingDone = null; levelUnlocks = [];
+    fx.pops.clear(); fx.sparks = []; fx.floats = []; fx.rings = []; fx.wave = null; fx.bad = null; fx.shakeT = 0;
+    releaseInput();
+    hintRows = 0;
+    hintStage = L.hint && !save.levels[L.id] ? 0 : -1;
+    setScreen('play');
+    chipType = null;
+    updateHud(false);
+    updateStreak(null);
+    if (L.rule) banner(L.rule, L.ruleText || '', 2600);
+    Analytics.emit('level_start', { level: L.id, cause: cause || 'play', grains: sim.grains.length, ideal: sim.ideal, par: sim.par });
+  }
+
+  // ---------- HUD ----------
+  const chip = $('chip'), streakEl = $('streak'), scoreEl = $('score'), clockEl = $('clock'), barEl = streakEl.querySelector('.bar');
+  let chipType = null;
+  function updateHud(animate) {
+    if (!sim) return;
+    const t = sim.target;
+    if (t !== chipType) {
+      chip.querySelector('.ico').innerHTML = chipIcon(t);
+      chip.querySelector('.name').textContent = TYPES[t].label;
+      if (animate && !reducedMotion()) { chip.classList.remove('swap'); void chip.offsetWidth; chip.classList.add('swap'); }
+      chipType = t;
+    }
+    chip.querySelector('.left').textContent = sim.remaining(t) + ' left';
+    scoreEl.querySelector('b').textContent = fmt(sim.score);
+  }
+  // per frame: the level clock and the pace bar
+  function updateClocks() {
+    if (!sim) return;
+    const left = sim.timeLeft();
+    clockEl.textContent = (left < 0 ? '+' : '') + mmss(left);
+    clockEl.classList.toggle('over', left < 0);
+    clockEl.classList.toggle('low', left >= 0 && left < 10 && sim.started);
+    // the pace bar: full right after a pull, empty once a full row would only count as Slow
+    const r = sim.started && !sim.done ? sim.paceRatio() : 0, pace = GS.speedLabel(r);
+    barEl.style.transform = 'scaleX(' + (sim.started && !sim.done ? clamp(1 - r / 2, 0, 1) : 0).toFixed(3) + ')';
+    if (streakEl.dataset.pace !== pace) {
+      streakEl.dataset.pace = pace;
+      if (pace === 'Slow' && sim.mult > 1.05 && screen === 'play' && sim.started) Sound.tick(false);
+    }
+  }
+  function restartAnim(el, cls) {
+    if (reducedMotion()) return;
+    el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls);
+  }
+  const multText = (m) => '×' + (Math.floor(m * 10) / 10).toFixed(1);
+  function updateStreak(anim) {
+    if (!sim) return;
+    const m = sim.mult, c = sim.combo;
+    streakEl.classList.toggle('hot', m >= 2 && m < 6);
+    streakEl.classList.toggle('max', m >= 6);
+    streakEl.querySelector('b').textContent = multText(m);
+    streakEl.querySelector('.combo').textContent = c >= 2 ? c + ' in a row' : '';
+    streakEl.setAttribute('aria-label', 'Multiplier ' + multText(m) + ', ' + c + ' full rows in a row');
+    if (anim) restartAnim(streakEl, anim);
+  }
+  let bannerT = 0;
+  function banner(title, line, ms) {
+    const el = $('banner');
+    el.querySelector('b').textContent = title; el.querySelector('span').textContent = line;
+    el.classList.add('show');
+    clearTimeout(bannerT); bannerT = setTimeout(() => el.classList.remove('show'), ms || 1800);
+  }
+  function showHint() {
+    const el = $('hint'), L = sim && levelAt(levelIndex);
+    if (!L || hintStage < 0 || !L.hint || !L.hint[hintStage]) { el.classList.add('off'); return; }
+    el.textContent = L.hint[hintStage]; el.classList.remove('off');
+  }
+  let toastT = 0;
+  function toast(msg) {
+    const el = $('toast'); el.textContent = msg; el.classList.add('show');
+    clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('show'), 2200);
+  }
+
+  // ---------- screens ----------
+  const SCREENS = ['title', 'levels', 'sticks', 'pause', 'done', 'tune'];
+  let tuneFrom = 'pause', sticksFrom = 'title';
+  function setScreen(s) {
+    screen = s;
+    for (const id of SCREENS) $(id).hidden = id !== s;
+    $('hud').hidden = !(s === 'play' || s === 'pause' || s === 'tune');
+    if (s !== 'play') { $('hint').classList.add('off'); releaseInput(); } else showHint();
+    if ((s === 'title' || s === 'levels' || s === 'sticks') && !demo) newDemo();
+    if (s === 'title') $('playSub').textContent = levelLabel(nextLevelIndex());
+    if (s === 'levels') renderLevelList();
+    if (s === 'sticks') renderSticks();
+    if (s === 'pause') syncControl();
+    const focusMap = { title: 'playBtn', levels: 'levelsBackBtn', sticks: 'sticksBackBtn', pause: 'resumeBtn', done: 'nextBtn', tune: 'tuneDoneBtn' };
+    if (focusMap[s] && document.activeElement && document.activeElement !== document.body) $(focusMap[s]).focus({ preventScroll: true });
+  }
+  function starsHtml(n) {
+    let h = '';
+    for (let i = 0; i < 5; i++) h += '<span' + (i < n ? ' class="on"' : '') + '>★</span>';
+    return h;
+  }
+  const LOCK = '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.5" fill="var(--dim)"/><path d="M5.2 7V5.2a2.8 2.8 0 0 1 5.6 0V7" fill="none" stroke="var(--dim)" stroke-width="1.6"/></svg>';
+  function renderLevelList() {
+    const ol = $('levelList'); ol.innerHTML = '';
+    const last = Math.max(GS.AUTHORED.length - 1, save.reached + 1);
+    for (let i = 0; i <= last; i++) {
+      const L = levelAt(i), rec = save.levels[L.id], open = unlocked(i);
+      const li = document.createElement('li'), b = document.createElement('button');
+      b.className = 'lvl' + (open ? '' : ' locked');
+      const sub = (L.rule || L.types.map((t) => TYPES[t].label).join(', ')) + (rec && rec.best ? ' · best ' + fmt(rec.best) : '');
+      b.innerHTML = '<span class="n">' + (i + 1) + '</span><span class="nm">' + L.name + '<small>' + sub + '</small></span>' +
+        (open ? '<span class="stars" aria-label="' + (rec ? rec.stars : 0) + ' of 5 stars">' + starsHtml(rec ? rec.stars : 0) + '</span>'
+              : '<span class="stars" aria-label="Locked">' + LOCK + '</span>');
+      b.addEventListener('click', () => {
+        if (!open) { toast('Clear level ' + i + ' to open this one.'); return; }
+        startLevel(i, 'level_list');
+      });
+      li.appendChild(b); ol.appendChild(li);
+    }
+    const cur = ol.children[Math.min(ol.children.length - 1, nextLevelIndex())];
+    if (cur && cur.scrollIntoView) cur.scrollIntoView({ block: 'center' });
+  }
+  function stickPreview(k) {
+    const g = 'linear-gradient(180deg,' + k.body.join(',') + ')';
+    const tip = k.tip ? 'linear-gradient(90deg,' + k.tip[1] + ' 0 18%, transparent 18%),' : '';
+    return '<span class="pv"><i style="background:' + tip + g + '"></i><i style="background:' + tip + g + '"></i></span>';
+  }
+  function renderSticks() {
+    const ul = $('sticksList'); ul.innerHTML = '';
+    $('sticksSub').textContent = 'Earned by playing well. Top multiplier ' + multText(save.totals.bestMult) + ' · best combo ' + save.totals.bestCombo + ' · ' + fmt(save.totals.grains) + ' grains sorted · ' + starCount() + ' stars.';
+    for (const k of STICKS) {
+      const owned = save.sticks.owned.includes(k.id), on = save.sticks.equipped === k.id;
+      const li = document.createElement('li'), b = document.createElement('button');
+      b.className = 'pairrow' + (on ? ' on' : '') + (owned ? '' : ' locked');
+      const prog = (v) => (k.req.kind === 'mult' ? multText(v) : fmt(v));
+      const req = k.req ? k.req.text + (owned ? '' : ' (' + prog(Math.min(reqProgress(k.req), k.req.n)) + ' / ' + prog(k.req.n) + ')') : 'Your first pair';
+      b.innerHTML = stickPreview(k) + '<span class="nm"><b>' + k.name + '</b><small>' + req + '</small></span>' +
+        '<span class="st">' + (on ? 'In use' : owned ? 'Use' : LOCK) + '</span>';
+      b.addEventListener('click', () => {
+        if (!owned) { toast(k.req.text + ' to earn these.'); return; }
+        save.sticks.equipped = k.id; persist(); renderSticks();
+      });
+      li.appendChild(b); ul.appendChild(li);
+    }
+  }
+  function showDone(res, prev, unlocks) {
+    $('doneEyebrow').textContent = levelLabel(levelIndex);
+    $('doneStars').innerHTML = starsHtml(res.stars);
+    $('doneStars').setAttribute('aria-label', res.stars + ' of 5 stars');
+    const isBest = !prev || !prev.best || res.score > prev.best;
+    $('doneResult').innerHTML = '<b>' + fmt(res.score) + '</b><span>points</span>' + (isBest && prev ? '<span class="best">New best</span>' : '');
+    const full = res.fullRows === 1 ? '1 full row' : res.fullRows + ' full rows';
+    const broken = res.breaks === 0 ? 'none broken' : (res.breaks === 1 ? '1 broken' : res.breaks + ' broken') + ' (−' + fmt(res.penalty) + ')';
+    let sub = 'Top multiplier ' + multText(res.bestMult) + ', best combo ' + res.bestCombo + '. ' + full + ', ' + broken + '.';
+    sub += ' Time ' + mmss(res.time) + ' of ' + mmss(res.par) + (res.timeBonus ? ', time bonus +' + fmt(res.timeBonus) : ', no time bonus') + '.';
+    if (res.noBreak) sub += ' No-break bonus +' + fmt(res.noBreak) + '.';
+    if (res.stars < 5) sub += ' Next star at ' + fmt(Math.ceil(res.ideal * GS.SCORE.stars[res.stars])) + ' points.';
+    $('doneSub').textContent = sub;
+    const pz = $('donePrize');
+    if (unlocks.length) {
+      pz.hidden = false;
+      pz.innerHTML = 'New chopsticks: <b>' + unlocks.map((k) => k.name).join(', ') + '</b>. Pick them under Chopsticks.';
+    } else pz.hidden = true;
+    setScreen('done');
+  }
+
+  // ---------- input: above the finger (direct), or drag anywhere (relative) ----------
+  const offset = () => (sim ? sim.cfg.fingerOffset : (cfg.fingerOffset || GS.DEFAULTS.fingerOffset));
+  function toWorld(e) {
+    if (save.control === 'drag') {
+      virt.x = clamp(drag.x0 + ((e.clientX - drag.sx) / view.scale) * DRAG_GAIN, 24, W - 24);
+      virt.y = clamp(drag.y0 + ((e.clientY - drag.sy) / view.scale) * DRAG_GAIN, view.top - 40, view.H - 90);
+      input.x = virt.x; input.y = virt.y + offset();
+    } else {
+      input.x = (e.clientX - view.offX) / view.scale; input.y = e.clientY / view.scale;
+    }
+  }
+  function releaseInput() { input.down = false; input.id = null; }
+  canvas.addEventListener('pointerdown', (e) => {
+    Sound.unlock();
+    if (screen !== 'play' || typeof input.id === 'number' || autoBot) return;
+    input.id = e.pointerId;
+    try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+    drag.sx = e.clientX; drag.sy = e.clientY; drag.x0 = virt.x; drag.y0 = virt.y;
+    toWorld(e); input.down = true; e.preventDefault();
+  });
+  canvas.addEventListener('pointermove', (e) => { if (e.pointerId === input.id) toWorld(e); });
+  const endPointer = (e) => {
+    if (e.pointerId !== input.id) return;
+    if (save.control === 'drag' && sim) { const S = sim.sticks; if (S.phase === 'open' || S.phase === 'enter') { virt.x = S.tx; virt.y = S.ty; } }
+    releaseInput();
+  };
+  canvas.addEventListener('pointerup', endPointer);
+  canvas.addEventListener('pointercancel', endPointer);
+  canvas.addEventListener('lostpointercapture', endPointer);
+  canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+  // phones only let sound start on the events that count as a tap: the finger lifting, a click or a key
+  for (const ev of ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown']) document.addEventListener(ev, () => Sound.unlock(), { capture: true, passive: true });
+  // keyboard: arrows move, space holds, Esc pauses
+  window.addEventListener('keydown', (e) => {
+    if (screen === 'play') {
+      if (e.key === 'Escape' || e.key === 'p') { pause(); return; }
+      if (e.key === ' ') { e.preventDefault(); Sound.unlock(); if (!input.down) { input.down = true; input.id = 'key'; } return; }
+      if (e.key.startsWith('Arrow')) { e.preventDefault(); keys.add(e.key); if (input.id === null) { input.x = W / 2; input.y = view.H * 0.6; input.id = 'keyaim'; } }
+    } else if (screen === 'pause' && e.key === 'Escape') resume();
+  });
+  window.addEventListener('keyup', (e) => {
+    keys.delete(e.key);
+    if (e.key === ' ' && input.id === 'key') { input.down = false; input.id = 'keyaim'; }
+  });
+
+  // ---------- game events → sound, haptics, effects, HUD ----------
+  const MULT_COLOR = { 1: '#f2ede3', 2: '#ffd2a0', 3: '#ffb36b', 4: '#ff9445', 5: '#f3c75a' };
+  const SPEED_COLOR = { Lightning: '#f3c75a', Quick: '#ffb36b', Steady: '#f2ede3', Slow: '#a7adb5' };
+  function handleEvents(evts) {
+    const L = levelAt(levelIndex);
+    for (const e of evts) {
+      switch (e.type) {
+        case 'sticks_in': Sound.swish(); break;
+        case 'push': Sound.push(e.n, e.speed); break;
+        case 'slot':
+          Sound.slot(e.index, e.grain, e.n >= e.need);
+          Haptics.buzz(e.n >= e.need ? 12 : 5);
+          fx.pops.set(e.id, 1);
+          if (hintStage === 0 && L.hint && L.hint[1]) { hintStage = 1; showHint(); }
+          break;
+        case 'close': {
+          Sound.clack();
+          if (e.kind === 'full') {
+            Sound.fullRow(); Haptics.buzz([15, 30, 15]);
+            const G = sim.geom();
+            floatText('Full row', G.Tx + G.nx * 60, G.Ty - 30, '#f3c75a', 34);
+            fx.rings.push({ x: G.mx, y: G.my, t: 0, life: 0.45 });
+            fx.wave = { ids: sim.sticks.row.slice(), t: 0 };
+            sparkRow();
+          }
+          break;
+        }
+        case 'carry': Sound.slide(); break;
+        case 'row_taken': {
+          Sound.pour(e.n);
+          const tier = Math.min(5, Math.floor(e.mult));
+          floatText('+' + fmt(e.points), e.x, e.y - 50, MULT_COLOR[tier] || '#f2ede3', e.mult >= 3 ? 40 : 34);
+          save.totals.grains += e.n;
+          save.totals.bestCombo = Math.max(save.totals.bestCombo, e.combo);
+          save.totals.bestMult = Math.max(save.totals.bestMult, e.mult);
+          if (e.kind !== 'short') {
+            // how fast the row was decides how much the multiplier grows
+            const col = SPEED_COLOR[e.speed];
+            floatText(e.speed + '  ' + multText(e.mult), e.x, e.y - 105, col, e.speed === 'Lightning' ? 44 : 36);
+            if (e.speed === 'Lightning' || e.speed === 'Quick') { Sound.multUp(Math.min(5, 1 + Math.floor(e.mult))); Haptics.buzz(e.speed === 'Lightning' ? [12, 30, 12, 30, 12] : [12, 30, 12]); }
+            if (e.speed === 'Lightning' && !reducedMotion()) fx.rings.push({ x: e.x, y: e.y - 105, t: 0, life: 0.5 });
+            if (e.cleared) floatText(TYPES[e.grain].label + ' cleared', e.x, e.y - 150, '#f2ede3', 28);
+            updateStreak('up');
+          } else {
+            floatText('Short row: ' + multText(e.multBefore) + ' → ' + multText(e.mult), e.x, e.y - 100, '#a7adb5', 26);
+            updateStreak(e.mult < e.multBefore ? 'lost' : null);
+          }
+          if (e.milestone) { Sound.fanfare(); Haptics.buzz([20, 30, 20, 30, 60]); banner(e.milestone, '+' + fmt(e.bonus) + ' for ' + e.combo + ' full rows in a row'); }
+          restartAnim(scoreEl, 'bump');
+          const un = checkUnlocks();
+          if (un.length) { levelUnlocks.push(...un); if (!e.milestone) banner('New chopsticks', un.map((k) => k.name).join(', ')); }
+          persist();
+          Analytics.emit('row_taken', { level: L.id, grain: e.grain, n: e.n, kind: e.kind, speed: e.speed, combo: e.combo, mult: e.mult, points: e.points });
+          hintRows++;
+          if (hintStage >= 0 && hintRows >= (L.hintRows || 1)) { hintStage = -1; showHint(); }
+          updateHud(false);
+          break;
+        }
+        case 'target': Sound.swap(); updateHud(true); break;
+        case 'break': {
+          Sound.thud(); Sound.scatter(e.lost); Haptics.buzz([30, 40, 30]);
+          if (!reducedMotion()) fx.shakeT = 0.25;
+          fx.bad = { id: e.id, t: 1.4 };
+          const by = Math.max(view.top + 50, e.y - 40);
+          floatText((BROKE[e.wrong] || 'Wrong grain got in') + (e.penalty ? '  −' + fmt(e.penalty) : ''), e.x, by, '#ff6b5e', 32);
+          if (e.multLost > 1.05) { Sound.lost(); floatText('Multiplier lost: ' + multText(e.multLost) + ' → ×1.0', e.x, by + 45, '#ff6b5e', 28); }
+          updateStreak('lost');
+          restartAnim(scoreEl, 'bump');
+          Analytics.emit('row_broken', { level: L.id, wrong: e.wrong, lost: e.lost, comboLost: e.comboLost, multLost: e.multLost });
+          updateHud(false);
+          break;
+        }
+        case 'level_complete': {
+          Sound.chime(); Haptics.buzz([20, 30, 20, 30, 40]);
+          const prev = save.levels[L.id] ? Object.assign({}, save.levels[L.id]) : null;
+          save.levels[L.id] = {
+            stars: Math.max(e.stars, prev ? prev.stars : 0),
+            best: Math.max(e.score, prev && prev.best ? prev.best : 0),
+            plays: (prev ? prev.plays : 0) + 1,
+          };
+          save.reached = Math.max(save.reached, levelIndex + 1);
+          persist();
+          levelUnlocks.push(...checkUnlocks());
+          Analytics.emit('level_complete', { level: L.id, score: e.score, stars: e.stars, breaks: e.breaks, bestCombo: e.bestCombo, bestMult: e.bestMult, time: e.time });
+          pendingDone = { at: performance.now() + 900, res: e, prev, unlocks: levelUnlocks.slice() };
+          updateHud(false);
+          break;
+        }
+      }
+    }
+  }
+  function floatText(text, x, y, color, size) {
+    const sz = size || 32, half = Math.min(W / 2 - 14, (text.length * sz * 0.56) / 2 + 12);   // keep the whole line on the board
+    fx.floats.push({ text, x: clamp(x, half, W - half), y: Math.max(view.top + 30, y), color, size: sz, t: 0, life: 1.1 });
+  }
+  function sparkRow() {
+    const n = reducedMotion() ? 0 : 20;
+    for (const id of sim.sticks.row) {
+      const g = sim.grains[id];
+      for (let i = 0; i < Math.ceil(n / Math.max(1, sim.sticks.row.length)); i++) {
+        const a = Math.random() * Math.PI * 2, v = 60 + Math.random() * 160;
+        fx.sparks.push({ x: g.x, y: g.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0, life: 0.35 + Math.random() * 0.25 });
+      }
+    }
+  }
+
+  // ---------- pause / resume ----------
+  function pause() { if (screen !== 'play' || !sim || sim.done) return; setScreen('pause'); Analytics.emit('pause', { level: levelAt(levelIndex).id }); }
+  function resume() { setScreen('play'); }
+  document.addEventListener('visibilitychange', () => { if (document.hidden) { pause(); Sound.sleep(); } });
+
+  // ---------- rendering ----------
+  function drawGrain(g, scaleMul, jx, jy, ox, oy) {
+    const sp = sprites[g.type][g.tint];
+    const s = g.s * (scaleMul || 1) * K(), c = Math.cos(g.rot) * s, n = Math.sin(g.rot) * s;
+    ctx.setTransform(c, n, -n, c, view.dpr * (view.offX + ox + (g.x + (jx || 0)) * view.scale), view.dpr * (oy + (g.y + (jy || 0)) * view.scale));
+    ctx.drawImage(sp.cv, -sp.w / 2, -sp.h / 2, sp.w, sp.h);
+  }
+  function stickShape(c, s, G, L) {
+    // one stick in the sticks' frame: tip at y = 0, the hand toward +y; s = -1 left, +1 right
+    const tipW = GS.STICK.tipW, baseW = GS.STICK.baseW, g2 = G.gap / 2;
+    const x0 = s * (g2 + tipW / 2), xL = s * (g2 + G.spread * L + baseW / 2);
+    const ang = Math.atan2(xL - x0, L);
+    c.save(); c.translate(x0, 0); c.rotate(-ang);
+    const len = Math.hypot(xL - x0, L);
+    c.beginPath();
+    c.moveTo(-tipW / 2, 0);
+    c.quadraticCurveTo(0, -tipW * 1.1, tipW / 2, 0);
+    c.lineTo(baseW / 2, len); c.lineTo(-baseW / 2, len); c.closePath();
+    return { len, baseW, tipW };
+  }
+  function drawSticks(s, ox, oy) {
+    const G = s.geom(), L = GS.STICK.len, skin = stickById(save.sticks.equipped);
+    const th = Math.atan2(G.ux, -G.uy), k = K(), cs = Math.cos(th) * k, sn = Math.sin(th) * k;
+    const at = (wx, wy) => ctx.setTransform(cs, sn, -sn, cs, view.dpr * (view.offX + ox + wx * view.scale), view.dpr * (oy + wy * view.scale));
+    // shadows first, cast down and to the right; lifted sticks cast them further and softer
+    const lf = 1 + G.lift * 1.8, la = 1 - G.lift * 0.45;
+    for (const [dx, dy, a] of [[13, 18, 0.16], [8, 11, 0.24]]) {
+      at(G.Tx + dx * lf, G.Ty + dy * lf);
+      ctx.fillStyle = 'rgba(0,0,0,' + a * la + ')';
+      for (const side of [-1, 1]) { stickShape(ctx, side, G, L); ctx.fill(); ctx.restore(); }
+    }
+    at(G.Tx, G.Ty);
+    for (const side of [-1, 1]) {
+      const m = stickShape(ctx, side, G, L);
+      const gr = ctx.createLinearGradient(-m.baseW / 2, 0, m.baseW / 2, 0);
+      [0, 0.22, 0.42, 0.62, 1].forEach((p, i) => gr.addColorStop(p, skin.body[i]));
+      ctx.fillStyle = gr; ctx.fill();
+      if (skin.tip) {
+        ctx.save(); ctx.clip();
+        const tg = ctx.createLinearGradient(-m.baseW / 2, 0, m.baseW / 2, 0);
+        tg.addColorStop(0, skin.tip[0]); tg.addColorStop(0.45, skin.tip[1]); tg.addColorStop(1, skin.tip[2]);
+        ctx.fillStyle = tg; ctx.fillRect(-m.baseW, -20, m.baseW * 2, 150);
+        ctx.restore();
+      }
+      ctx.strokeStyle = 'rgba(40,20,5,0.2)'; ctx.lineWidth = 0.8;
+      ctx.beginPath(); ctx.moveTo(-1.2, 30); ctx.lineTo(-4, m.len); ctx.moveTo(1.6, 60); ctx.lineTo(3.5, m.len); ctx.stroke();
+      ctx.restore();
+    }
+  }
+  // the reach (where the row's kind is pulled from) and, fainter and red, where wrong grains creep from
+  function fieldPath(s, G, R) {
+    const cx = G.mx + G.ux * s.cfg.fieldAhead * R, cy = G.my + G.uy * s.cfg.fieldAhead * R;
+    ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2);
+    return { cx, cy };
+  }
+  function withCone(s, G, R, draw) {
+    if (s.cfg.fieldCone >= 180) { draw(); return; }
+    const a = Math.atan2(G.uy, G.ux), h = (s.cfg.fieldCone * Math.PI) / 180, L = R * 3;
+    ctx.save(); ctx.beginPath(); ctx.moveTo(G.mx, G.my);
+    ctx.lineTo(G.mx + Math.cos(a - h) * L, G.my + Math.sin(a - h) * L);
+    ctx.arc(G.mx, G.my, L, a - h, a + h);
+    ctx.closePath(); ctx.clip(); draw(); ctx.restore();
+  }
+  function drawZone(s, ox, oy) {
+    const S = s.sticks;
+    if (!save.showReach || (S.phase !== 'open' && S.phase !== 'enter')) return;
+    const G = s.geom(), a = S.phase === 'open' ? 1 : Math.min(1, S.pt / s.cfg.enterTime);
+    worldTransform(ox, oy);
+    const R = s.cfg.zoneR;
+    withCone(s, G, R, () => {
+      const c = fieldPath(s, G, R);
+      const rg = ctx.createRadialGradient(c.cx, c.cy, R * 0.2, c.cx, c.cy, R);
+      rg.addColorStop(0, 'rgba(242,237,227,' + 0.06 * a + ')'); rg.addColorStop(1, 'rgba(242,237,227,0)');
+      ctx.fillStyle = rg; ctx.fill();
+      ctx.strokeStyle = 'rgba(242,237,227,' + 0.18 * a + ')'; ctx.lineWidth = 2.5;
+      ctx.setLineDash([12, 16]); ctx.lineDashOffset = -s.t * 30; ctx.stroke();
+      fieldPath(s, G, s.cfg.creepR);
+      ctx.strokeStyle = 'rgba(255,107,94,' + 0.16 * a + ')'; ctx.lineWidth = 2; ctx.setLineDash([6, 10]); ctx.stroke();
+      ctx.setLineDash([]);
+    });
+  }
+  // how full the row is: empty places between the sticks and a ring around the tips that fills to gold
+  function drawFill(s, ox, oy) {
+    const S = s.sticks;
+    if (s !== sim || (S.phase !== 'open' && S.phase !== 'close') || S.need < 1) return;
+    const G = s.geom(), T = TYPES[S.rowType], slot0 = s.slot0(S.rowType), n = S.row.length, f = Math.min(1, n / S.need);
+    worldTransform(ox, oy);
+    ctx.strokeStyle = 'rgba(242,237,227,0.16)'; ctx.lineWidth = 1.6;
+    for (let i = n; i < S.need; i++) {
+      const d = slot0 + i * T.pitch, x = G.Tx - G.ux * d, y = G.Ty - G.uy * d;
+      ctx.beginPath(); ctx.arc(x, y, Math.min(T.rx, T.ry) * 0.75, 0, Math.PI * 2); ctx.stroke();
+    }
+    const r = 30, a0 = -Math.PI / 2;
+    ctx.lineWidth = 5; ctx.lineCap = 'round';
+    ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+    ctx.beginPath(); ctx.arc(G.mx, G.my, r, 0, Math.PI * 2); ctx.stroke();
+    const col = f >= 1 ? '#f3c75a' : 'rgba(255,' + Math.round(237 - 30 * f) + ',' + Math.round(227 - 140 * f) + ',0.95)';
+    ctx.strokeStyle = col;
+    if (f > 0) { ctx.beginPath(); ctx.arc(G.mx, G.my, r, a0, a0 + f * Math.PI * 2); ctx.stroke(); }
+    ctx.lineCap = 'butt';
+  }
+  function drawStores(s, ox, oy) {
+    worldTransform(ox, oy);
+    for (const t in s.stores) {
+      const st = s.stores[t], r = st.r - 10;
+      const a0 = st.kind === 'bc' ? Math.PI : st.kind === 'bl' ? -Math.PI / 2 : Math.PI;
+      const a1 = st.kind === 'bc' ? 2 * Math.PI : st.kind === 'bl' ? 0 : 1.5 * Math.PI;
+      ctx.fillStyle = 'rgba(0,0,0,0.14)';
+      ctx.beginPath(); ctx.moveTo(st.x, st.y); ctx.arc(st.x, st.y, r, a0, a1); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = 'rgba(242,237,227,0.1)'; ctx.lineWidth = 2; ctx.setLineDash([10, 12]);
+      ctx.beginPath(); ctx.arc(st.x, st.y, r, a0, a1); ctx.stroke(); ctx.setLineDash([]);
+      for (const id of st.ids) { const g = s.grains[id]; if (g.st === ST.GONE) drawGrain(g, 1, 0, 0, ox, oy); }
+      worldTransform(ox, oy);
+    }
+  }
+  function drawWarnRing(g, a, ox, oy) {
+    worldTransform(ox, oy);
+    ctx.strokeStyle = 'rgba(255,107,94,' + a + ')'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(g.x, g.y, TYPES[g.type].rx + 7, 0, Math.PI * 2); ctx.stroke();
+  }
+  function drawGhost(ox, oy) {
+    if (save.control !== 'drag' || screen !== 'play' || !sim || sim.sticks.phase !== 'away' || sim.done) return;
+    worldTransform(ox, oy);
+    ctx.strokeStyle = 'rgba(242,237,227,0.35)'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(virt.x, virt.y, 16, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(virt.x - 26, virt.y); ctx.lineTo(virt.x - 10, virt.y); ctx.moveTo(virt.x + 10, virt.y); ctx.lineTo(virt.x + 26, virt.y);
+    ctx.moveTo(virt.x, virt.y - 26); ctx.lineTo(virt.x, virt.y - 10); ctx.moveTo(virt.x, virt.y + 10); ctx.lineTo(virt.x, virt.y + 26); ctx.stroke();
+  }
+  function render() {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    if (bg) ctx.drawImage(bg, 0, 0);
+    const s = screen === 'title' || screen === 'levels' || screen === 'sticks' ? demo : sim;
+    if (!s || !sprites) return;
+    ctx.save();                                  // nothing draws past the board on a wide screen
+    ctx.beginPath(); ctx.rect(Math.round(view.offX * view.dpr), 0, Math.round(W * view.scale * view.dpr), canvas.height); ctx.clip();
+    drawWorld(s);
+    ctx.restore();
+  }
+  function drawWorld(s) {
+    let ox = 0, oy = 0;
+    if (s === sim && fx.shakeT > 0) { const m = fx.shakeT * 22; ox = (Math.random() - 0.5) * m; oy = (Math.random() - 0.5) * m; }
+    drawStores(s, ox, oy);
+    drawZone(s, ox, oy);
+    const t = s.t, gs = s.grains;
+    const badId = s === sim && fx.bad ? fx.bad.id : -1;
+    for (const g of gs) {
+      if (g.st !== ST.REST && g.st !== ST.SLIDE) continue;
+      let jx = 0, jy = 0;
+      if (g.warn > 0.02) {
+        drawWarnRing(g, Math.min(0.95, 0.25 + g.warn), ox, oy);
+        jx = Math.sin(t * 57 + g.id * 1.7) * g.warn * 2.4; jy = Math.cos(t * 49 + g.id) * g.warn * 2.4;
+      }
+      if (g.id === badId) drawWarnRing(g, Math.min(1, fx.bad.t), ox, oy);
+      drawGrain(g, 1, jx, jy, ox, oy);
+    }
+    for (const g of gs) if (g.st === ST.WALK) drawGrain(g, 1.04, 0, 0, ox, oy);
+    drawFill(s, ox, oy);
+    const wave = s === sim ? fx.wave : null;
+    s.sticks.row.forEach((id, i) => {
+      const g = gs[id], p = s === sim ? fx.pops.get(id) || 0 : 0;
+      let w = 0;
+      if (wave) { const k = wave.t * 5 - i * 0.12; if (k > 0 && k < 1) w = Math.sin(Math.PI * k) * 0.35; }
+      drawGrain(g, 1 + 0.3 * p * p + w, 0, 0, ox, oy);
+    });
+    if (s.sticks.phase !== 'away') drawSticks(s, ox, oy);
+    for (const g of gs) {
+      if (g.st !== ST.POUR) continue;
+      const k = clamp(g.pt / s.cfg.pourTime, 0, 1);
+      drawGrain(g, 1 + 0.35 * Math.sin(Math.PI * k), 0, 0, ox, oy);
+    }
+    if (s !== sim) return;
+    drawGhost(ox, oy);
+    worldTransform(ox, oy);
+    for (const r of fx.rings) {
+      const k = r.t / r.life;
+      ctx.strokeStyle = 'rgba(243,199,90,' + (1 - k) + ')'; ctx.lineWidth = 6 * (1 - k) + 1;
+      ctx.beginPath(); ctx.arc(r.x, r.y, 30 + k * 70, 0, Math.PI * 2); ctx.stroke();
+    }
+    for (const p of fx.sparks) {
+      const a = 1 - p.t / p.life;
+      ctx.fillStyle = 'rgba(255,236,190,' + a + ')';
+      ctx.beginPath(); ctx.arc(p.x, p.y, 3.2 * a + 1, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    for (const f of fx.floats) {
+      const k = f.t / f.life, a = k < 0.7 ? 1 : 1 - (k - 0.7) / 0.3, pop = k < 0.12 ? 0.7 + (k / 0.12) * 0.3 : 1;
+      ctx.font = '700 ' + Math.round(f.size * pop) + 'px "Atkinson Hyperlegible", system-ui, sans-serif';
+      ctx.fillStyle = 'rgba(0,0,0,' + 0.55 * a + ')'; ctx.fillText(f.text, f.x + 2, f.y - k * 45 + 2);
+      ctx.globalAlpha = a; ctx.fillStyle = f.color; ctx.fillText(f.text, f.x, f.y - k * 45); ctx.globalAlpha = 1;
+    }
+  }
+  function updateFx(dt) {
+    for (const [id, p] of fx.pops) { const v = p - dt / 0.16; if (v <= 0) fx.pops.delete(id); else fx.pops.set(id, v); }
+    for (const p of fx.sparks) { p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.9; p.vy *= 0.9; }
+    fx.sparks = fx.sparks.filter((p) => p.t < p.life);
+    for (const r of fx.rings) r.t += dt;
+    fx.rings = fx.rings.filter((r) => r.t < r.life);
+    if (fx.wave) { fx.wave.t += dt; if (fx.wave.t > 0.6) fx.wave = null; }
+    for (const f of fx.floats) f.t += dt;
+    fx.floats = fx.floats.filter((f) => f.t < f.life);
+    if (fx.shakeT > 0) fx.shakeT = Math.max(0, fx.shakeT - dt);
+    if (fx.bad) { fx.bad.t -= dt; if (fx.bad.t <= 0) fx.bad = null; }
+  }
+
+  // ---------- main loop: fixed-step sim, render every frame ----------
+  let last = performance.now(), acc = 0;
+  function frame(now) {
+    const dt = Math.min(0.1, (now - last) / 1000); last = now;
+    if (screen === 'play' && sim) {
+      const step = 1 / sim.cfg.stepHz;
+      if (keys.size) {
+        const v = 600 * dt;
+        if (keys.has('ArrowLeft')) input.x -= v; if (keys.has('ArrowRight')) input.x += v;
+        if (keys.has('ArrowUp')) input.y -= v; if (keys.has('ArrowDown')) input.y += v;
+        input.x = clamp(input.x, 0, W); input.y = clamp(input.y, 0, view.H + 200);
+      }
+      acc += dt;
+      let n = 0;
+      while (acc >= step && n < 24) {
+        const inp = autoBot ? autoBot() : input;
+        sim.step(inp); handleEvents(sim.drainEvents()); acc -= step; n++;
+      }
+      if (n === 24) acc = 0;
+      updateClocks();
+      if (pendingDone && now >= pendingDone.at) { const p = pendingDone; pendingDone = null; showDone(p.res, p.prev, p.unlocks); }
+    } else if ((screen === 'title' || screen === 'levels' || screen === 'sticks') && demo) {
+      const step = 1 / demo.cfg.stepHz;
+      acc += dt;
+      let n = 0;
+      while (acc >= step && n < 24) {
+        const inp = demoBot();
+        demo.step(inp); demo.drainEvents(); acc -= step; n++;
+        demoIdle = !inp.down && demo.sticks.phase === 'away' ? demoIdle + step : 0;
+      }
+      if (n === 24) acc = 0;
+      if (demo.done || demoIdle > 1.5) newDemo();
+    } else acc = 0;
+    updateFx(dt);
+    render();
+    requestAnimationFrame(frame);
+  }
+
+  // ---------- tuning panel ----------
+  const tuneValue = (key) => (sim ? sim.cfg[key] : key in cfg ? cfg[key] : GS.DEFAULTS[key]);
+  function buildTune() {
+    const list = $('tuneList'); list.innerHTML = '';
+    for (const t of TUNE) {
+      const row = document.createElement('div'); row.className = 'trow';
+      const id = 'tune-' + t.key;
+      row.innerHTML = '<label for="' + id + '">' + t.label + '</label><output id="' + id + '-v"></output>' +
+        '<input type="range" id="' + id + '" min="' + t.min + '" max="' + t.max + '" step="' + t.step + '">';
+      list.appendChild(row);
+      const inp = row.querySelector('input'), out = row.querySelector('output');
+      const show = (v) => (t.step < 1 ? (+v).toFixed(t.step < 0.01 ? 3 : 2) : String(Math.round(v)));
+      inp.value = tuneValue(t.key); out.textContent = show(tuneValue(t.key));
+      inp.addEventListener('input', () => {
+        const v = parseFloat(inp.value);
+        cfg[t.key] = v; out.textContent = show(v);
+        const L = levelAt(levelIndex);
+        if (sim && !(L.tune && t.key in L.tune)) sim.cfg[t.key] = v;
+        saveTune(); Analytics.emit('tune_change', { key: t.key, value: v });
+      });
+    }
+    $('showReach').checked = save.showReach;
+    $('hapticsOn').checked = save.haptics;
+  }
+  function saveTune() {
+    const diff = {};
+    for (const t of TUNE) if (t.key in cfg && cfg[t.key] !== GS.DEFAULTS[t.key]) diff[t.key] = cfg[t.key];
+    Store.set(TUNE_KEY, { saveVersion: 3, cfg: diff });
+  }
+  function tuneJson() {
+    const o = {};
+    for (const t of TUNE) o[t.key] = tuneValue(t.key);
+    return JSON.stringify(o, null, 2);
+  }
+  $('showReach').addEventListener('change', (e) => { save.showReach = e.target.checked; persist(); });
+  $('hapticsOn').addEventListener('change', (e) => { save.haptics = e.target.checked; persist(); if (save.haptics) Haptics.buzz(20); });
+  $('tuneResetBtn').addEventListener('click', () => {
+    for (const t of TUNE) {
+      delete cfg[t.key];
+      if (sim) { const lt = levelAt(levelIndex).tune || {}; sim.cfg[t.key] = t.key in lt ? lt[t.key] : GS.DEFAULTS[t.key]; }
+    }
+    Store.del(TUNE_KEY); buildTune(); toast('Back to the default feel.');
+  });
+  $('tuneCopyBtn').addEventListener('click', () => {
+    const text = tuneJson(), box = $('tuneJson');
+    const fallback = () => { box.hidden = false; box.value = text; box.focus(); box.select(); toast('Select the values and copy them.'); };
+    try {
+      navigator.clipboard.writeText(text).then(() => toast('Values copied.'), fallback);
+    } catch (e) { fallback(); }
+  });
+  $('tuneDoneBtn').addEventListener('click', () => setScreen(tuneFrom));
+
+  // ---------- buttons ----------
+  function syncControl() { $('controlBtn').textContent = save.control === 'drag' ? 'Control: drag anywhere' : 'Control: tips above your finger'; }
+  $('controlBtn').addEventListener('click', () => {
+    save.control = save.control === 'drag' ? 'direct' : 'drag'; persist(); syncControl();
+    if (sim && save.control === 'drag') { virt.x = sim.sticks.tx; virt.y = clamp(sim.sticks.ty, view.top, view.H - 200); }
+    toast(save.control === 'drag' ? 'Drag anywhere: the sticks move with your drag, your thumb can stay low.' : 'The tips sit above your finger.');
+  });
+  $('playBtn').addEventListener('click', () => startLevel(nextLevelIndex(), 'play'));
+  $('openLevelsBtn').addEventListener('click', () => setScreen('levels'));
+  $('openSticksBtn').addEventListener('click', () => { sticksFrom = 'title'; setScreen('sticks'); });
+  $('levelsBackBtn').addEventListener('click', () => setScreen('title'));
+  $('sticksBackBtn').addEventListener('click', () => setScreen(sticksFrom));
+  $('menuBtn').addEventListener('click', pause);
+  $('resumeBtn').addEventListener('click', resume);
+  $('restartBtn').addEventListener('click', () => { Analytics.emit('level_retry', { level: levelAt(levelIndex).id, from: 'pause' }); startLevel(levelIndex, 'restart'); });
+  $('pauseLevelsBtn').addEventListener('click', () => { Analytics.emit('level_exit', { level: levelAt(levelIndex).id }); setScreen('levels'); });
+  const syncSound = () => { $('soundBtn').textContent = save.sound ? 'Sound on' : 'Sound off'; };
+  $('soundBtn').addEventListener('click', () => { save.sound = !save.sound; persist(); syncSound(); if (save.sound) Sound.unlock(); else Sound.sleep(); });
+  $('tuneBtn').addEventListener('click', () => { tuneFrom = 'pause'; buildTune(); $('tuneJson').hidden = true; setScreen('tune'); });
+  $('nextBtn').addEventListener('click', () => startLevel(levelIndex + 1, 'next'));
+  $('retryBtn').addEventListener('click', () => { Analytics.emit('level_retry', { level: levelAt(levelIndex).id, from: 'done' }); startLevel(levelIndex, 'retry'); });
+  $('doneLevelsBtn').addEventListener('click', () => setScreen('levels'));
+  syncSound(); syncControl();
+
+  // ---------- boot ----------
+  window.addEventListener('resize', resize);
+  resize();
+  let started = false;
+  function start(data) {
+    if (started) return;
+    started = true;
+    const d = data || {};
+    if ((d.screen === 'play' || d.screen === 'pause' || d.screen === 'done') && Number.isInteger(d.levelIndex) && unlocked(d.levelIndex)) startLevel(d.levelIndex, 'restore');
+    else setScreen('title');
+    requestAnimationFrame((t) => { last = t; frame(t); });
+  }
+  const hot = window.claude && window.claude.hot;
+  if (hot && typeof hot.snapshot === 'function') { try { hot.snapshot(() => ({ screen, levelIndex })); } catch (e) { /* ignore */ } }
+  if (hot && typeof hot.ready === 'function') { try { hot.ready(start); } catch (e) { start({}); } }
+  else start((hot && hot.data) || {});
+  setTimeout(() => start({}), 1500);
+
+  // console handle for tuning and checks
+  window.__grainLine = {
+    get sim() { return sim; }, get demo() { return demo; }, get screen() { return screen; }, cfg, save, Analytics, Sound,
+    startLevel, autoplay(on) { autoBot = on && sim ? GS.makeBot(sim, 99) : null; releaseInput(); },
+  };
+})();
+</script>
+
+</body>
+</html>
