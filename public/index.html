@@ -1942,6 +1942,7 @@ const GrainSim = (() => {
   // soft chords with the right hand picking out a few notes of each, never quite the same twice.
   const hourNow = () => { const q = /[?&]hour=(\d+(?:\.\d+)?)/.exec(location.search); if (q) return +q[1]; const d = new Date(); return d.getHours() + d.getMinutes() / 60; };
   function dayPhase(h) { return h >= 5 && h < 10 ? 'morning' : h >= 10 && h < 17 ? 'day' : h >= 17 && h < 20.5 ? 'evening' : 'night'; }
+  const ROOM_SOUND = false;                       // the ambience and the piano are off for now; true brings them back
   const Room = {
     amb: null, keys: null, wind: null, timer: 0, scene: 'off', phase: dayPhase(hourNow()), due: {}, bar: 0, nextBar: 0,
     // eight bars: a low root, then the chord the right hand picks from (MIDI numbers)
@@ -1950,7 +1951,7 @@ const GrainSim = (() => {
     BEAT: 60 / 64,
     init() {
       const c = Sound.ctx;
-      if (!c || this.amb) return;
+      if (!ROOM_SOUND || !c || this.amb) return;
       this.amb = c.createGain(); this.amb.gain.value = 0; this.amb.connect(Sound.out);
       this.keys = c.createGain(); this.keys.gain.value = 0;
       const len = Math.floor(c.sampleRate * 2.6), ir = c.createBuffer(2, len, c.sampleRate);
@@ -2591,16 +2592,15 @@ const GrainSim = (() => {
     }
   }
   // ---------- the room: a tall frame made for a phone held upright; tap and the camera comes down over the board ----------
-  // The room is drawn in code (HutScene, below), so it follows the hour and everything in it can move. The night
-  // painting it was drawn after can stand in its place with ?scene=painting: one painting per time of day, each a tall
-  // frame; an hour without its own painting shows the night, the only one so far. Until it has loaded the room is a
-  // warm dark under the title, and if it cannot load the room is drawn in code.
+  // The room is the night painting: one painting per time of day, each a tall frame; an hour without its own painting
+  // shows the night, the only one so far. Until it has loaded the room is a warm dark under the title. A version drawn
+  // in code (HutScene, below) stands in if the painting cannot load, and can be looked at with ?scene=drawn.
   // On the painting, in code: the candle flame and the lantern flicker and throw their light, the lantern and the wind
   // chime sway, the voile curtains breathe, stars twinkle and now and then one falls, the lights on the lake shimmer,
   // fireflies drift and steam rises off the tea. Where each sits is set per painting, as shares of its width and height.
   const PLATE = {
     night: {
-      file: 'zen-night.jpg', size: [645, 1290],
+      file: 'zen-night.jpg', size: [645, 1290], top: 'zen-table.jpg',
       table: [0.526, 0.746], board: 0.595, cup: [0.848, 0.611], ceiling: 0.19,
       sky: [0.2, 0.215, 0.69, 0.36], flies: [0.06, 0.4, 0.8, 0.585],
       flame: { file: 'zen-flame.png', wick: [0.1225, 0.6496], w: 0.0868, h: 0.0512, ax: 0.482, ay: 0.985 },
@@ -2624,10 +2624,10 @@ const GrainSim = (() => {
     return im.complete && im.naturalWidth ? im : null;
   }
   // the painting on show, and the hour the room sounds like: the painting's own
-  const roomMode = () => (/[?&]scene=painting/.test(location.search) ? 'painting' : 'code');
+  const roomMode = () => (/[?&]scene=drawn/.test(location.search) ? 'drawn' : 'painting');
   const scenePlate = () => (PLATE[dayPhase(hourNow())] ? dayPhase(hourNow()) : 'night');
   function scenePhase() {
-    if (roomMode() === 'code') return dayPhase(hourNow());
+    if (roomMode() === 'drawn') return dayPhase(hourNow());
     const im = plateCache[PLATE[scenePlate()].file]; return im && im.failed ? dayPhase(hourNow()) : scenePlate();
   }
   // where the drawn room's board and ceiling are, as shares of its frame
@@ -3293,6 +3293,7 @@ const GrainSim = (() => {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.fillStyle = '#120c08'; ctx.fillRect(0, 0, cw, ch);
     const painting = roomMode() === 'painting', im = painting ? plateFile(P.file) : null, drawn = !painting || plateCache[P.file].failed;
+    if (im && P.top) plateFile(P.top);
     let f = null, A = P;
     if (drawn) {
       f = frameFit(HutScene.FW, HutScene.FH); A = DRAWN;
@@ -3316,14 +3317,15 @@ const GrainSim = (() => {
     if (e > 0.45) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = Math.min(1, (e - 0.45) / 0.5); drawTableTop(); ctx.globalAlpha = 1; }
   }
   // the camera: down over the board until it fills the screen, never so far that an edge of the room comes into view
-  function roomCamera(f, P, e) {
+  function cameraAt(f, P, e) {
     const cw = canvas.width, ch = canvas.height, fx = f.x0 + P.table[0] * f.dw, fy = f.y0 + P.table[1] * f.dh;
     const zEnd = clamp((0.95 * cw) / (P.board * f.dw), 1.4, 3.4), z = 1 + (zEnd - 1) * e;
     let tx = fx * (1 - z) + (cw / 2 - fx) * e, ty = fy * (1 - z) + (ch / 2 - fy) * e;
     if (!f.wide) tx = clamp(tx, cw - z * (f.x0 + f.dw), -z * f.x0);
     ty = clamp(ty, ch - z * (f.y0 + f.dh), -z * f.y0);
-    ctx.setTransform(z, 0, 0, z, tx, ty);
+    return [z, tx, ty];
   }
+  function roomCamera(f, P, e) { const [z, tx, ty] = cameraAt(f, P, e); ctx.setTransform(z, 0, 0, z, tx, ty); }
   // the title sits in the dark of the ceiling, above the window
   let titleState = '';
   function roomTitle(on, f, P) {
@@ -3347,6 +3349,28 @@ const GrainSim = (() => {
     const out = { cv, x, y, w, h }; bands.set(key, out); return out;
   }
   let blurCv = null;
+  // the breeze off the hills: one wind for the whole room. It rises in slow gusts and dies away again, and reaches each
+  // thing a moment later the further it is from the window: the curtains first, then the chime and the lantern, the
+  // steam and, last and least, the candle. Roughly 0.2 when still, up to 1.3 in a gust.
+  function breeze(t) {
+    const gust = Math.max(0, Math.sin(t * 0.19) * Math.sin(t * 0.083 + 1.3)) * 0.9 + 0.22 * (0.5 + 0.5 * Math.sin(t * 0.43 + 0.6));
+    return 0.22 + gust + 0.05 * Math.sin(t * 1.9) * Math.sin(t * 0.7 + 2);
+  }
+  // a thing hanging on a hook: a damped pendulum, pushed by the breeze
+  function swing(p, dt, period, damp, push) {
+    const w0 = 6.2832 / period, n = Math.max(1, Math.ceil(dt * 120)), h = dt / n;
+    for (let i = 0; i < n; i++) { const acc = -w0 * w0 * p.a - 2 * damp * w0 * p.v + push; p.v += acc * h; p.a += p.v * h; }
+    return p.a;
+  }
+  let puff = null;                              // one soft round puff, drawn once, for every wisp of steam
+  function puffSprite() {
+    if (puff) return puff;
+    puff = document.createElement('canvas'); puff.width = puff.height = 64;
+    const c = puff.getContext('2d'), g = c.createRadialGradient(32, 32, 0, 32, 32, 32);
+    g.addColorStop(0, 'rgba(255,246,236,1)'); g.addColorStop(0.45, 'rgba(255,246,236,0.5)'); g.addColorStop(1, 'rgba(255,246,236,0)');
+    c.fillStyle = g; c.fillRect(0, 0, 64, 64);
+    return puff;
+  }
   function paintedRoom(im, P, dt, e) {
     const cw = canvas.width, ch = canvas.height, f = plateFit(im), t = roomFx.t, still = reducedMotion(), d = view.dpr;
     const X = (u) => f.x0 + u * f.dw, Y = (v) => f.y0 + v * f.dh, U = f.dw;
@@ -3358,8 +3382,8 @@ const GrainSim = (() => {
     }
     roomCamera(f, P, e);
     ctx.drawImage(im, f.x0, f.y0, f.dw, f.dh);
-    const gust = still ? 0 : 0.55 + 0.45 * Math.sin(t * 0.23) * Math.sin(t * 0.11 + 2);
-    const flick = still ? 1 : 0.93 + 0.05 * Math.sin(t * 11) * Math.sin(t * 6.3) + 0.02 * Math.sin(t * 23.7);
+    const wind = (lag) => (still ? 0.3 : breeze(t - lag));
+    const flame = (lag) => (still ? 1 : 0.93 + (0.04 + 0.03 * wind(lag)) * Math.sin(t * 11) * Math.sin(t * 6.3) + 0.02 * Math.sin(t * 23.7));
     // stars: now and then one flares; and sometimes one falls
     ctx.globalCompositeOperation = 'lighter';
     if (!still) {
@@ -3393,85 +3417,136 @@ const GrainSim = (() => {
       }
     }
     ctx.globalCompositeOperation = 'source-over';
-    // the voile breathes, a wave running down each fall of it
-    const sc = f.s;
+    // the voile: each fall of it is pushed into the room by the breeze, the push running down the cloth, with a flutter
+    // over it; the slices are laid row for row on a canvas of the band's own size, so the sheer cloth shows no seams
     P.curtains.forEach((B, n) => {
       if (still) return;
-      const c = curtainBand(im, B), N = 36, kk = Math.log(0.5) / Math.log(B[5]), sh = c.h / N;
+      const c = curtainBand(im, B), N = 48, kk = Math.log(0.5) / Math.log(B[5]), dir = B[0] < 0.5 ? 1 : -1;
+      if (!c.work) { c.work = document.createElement('canvas'); c.work.width = c.w + 24; c.work.height = c.h; }
+      const wc = c.work.getContext('2d'); wc.clearRect(0, 0, c.work.width, c.work.height);
       for (let j = 0; j < N; j++) {
-        const v = (j + 0.5) / N, env = Math.sin(Math.PI * Math.pow(v, kk));
-        const dx = B[4] * U * env * gust * (Math.sin(t * 0.9 + v * 2.6 + n * 1.7) + 0.35 * Math.sin(t * 1.7 + v * 5 + n));
-        ctx.drawImage(c.cv, 0, j * sh, c.w, sh + 1, X(B[0]) + dx, Y(B[1]) + j * sh * sc, c.w * sc, (sh + 1) * sc);
+        const y0 = Math.round((j * c.h) / N), y1 = Math.round(((j + 1) * c.h) / N), v = (j + 0.5) / N, env = Math.sin(Math.PI * Math.pow(v, kk));
+        const push = wind(v * 0.7) - 0.2, flutter = 0.3 * push * Math.sin(t * 2.2 + v * 6 + n * 1.3) + 0.12 * Math.sin(t * 0.8 + v * 2 + n);
+        const dx = Math.round(dir * B[4] * (c.w / (B[2] - B[0])) * env * (push * 0.9 + flutter));
+        wc.drawImage(c.cv, 0, y0, c.w, y1 - y0, 12 + dx, y0, c.w, y1 - y0);
       }
+      ctx.drawImage(c.work, X(B[0]) - 12 * f.s, Y(B[1]), c.work.width * f.s, c.h * f.s);
     });
-    // the wind chime swings, more when it rings
-    roomFx.ring *= Math.exp(-dt / 1.8);
+    // the wind chime: a quick pendulum on a long cord, pushed by the gusts
     const C = P.chime, cimg = plateFile(C.file);
+    roomFx.chimeP = roomFx.chimeP || { a: 0, v: 0 };
+    const cth = still ? 0 : swing(roomFx.chimeP, dt, 1.6, 0.07, 1.1 * (wind(0.5) - 0.45) + 0.25 * Math.sin(t * 3.1) * wind(0.5) * 0.3) + roomFx.ring * 0.04 * Math.sin(t * 4.4);
+    roomFx.ring *= Math.exp(-dt / 1.8);
     if (cimg) {
-      const th = still ? 0 : gust * (0.02 * Math.sin(t * 2.3) + 0.01 * Math.sin(t * 3.7 + 1)) + roomFx.ring * 0.045 * Math.sin(t * 4.4);
       const w = C.w * U, h = C.h * f.dh;
-      ctx.save(); ctx.translate(X(C.at[0]), Y(C.at[1])); ctx.rotate(th); ctx.drawImage(cimg, -C.pivot[0] * w, -C.pivot[1] * h, w, h); ctx.restore();
+      ctx.save(); ctx.translate(X(C.at[0]), Y(C.at[1])); ctx.rotate(cth); ctx.drawImage(cimg, -C.pivot[0] * w, -C.pivot[1] * h, w, h); ctx.restore();
     }
-    // the lantern on its hook, swaying a little, and its light
-    const Ln = P.lantern, limg = plateFile(Ln.file), lw = Ln.w * U, lh = Ln.h * f.dh;
-    const lth = still ? 0 : gust * (0.026 * Math.sin(t * 0.8) + 0.009 * Math.sin(t * 1.9 + 1));
+    // the lantern on its hook: heavier, slower, and its light swings with it
+    const Ln = P.lantern, limg = plateFile(Ln.file), lw = Ln.w * U, lh = Ln.h * f.dh, lf = flame(0.6);
+    roomFx.lanP = roomFx.lanP || { a: 0, v: 0 };
+    const lth = still ? 0 : swing(roomFx.lanP, dt, 2.4, 0.12, 0.34 * (wind(0.9) - 0.45));
     const lx = X(Ln.at[0]), ly = Y(Ln.at[1]), gdx = (Ln.glass[0] - Ln.ring[0]) * lw, gdy = (Ln.glass[1] - Ln.ring[1]) * lh;
     const gx = lx + Math.cos(lth) * gdx - Math.sin(lth) * gdy, gy = ly + Math.sin(lth) * gdx + Math.cos(lth) * gdy;
     ctx.globalCompositeOperation = 'lighter';
     const lg = ctx.createRadialGradient(gx, gy, 0, gx, gy, U * 0.42);
-    lg.addColorStop(0, 'rgba(255,176,92,' + 0.3 * flick + ')'); lg.addColorStop(0.35, 'rgba(255,150,70,' + 0.1 * flick + ')'); lg.addColorStop(1, 'rgba(255,140,60,0)');
+    lg.addColorStop(0, 'rgba(255,176,92,' + 0.3 * lf + ')'); lg.addColorStop(0.35, 'rgba(255,150,70,' + 0.1 * lf + ')'); lg.addColorStop(1, 'rgba(255,140,60,0)');
     ctx.fillStyle = lg; ctx.fillRect(gx - U * 0.42, gy - U * 0.42, U * 0.84, U * 0.84);
     ctx.globalCompositeOperation = 'source-over';
     if (limg) { ctx.save(); ctx.translate(lx, ly); ctx.rotate(lth); ctx.drawImage(limg, -Ln.ring[0] * lw, -Ln.ring[1] * lh, lw, lh); ctx.restore(); }
     ctx.globalCompositeOperation = 'lighter';
     const lc = ctx.createRadialGradient(gx, gy, 0, gx, gy, U * 0.05);
-    lc.addColorStop(0, 'rgba(255,214,140,' + 0.35 * flick + ')'); lc.addColorStop(1, 'rgba(255,190,110,0)');
+    lc.addColorStop(0, 'rgba(255,214,140,' + 0.35 * lf + ')'); lc.addColorStop(1, 'rgba(255,190,110,0)');
     ctx.fillStyle = lc; ctx.fillRect(gx - U * 0.05, gy - U * 0.05, U * 0.1, U * 0.1);
-    // fireflies among the leaves and over the rail
-    const Fq = P.flies;
+    // fireflies among the leaves and over the rail, carried a little by the breeze
+    const Fq = P.flies, wf = wind(0.3);
     while (roomFx.flies.length < 12) roomFx.flies.push({ u: Math.random(), v: Math.random(), a: Math.random() * 6, p: Math.random() * 6 });
     for (const q of roomFx.flies) {
-      if (!still) { q.a += (Math.random() - 0.5) * 2 * dt; q.u = clamp(q.u + Math.cos(q.a) * 0.03 * dt, 0, 1); q.v = clamp(q.v + Math.sin(q.a) * 0.03 * dt, 0, 1); }
+      if (!still) { q.a += (Math.random() - 0.5) * 2 * dt; q.u = clamp(q.u + (Math.cos(q.a) * 0.03 + (wf - 0.45) * 0.012) * dt, 0, 1); q.v = clamp(q.v + Math.sin(q.a) * 0.03 * dt, 0, 1); }
       const x = X(Fq[0] + q.u * (Fq[2] - Fq[0])), y = Y(Fq[1] + q.v * (Fq[3] - Fq[1])), glow = still ? 0.4 : Math.pow(0.5 + 0.5 * Math.sin(t * 1.3 + q.p), 2), r = U * 0.012;
       if (glow < 0.03) continue;
       const g = ctx.createRadialGradient(x, y, 0, x, y, r);
       g.addColorStop(0, 'rgba(226,255,150,' + 0.8 * glow + ')'); g.addColorStop(0.3, 'rgba(210,250,120,' + 0.25 * glow + ')'); g.addColorStop(1, 'rgba(200,240,120,0)');
       ctx.fillStyle = g; ctx.fillRect(x - r, y - r, r * 2, r * 2);
     }
-    // the candle: its light on the table, and the flame itself, dancing
-    const Fl = P.flame, wx = X(Fl.wick[0]), wy = Y(Fl.wick[1]), fw = Fl.w * U, fh = Fl.h * f.dh;
+    // the candle: its light on the table, and the flame, leaning from the breeze and fluttering more when it gusts
+    const Fl = P.flame, wx = X(Fl.wick[0]), wy = Y(Fl.wick[1]), fw = Fl.w * U, fh = Fl.h * f.dh, cf = flame(1.4), wc = wind(1.4);
     const cg = ctx.createRadialGradient(wx, wy - fh * 0.4, 0, wx, wy - fh * 0.4, U * 0.36);
-    cg.addColorStop(0, 'rgba(255,196,112,' + (0.2 + 0.6 * (flick - 0.9)) + ')'); cg.addColorStop(0.4, 'rgba(255,160,80,' + 0.06 * flick + ')'); cg.addColorStop(1, 'rgba(255,150,70,0)');
+    cg.addColorStop(0, 'rgba(255,196,112,' + (0.2 + 0.6 * (cf - 0.9)) + ')'); cg.addColorStop(0.4, 'rgba(255,160,80,' + 0.06 * cf + ')'); cg.addColorStop(1, 'rgba(255,150,70,0)');
     ctx.fillStyle = cg; ctx.fillRect(wx - U * 0.36, wy - fh * 0.4 - U * 0.36, U * 0.72, U * 0.72);
     ctx.globalCompositeOperation = 'source-over';
     const fimg = plateFile(Fl.file);
     if (fimg) {
-      const lean = still ? 0 : 0.09 * Math.sin(t * 2.1) + 0.05 * Math.sin(t * 5.3) + 0.04 * gust * Math.sin(t * 0.7), sy = 0.94 + 0.9 * (flick - 0.93);
+      const lean = still ? 0 : 0.1 * (wc - 0.3) + (0.03 + 0.05 * wc) * Math.sin(t * 2.1) + 0.03 * Math.sin(t * 5.3);
+      const sy = (0.95 + 0.9 * (cf - 0.93)) * (1 - 0.06 * Math.max(0, wc - 0.6));
       ctx.save(); ctx.translate(wx, wy); ctx.transform(1, 0, -lean, 1, 0, 0); ctx.scale(1 / Math.sqrt(sy), sy);
       ctx.drawImage(fimg, -Fl.ax * fw, -Fl.ay * fh, fw, fh); ctx.restore();
     }
-    // steam off the tea
+    // steam off the tea: soft puffs rising from the rim in two or three thin streams, widening and thinning as they go,
+    // curling, and carried off by the breeze
     if (!still) {
-      if (Math.random() < dt * 1.6) roomFx.steam.push({ t: 0, life: 3.2 + Math.random() * 1.5, ph: Math.random() * 6, dx: (Math.random() - 0.5) * 0.03 });
-      ctx.lineCap = 'round';
-      for (const s of roomFx.steam) {
-        s.t += dt; const k = s.t / s.life, x = X(P.cup[0]) + s.dx * U, y = Y(P.cup[1]) - k * U * 0.2;
-        ctx.strokeStyle = 'rgba(255,240,225,' + 0.12 * Math.sin(Math.PI * k) + ')'; ctx.lineWidth = U * 0.008 * (1 + k);
-        ctx.beginPath(); ctx.moveTo(x, y);
-        ctx.bezierCurveTo(x + Math.sin(s.ph + k * 5) * U * 0.025, y - U * 0.025, x - Math.sin(s.ph + k * 4) * U * 0.025, y - U * 0.05, x + Math.sin(s.ph + k * 3) * U * 0.02, y - U * 0.075);
-        ctx.stroke();
+      roomFx.steamAcc = (roomFx.steamAcc || 0) + dt * 26;
+      while (roomFx.steamAcc >= 1) {
+        roomFx.steamAcc -= 1;
+        const k = Math.floor(Math.random() * 3);
+        roomFx.steam.push({ k, x0: (k - 1) * 0.022 + 0.008 * Math.sin(t * 0.4 + k * 2), t: 0, born: t, life: 2.4 + Math.random() * 1.4, sp: 0.045 + Math.random() * 0.02 });
       }
+      const sp = puffSprite(), ws = wind(1);
+      for (const s of roomFx.steam) {
+        s.t += dt;
+        const q = s.t / s.life, rise = s.sp * s.t * (1 - 0.25 * q);
+        const curl = 0.028 * q * Math.sin(s.born * 1.1 + s.k * 2.1 + q * 3) + 0.01 * Math.sin(s.born * 0.7 + q * 7 + s.k);
+        const drift = -(ws - 0.25) * 0.05 * q * q;
+        const x = X(P.cup[0] + s.x0 + curl + drift), y = Y(P.cup[1]) - rise * U, r = (0.008 + q * 0.03) * U;
+        ctx.globalAlpha = 0.055 * Math.sin(Math.PI * Math.min(1, q * 1.2)) * (1 - 0.4 * q);
+        ctx.drawImage(sp, x - r, y - r * 1.5, r * 2, r * 3);
+      }
+      ctx.globalAlpha = 1;
       roomFx.steam = roomFx.steam.filter((s) => s.t < s.life);
     }
   }
-  // the table from above: the painting if there is one, else warm wood
+  // the table seen from above, for choosing a board: the painting's own table, straightened out of its perspective
+  // and laid plank by plank (zen-table.jpg), the candle's light still breathing on it from the left. While that loads,
+  // the room's painting where the camera's move ends, the focus gone soft; without the painting, warm wood.
+  let tableSoft = null;
   function drawTableTop() {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    const im = PLATE.tableTop ? plateFile(PLATE.tableTop) : null;   // a painting of the table from above, when there is one
-    if (im) {
-      const cw = canvas.width, ch = canvas.height, s = Math.max(cw / im.naturalWidth, ch / im.naturalHeight);
-      ctx.drawImage(im, (cw - im.naturalWidth * s) / 2, (ch - im.naturalHeight * s) / 2, im.naturalWidth * s, im.naturalHeight * s);
-    } else ctx.drawImage(tableBg(), 0, 0);
+    const cw = canvas.width, ch = canvas.height, P = PLATE[scenePlate()], painting = roomMode() === 'painting';
+    const top = painting && P.top ? plateFile(P.top) : null, im = painting ? plateFile(P.file) : null;
+    if (top) {
+      const s = Math.max(cw / top.naturalWidth, ch / top.naturalHeight);
+      ctx.drawImage(top, (cw - top.naturalWidth * s) / 2, (ch - top.naturalHeight * s) / 2, top.naturalWidth * s, top.naturalHeight * s);
+    } else if (im) {
+      const key = im.src + ':' + cw + 'x' + ch;
+      if (!tableSoft || tableSoft.key !== key) tableSoft = { key, cv: softTable(im, P) };
+      ctx.drawImage(tableSoft.cv, 0, 0);
+    } else { ctx.drawImage(tableBg(), 0, 0); return; }
+    if (reducedMotion()) return;
+    const t = roomFx.t, b = breeze(t - 1.2), flick = 0.5 + 0.5 * Math.sin(t * 11) * Math.sin(t * 6.3) + 0.2 * b * Math.sin(t * 17);
+    const wx = -cw * 0.1, wy = ch * 0.3, r = Math.max(cw, ch) * 0.75, g = ctx.createRadialGradient(wx, wy, 0, wx, wy, r);
+    g.addColorStop(0, 'rgba(255,170,90,' + (0.06 + 0.05 * flick) + ')'); g.addColorStop(1, 'rgba(255,150,70,0)');
+    ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = g; ctx.fillRect(0, 0, cw, ch); ctx.globalCompositeOperation = 'source-over';
+  }
+  function softTable(im, P) {
+    const cw = canvas.width, ch = canvas.height, f = plateFit(im), [z, tx, ty] = cameraAt(f, P, 1);
+    let src = document.createElement('canvas'); src.width = cw; src.height = ch;
+    const c0 = src.getContext('2d');
+    if (f.wide) { c0.drawImage(im, 0, 0, cw, ch * 2); c0.fillStyle = 'rgba(12,8,5,0.55)'; c0.fillRect(0, 0, cw, ch); }
+    c0.setTransform(z, 0, 0, z, tx, ty); c0.drawImage(im, f.x0, f.y0, f.dw, f.dh);
+    // drawn smaller and smaller, then laid back up: a soft, even blur
+    const steps = [];
+    for (let i = 0; i < 3; i++) {
+      const n = document.createElement('canvas'); n.width = Math.max(1, Math.round(src.width / 2)); n.height = Math.max(1, Math.round(src.height / 2));
+      n.getContext('2d').drawImage(src, 0, 0, n.width, n.height); steps.push(src); src = n;
+    }
+    for (let i = steps.length - 1; i >= 0; i--) {
+      const up = steps[i], uc = up.getContext('2d'); uc.setTransform(1, 0, 0, 1, 0, 0); uc.clearRect(0, 0, up.width, up.height); uc.drawImage(src, 0, 0, up.width, up.height); src = up;
+    }
+    const c = src.getContext('2d');
+    c.fillStyle = 'rgba(16,9,4,0.28)'; c.fillRect(0, 0, cw, ch);
+    const v = c.createRadialGradient(cw / 2, ch * 0.46, Math.min(cw, ch) * 0.25, cw / 2, ch * 0.46, Math.max(cw, ch) * 0.75);
+    v.addColorStop(0, 'rgba(8,4,2,0)'); v.addColorStop(1, 'rgba(8,4,2,0.6)');
+    c.fillStyle = v; c.fillRect(0, 0, cw, ch);
+    return src;
   }
   let tableBgCv = null;
   function tableBg() {
@@ -4299,6 +4374,7 @@ const GrainSim = (() => {
   $('resumeBtn').addEventListener('click', resume);
   $('restartBtn').addEventListener('click', () => { Analytics.emit('level_retry', { level: levelAt(levelIndex).id, from: 'pause' }); startLevel(levelIndex, 'restart'); });
   $('pauseLevelsBtn').addEventListener('click', () => { Analytics.emit('level_exit', { level: levelAt(levelIndex).id }); tableBoard = GS.boardOf(levelIndex); setScreen('table'); });
+  if (!ROOM_SOUND) { $('musicBtn').hidden = true; $('soundBtn').style.gridColumn = '1 / -1'; }
   const syncSound = () => { $('soundBtn').textContent = save.sound ? 'Sound on' : 'Sound off'; $('musicBtn').textContent = save.music ? 'Music on' : 'Music off'; };
   $('soundBtn').addEventListener('click', () => { save.sound = !save.sound; persist(); syncSound(); if (save.sound) Sound.unlock(); else Sound.sleep(); Room.apply(); });
   $('musicBtn').addEventListener('click', () => { save.music = !save.music; persist(); syncSound(); Room.apply(); });
