@@ -66,6 +66,8 @@
   .haptic { position: fixed; left: -100px; top: 0; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
   /* chalk: a speckled mask made at start-up (see chalkMask) roughens anything written on the board */
   .chalk { -webkit-mask-image: var(--chalk-mask); mask-image: var(--chalk-mask); -webkit-mask-size: 180px; mask-size: 180px; }
+  /* the texture only covers an element's own box, so a hand whose tails (g, p, y) hang below the line needs the
+     box to reach them: titles and names written in chalk get line height enough for their tails */
 
   /* ---------- HUD, written straight on the slate ---------- */
   #hud {
@@ -89,12 +91,12 @@
   #hud .iconbtn:active svg { transform: scale(0.9); }
   #hud .iconbtn.ask svg { stroke: var(--ember); }
   .mid { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; padding-top: 4px; }
-  #chip { display: flex; align-items: center; gap: 7px; white-space: nowrap; max-width: 100%; font-size: var(--fs-24); }
+  #chip { display: flex; align-items: center; gap: 7px; white-space: nowrap; max-width: 100%; font-size: var(--fs-24); line-height: 1.3; margin: -3px 0 -5px; }
   #chip.long { font-size: var(--fs-20); gap: 5px; }
   #chip.long .left { font-size: var(--fs-17); }
   #chip.swap { animation: swap .24s cubic-bezier(.2, .8, .2, 1); }
   @keyframes swap { from { transform: translateY(-6px) rotate(-3deg); opacity: 0; } }
-  #chip .ico { width: 22px; height: 22px; display: block; flex: none; }
+  #chip .ico { width: 26px; height: 26px; display: block; flex: none; }
   #chip .left { color: var(--chalk-2); font-size: var(--fs-20); }
   #streak { display: flex; align-items: center; gap: 10px; height: 34px; }
   #streak b { font-weight: 400; font-size: var(--fs-34); min-width: 2.4ch; text-align: center; transition: color .2s ease; }
@@ -130,7 +132,7 @@
   #banner { top: calc(env(safe-area-inset-top, 0px) + 112px); opacity: 0; transform: translate(-50%, -6px) rotate(-1.5deg);
     transition: opacity .2s ease, transform .2s ease; width: max-content; max-width: min(88vw, 380px); }
   #banner.show { opacity: 1; transform: translate(-50%, 0) rotate(-1.5deg); }
-  #banner b { display: block; font-weight: 400; font-size: var(--fs-34); color: var(--ember); }
+  #banner b { display: block; font-weight: 400; font-size: var(--fs-34); line-height: 1.3; color: var(--ember); }
   #banner span { font-size: var(--fs-20); }
   #hint { top: calc(env(safe-area-inset-top, 0px) + 112px); width: max-content; max-width: min(84vw, 360px); font-size: var(--fs-24); transition: opacity .2s ease; }
   #hint.off { opacity: 0; }
@@ -155,7 +157,7 @@
   @keyframes rise { from { transform: translateY(40px); opacity: 0; } }
   h1, h2 { margin: 0; font-weight: 400; text-wrap: balance; }
   h1 { font: var(--sketch-w) var(--fs-56)/0.95 var(--sketch); letter-spacing: var(--sketch-ls); }
-  h2 { font: 400 var(--fs-34)/1.05 var(--hand); }
+  h2 { font: 400 var(--fs-34)/1.3 var(--hand); }
   .kicker { margin: 0 0 -10px; font: 400 var(--fs-20)/1.2 var(--hand); color: var(--chalk-2); }
   .lede { margin: 0; font: 400 var(--fs-24)/1.25 var(--hand); color: var(--chalk-2); }
   .primary {
@@ -169,7 +171,7 @@
   }
   .ghost:active { background: rgba(236, 232, 222, 0.14); }
   .ghost svg { width: 22px; height: 22px; flex: none; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
-  .ghost.back { margin-top: 6px; }
+  #pause .ghost.back { margin-top: 6px; }
   .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   /* a volume: its name, then a chalk line with a round stone to slide */
   .vol { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); align-items: center; gap: 14px; min-height: 48px; padding: 0 4px;
@@ -218,7 +220,7 @@
   .bpage > canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
   .bpage.locked > canvas { filter: brightness(.5) saturate(.6); }
   .bhead { position: absolute; left: 0; right: 0; top: calc(env(safe-area-inset-top, 0px) + 66px); margin: 0; text-align: center; text-shadow: var(--halo); }
-  .bhead b { display: block; font: var(--sketch-w) var(--fs-44)/1 var(--sketch); letter-spacing: var(--sketch-ls); }
+  .bhead b { display: block; font: var(--sketch-w) var(--fs-44)/1.2 var(--sketch); letter-spacing: var(--sketch-ls); margin: -4px 0 -4px; }
   /* the chalk sketch face has no Polish letters (Ł, Ż…): with it, Polish board names are written in the hand, so they match */
   :root.chalkfont:lang(pl) .bhead b { font: 400 var(--fs-44)/1 var(--hand); }
   .bhead span { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; font-size: var(--fs-20); color: var(--chalk-2); }
@@ -269,7 +271,7 @@
   .bpage > canvas { transition: filter .9s ease; }
   .bpage.sealed > canvas { filter: brightness(.5) saturate(.6); }
   .bpage .bopen { position: absolute; left: 0; right: 0; top: 40%; margin: 0; text-align: center; z-index: 2; pointer-events: none;
-    font: 400 var(--fs-44)/1.1 var(--hand); color: var(--chalk); text-shadow: var(--halo); transform: rotate(-3deg);
+    font: 400 var(--fs-44)/1.35 var(--hand); color: var(--chalk); text-shadow: var(--halo); transform: rotate(-3deg);
     clip-path: inset(0 100% 0 0); transition: clip-path 1.1s cubic-bezier(.5, 0, .3, 1), opacity .6s ease; }
   .bpage.write .bopen { clip-path: inset(0 0 0 0); }
   .bpage.write.laid .bopen { opacity: 0; transition-delay: 0s, .2s; }
@@ -656,15 +658,25 @@ const GrainSim = (() => {
       intro: { name: 'Stones', text: 'They can\u2019t be picked, and they go for the tips. Push them aside.' } },
     { id: 'bamboo', name: 'Bamboo', first: 20, count: 10, stars: 70, adds: 'manual',
       intro: { name: 'Carry it yourself', text: 'Take each row to its pile and let go. The wrong pile spills back onto the board.' } },
-    { id: 'clay', name: 'Clay', first: 30, count: 10, stars: 105, adds: 'jar',
+    { id: 'clay', name: 'Tenmoku', first: 30, count: 10, stars: 105, adds: 'jar',
       intro: { name: 'The jar', text: 'It pours more grains in as you go. Keep up with it.' } },
     { id: 'lacquer', name: 'Lacquer', first: 40, count: 10, stars: 140, adds: 'tilt',
       intro: { name: 'The tray tilts', text: 'Grains slide down it. Catch them before they fall off the edge.' } },
     { id: 'paper', name: 'Paper', first: 50, count: 10, stars: 175, adds: 'remix', remix: true,
       intro: { name: 'Old paper', text: 'Everything you have met so far comes back here, two at a time.' } },
-    { id: 'iron', name: 'Cast iron', first: 60, count: Infinity, stars: 210, endless: true },
+    { id: 'iron', name: 'Damascus steel', first: 60, count: Infinity, stars: 210, endless: true },
   ];
   function boardOf(i) { let b = BOARDS[0]; for (const B of BOARDS) if (i >= B.first) b = B; return b; }
+  // The endless board changes its material every ten levels, round and round, so there is always a new one ahead.
+  // (Its id stays 'iron' so saves made when it was cast iron carry over.)
+  const CHAPTERS = [{ id: 'damascus', name: 'Damascus steel' }, { id: 'marble', name: 'Black marble' }, { id: 'cedar', name: 'Charred cedar' }, { id: 'obsidian', name: 'Obsidian' }];
+  function chapterOf(i) {
+    const B = boardOf(i);
+    if (!B.endless) return null;
+    const n = Math.floor(Math.max(0, i - B.first) / 10);
+    return Object.assign({ index: n, first: B.first + n * 10 }, CHAPTERS[n % CHAPTERS.length]);
+  }
+  const surfaceOf = (i) => { const ch = chapterOf(i); return ch ? ch.id : boardOf(i).id; };
   // The new things inside a board, each on a level of its own, three or four levels apart, so there is always
   // something next without two arriving at once. A board's own idea comes on its first level.
   const NEWS = {
@@ -1982,7 +1994,7 @@ const GrainSim = (() => {
 
   return {
     W, ST, DEFAULTS, STICK, TYPES, AUTHORED, DEMO, SCORE, MILESTONES, TWIST, NEWS, KIND_FROM,
-    BOARDS, boardOf, newsAt, creepPull, mulberry32, mixOf, mixTarget, capacity, totalsFor, paceFor, speedFactor, speedLabel, multGain, rowPoints, idealScore, starsFor, parTime, difficulty,
+    BOARDS, CHAPTERS, boardOf, chapterOf, surfaceOf, newsAt, creepPull, mulberry32, mixOf, mixTarget, capacity, totalsFor, paceFor, speedFactor, speedLabel, multGain, rowPoints, idealScore, starsFor, parTime, difficulty,
     validateLevel, levelFor, create, makeBot,
     overlapOf(a, b) { orient(a); orient(b); return overlap(a, b, { nx: 0, ny: 0 }); },
   };
@@ -2000,7 +2012,7 @@ const GrainSim = (() => {
   const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
   // ---------- language: English, or Polish on a phone set to Polish; switched in the pause menu ----------
   // Every text keeps its English wording as its key; tr() swaps in the Polish one and fills {names}.
-  const PL = { "Tap to sit at the table": "Dotknij, by usiąść przy stole", "Sit down at the table": "Usiądź przy stole", "Back to the room": "Wróć do pokoju", "Boards": "Plansze", "Change chopsticks": "Zmień pałeczki", "Game board": "Plansza gry", "Pause": "Pauza", "Start the level again": "Zacznij poziom od nowa", "Back to the boards": "Wróć do plansz", "Chopsticks": "Pałeczki", "Each pair is earned by playing well.": "Każdą parę zdobywasz dobrą grą.", "Back": "Wstecz", "Paused": "Pauza", "Resume": "Wznów", "Restart level": "Zacznij od nowa", "Tune feel": "Dostrój", "Score": "Wynik", "Next level": "Następny poziom", "Retry": "Powtórz", "Choose a level": "Wybierz poziom", "On to {board}": "Dalej: {board}", "Changes apply right away and stay on this device. Row length applies from the next level. A level with its own rule keeps it.": "Zmiany działają od razu i zostają na tym urządzeniu. Długość rzędu zmienia się od następnego poziomu. Poziom z własną zasadą ją zachowuje.", "Show how far the sticks reach": "Pokaż zasięg pałeczek", "Vibrate": "Wibracje", "Solid grains": "Twarde ziarna", "Reset": "Przywróć", "Copy values": "Kopiuj wartości", "Done": "Gotowe", "Game sounds": "Dźwięki gry", "Ambience": "Otoczenie", "Slate": "Łupek", "Walnut": "Orzech", "Bamboo": "Bambus", "Clay": "Glina", "Lacquer": "Laka", "Cast iron": "Żeliwo", "Walnut is open": "Orzech otwarty", "Bamboo is open": "Bambus otwarty", "Clay is open": "Glina otwarta", "Lacquer is open": "Laka otwarta", "Cast iron is open": "Żeliwo otwarte", "Paper": "Papier", "Paper is open": "Papier otwarty", "Old paper": "Stary papier", "Everything you have met so far comes back here, two at a time.": "Wszystko, co już znasz, wraca tu po dwa naraz.", "Lentils": "Soczewica", "Rice": "Ryż", "Mung beans": "Fasola mung", "Chickpeas": "Ciecierzyca", "Sesame": "Sezam", "Kidney beans": "Fasola czerwona", "Stones": "Kamyki", "First row": "Pierwszy rząd", "Two heaps": "Dwie kupki", "Touching": "Stykają się", "Strays": "Zabłąkane", "The slate": "Łupek", "Short reach": "Krótki zasięg", "Mixed heap": "Pomieszana kupka", "Restless": "Niespokojne", "Pantry spill": "Rozsypana spiżarnia", "Heaps": "Kupki", "Spill": "Rozsypka", "Edges": "Brzegi", "Stripes": "Pasy", "Clusters": "Skupiska", "Pushy rice": "Natrętny ryż", "Rice creeps in from further away. Sweep the heap apart, then gather.": "Ryż wkrada się z daleka. Rozgarnij kupkę, potem zbieraj.", "Short reach, restless": "Krótki zasięg, niespokojne", "Close reach and wandering grains, all three kinds.": "Bliski zasięg i wędrujące ziarna, wszystkie trzy rodzaje.", "Restless grains": "Niespokojne ziarna", "They wander and mix again. Sort them before they spread.": "Wędrują i znów się mieszają. Posortuj je, zanim się rozejdą.", "The sticks pull from close by. Drive the tips through the grains.": "Pałeczki ciągną z bliska. Prowadź końcówki przez ziarna.", "Narrow reach": "Wąski zasięg", "The sticks only pull from straight ahead. Come at grains from below.": "Pałeczki ciągną tylko na wprost. Podchodź do ziaren od dołu.", "Long sticks": "Długie pałeczki", "They hold a longer row: more points, and more to lose.": "Mieszczą dłuższy rząd: więcej punktów i więcej do stracenia.", "They can’t be picked, and they go for the tips. Push them aside.": "Nie da się ich zebrać, a pchają się do końcówek. Odsuwaj je.", "Carry it yourself": "Nieś sam", "Take each row to its pile and let go. The wrong pile spills back onto the board.": "Zanieś każdy rząd na jego kupkę i puść. Zła kupka rozsypie się z powrotem na planszę.", "The jar": "Słoik", "It pours more grains in as you go. Keep up with it.": "Dosypuje ziaren w trakcie gry. Nadążaj za nim.", "The tray tilts": "Taca się przechyla", "Grains slide down it. Catch them before they fall off the edge.": "Ziarna zsuwają się w dół. Złap je, zanim spadną z krawędzi.", "Round and heavy. A quick sweep sends them rolling.": "Okrągła i ciężka. Po szybkim machnięciu toczy się daleko.", "Piles move": "Kupki się przesuwają", "The piles change places from level to level. Look before you let go.": "Kupki zmieniają miejsca z poziomu na poziom. Spójrz, zanim puścisz.", "Tiny and light. Long rows, and a sweep scatters it.": "Malutki i lekki. Długie rzędy, a machnięcie go rozsypuje.", "Any order": "Dowolna kolejność", "The sticks can ask for any kind next. Watch the top of the board.": "Pałeczki mogą poprosić o dowolny rodzaj. Patrz na górę planszy.", "Long and heavy. Push one and it swings round.": "Długa i ciężka. Pchnięta obraca się.", "Touch and hold. The lentils walk into the sticks.": "Dotknij i przytrzymaj. Soczewica sama wchodzi między pałeczki.", "Fill the row to grow your multiplier.": "Wypełnij rząd, a mnożnik urośnie.", "After every row the sticks switch to the other kind.": "Po każdym rzędzie pałeczki przechodzą na drugi rodzaj.", "Rice next to the tips creeps in. Push it aside with the side of the sticks.": "Ryż przy końcówkach wkrada się do środka. Odsuń go bokiem pałeczek.", "The line under the multiplier wears away. Fill the row before it is gone.": "Kreska pod mnożnikiem się ściera. Wypełnij rząd, zanim zniknie.", "A short row keeps the multiplier but shrinks it.": "Krótki rząd zachowuje mnożnik, ale go zmniejsza.", "A third kind, with its own pile in the middle.": "Trzeci rodzaj, z własną kupką na środku.", "{n} left": "{n}", "Lightning": "Błyskawica", "Quick": "Szybko", "Steady": "Równo", "Slow": "Wolno", "Short row {m}": "Krótki rząd {m}", "{kind} cleared {m}": "Koniec: {kind} {m}", "Steady hands": "Pewne ręce", "Grain master": "Mistrz ziaren", "Zen hands": "Ręce zen", "+{b} for {n} full rows in a row": "+{b} za {n} pełnych rzędów z rzędu", "New chopsticks": "Nowe pałeczki", "Multiplier {m}, {n} full rows in a row": "Mnożnik {m}, pełne rzędy z rzędu: {n}", "A lentil got in": "Wpadła soczewica", "Rice got in": "Wpadł ryż", "A mung bean got in": "Wpadła fasola mung", "A stone got in": "Wpadł kamyk", "A chickpea got in": "Wpadła ciecierzyca", "Sesame got in": "Wpadł sezam", "A kidney bean got in": "Wpadła fasola", "A wrong grain got in": "Wpadło złe ziarno", ", back to ×1": ", z powrotem ×1", "Broken": "Przerwany", "Wrong pile": "Zła kupka", "Touch the board to pick the row up again.": "Dotknij planszy, by znów podnieść rząd.", "Tap the arrow again to leave this level.": "Dotknij strzałki jeszcze raz, by wyjść z poziomu.", "Tap again to start this level over.": "Dotknij jeszcze raz, by zacząć od nowa.", "{n} more open {board}": "{n} do otwarcia: {board}", "Every board is open": "Wszystkie plansze otwarte", "{board}, {n} stars": "{board}, gwiazdki: {n}", "{board}, opens with {n} stars": "{board}, otwiera się przy gwiazdkach: {n}", "{n} more {star} to open": "jeszcze {n} {star} do otwarcia", "{board} levels": "Poziomy: {board}", "{level}, {n} of 5 stars": "{level}, {n} z 5 gwiazdek", "{level}, locked": "{level}, zablokowany", "Clear {level} to open this one.": "Najpierw ukończ: {level}.", "{level} cleared": "Ukończono: {level}", "{n} of 5 stars": "{n} z 5 gwiazdek", "Combo prizes": "Nagrody za serie", "Time {t} of {par}": "Czas {t} z {par}", "No row broken": "Bez przerwanego rzędu", "New best": "Rekord", "Next star at {s}": "Następna gwiazdka przy {s}", "New chopsticks: <b>{names}</b>. Pick them under Chopsticks.": "Nowe pałeczki: <b>{names}</b>. Wybierzesz je w menu Pałeczki.", "Cherry lacquer": "Wiśniowa laka", "Ebony": "Hebanowe", "Jade": "Jadeitowe", "Steel": "Stalowe", "Gold leaf": "Złocone", "Reach a ×3 multiplier": "Osiągnij mnożnik ×3", "Make 7 full rows in a row": "Zrób 7 pełnych rzędów z rzędu", "Sort 1,000 grains": "Posortuj 1000 ziaren", "Collect 20 stars": "Zbierz 20 gwiazdek", "Reach a ×6 multiplier": "Osiągnij mnożnik ×6", "Your first pair": "Twoja pierwsza para", "In use": "W użyciu", "Use": "Użyj", "{req} to earn these.": "{req}, żeby je zdobyć.", "Control: drag anywhere": "Sterowanie: przeciąganie", "Control: above the finger": "Sterowanie: nad palcem", "Drag anywhere: the sticks move with your drag, your thumb can stay low.": "Przeciągaj gdziekolwiek: pałeczki idą za ruchem, kciuk może zostać nisko.", "The tips sit above your finger.": "Końcówki są nad twoim palcem.", "Sound on": "Dźwięk: tak", "Sound off": "Dźwięk: nie", "Music on": "Muzyka: tak", "Music off": "Muzyka: nie", "Back to the default feel.": "Przywrócono domyślne ustawienia.", "Select the values and copy them.": "Zaznacz wartości i skopiuj.", "Values copied.": "Skopiowano.", "Tips above the finger": "Końcówki nad palcem", "How tightly the sticks follow": "Jak ciasno pałeczki podążają", "Reach of the open sticks": "Zasięg otwartych pałeczek", "How far ahead of the tips they pull": "Jak daleko przed końcówkami ciągną", "Wrong grains creep from": "Złe ziarna wkradają się z", "Wrong grain creep speed": "Szybkość wkradania się złych ziaren", "How far a sweep flicks grains": "Jak daleko machnięcie odrzuca ziarna", "Next grain joins every (s)": "Kolejne ziarno dołącza co (s)", "Walking speed": "Szybkość marszu", "Pace (higher is more forgiving)": "Tempo (więcej = łagodniej)", "Row length": "Długość rzędu" };
+  const PL = { "Tap to sit at the table": "Dotknij, by usiąść przy stole", "Sit down at the table": "Usiądź przy stole", "Back to the room": "Wróć do pokoju", "Boards": "Plansze", "Change chopsticks": "Zmień pałeczki", "Game board": "Plansza gry", "Pause": "Pauza", "Start the level again": "Zacznij poziom od nowa", "Back to the boards": "Wróć do plansz", "Chopsticks": "Pałeczki", "Each pair is earned by playing well.": "Każdą parę zdobywasz dobrą grą.", "Back": "Wstecz", "Paused": "Pauza", "Resume": "Wznów", "Restart level": "Zacznij od nowa", "Tune feel": "Dostrój", "Score": "Wynik", "Next level": "Następny poziom", "Retry": "Powtórz", "Choose a level": "Wybierz poziom", "On to {board}": "Dalej: {board}", "Changes apply right away and stay on this device. Row length applies from the next level. A level with its own rule keeps it.": "Zmiany działają od razu i zostają na tym urządzeniu. Długość rzędu zmienia się od następnego poziomu. Poziom z własną zasadą ją zachowuje.", "Show how far the sticks reach": "Pokaż zasięg pałeczek", "Vibrate": "Wibracje", "Solid grains": "Twarde ziarna", "Reset": "Przywróć", "Copy values": "Kopiuj wartości", "Done": "Gotowe", "Game sounds": "Dźwięki gry", "Ambience": "Otoczenie", "Slate": "Łupek", "Walnut": "Orzech", "Bamboo": "Bambus", "Clay": "Glina", "Lacquer": "Laka", "Cast iron": "Żeliwo", "Walnut is open": "Orzech otwarty", "Bamboo is open": "Bambus otwarty", "Clay is open": "Glina otwarta", "Lacquer is open": "Laka otwarta", "Cast iron is open": "Żeliwo otwarte", "Tenmoku": "Tenmoku", "Damascus steel": "Stal damasceńska", "Black marble": "Czarny marmur", "Charred cedar": "Opalany cedr", "Obsidian": "Obsydian", "{board} is open": "Otwarte: {board}", "Tenmoku is open": "Tenmoku otwarte", "Damascus steel is open": "Stal damasceńska otwarta", "Black marble is open": "Czarny marmur otwarty", "Charred cedar is open": "Opalany cedr otwarty", "Obsidian is open": "Obsydian otwarty", "Paper": "Papier", "Paper is open": "Papier otwarty", "Old paper": "Stary papier", "Everything you have met so far comes back here, two at a time.": "Wszystko, co już znasz, wraca tu po dwa naraz.", "Lentils": "Soczewica", "Rice": "Ryż", "Mung beans": "Fasola mung", "Chickpeas": "Ciecierzyca", "Sesame": "Sezam", "Kidney beans": "Fasola czerwona", "Stones": "Kamyki", "First row": "Pierwszy rząd", "Two heaps": "Dwie kupki", "Touching": "Stykają się", "Strays": "Zabłąkane", "The slate": "Łupek", "Short reach": "Krótki zasięg", "Mixed heap": "Pomieszana kupka", "Restless": "Niespokojne", "Pantry spill": "Rozsypana spiżarnia", "Heaps": "Kupki", "Spill": "Rozsypka", "Edges": "Brzegi", "Stripes": "Pasy", "Clusters": "Skupiska", "Pushy rice": "Natrętny ryż", "Rice creeps in from further away. Sweep the heap apart, then gather.": "Ryż wkrada się z daleka. Rozgarnij kupkę, potem zbieraj.", "Short reach, restless": "Krótki zasięg, niespokojne", "Close reach and wandering grains, all three kinds.": "Bliski zasięg i wędrujące ziarna, wszystkie trzy rodzaje.", "Restless grains": "Niespokojne ziarna", "They wander and mix again. Sort them before they spread.": "Wędrują i znów się mieszają. Posortuj je, zanim się rozejdą.", "The sticks pull from close by. Drive the tips through the grains.": "Pałeczki ciągną z bliska. Prowadź końcówki przez ziarna.", "Narrow reach": "Wąski zasięg", "The sticks only pull from straight ahead. Come at grains from below.": "Pałeczki ciągną tylko na wprost. Podchodź do ziaren od dołu.", "Long sticks": "Długie pałeczki", "They hold a longer row: more points, and more to lose.": "Mieszczą dłuższy rząd: więcej punktów i więcej do stracenia.", "They can’t be picked, and they go for the tips. Push them aside.": "Nie da się ich zebrać, a pchają się do końcówek. Odsuwaj je.", "Carry it yourself": "Nieś sam", "Take each row to its pile and let go. The wrong pile spills back onto the board.": "Zanieś każdy rząd na jego kupkę i puść. Zła kupka rozsypie się z powrotem na planszę.", "The jar": "Słoik", "It pours more grains in as you go. Keep up with it.": "Dosypuje ziaren w trakcie gry. Nadążaj za nim.", "The tray tilts": "Taca się przechyla", "Grains slide down it. Catch them before they fall off the edge.": "Ziarna zsuwają się w dół. Złap je, zanim spadną z krawędzi.", "Round and heavy. A quick sweep sends them rolling.": "Okrągła i ciężka. Po szybkim machnięciu toczy się daleko.", "Piles move": "Kupki się przesuwają", "The piles change places from level to level. Look before you let go.": "Kupki zmieniają miejsca z poziomu na poziom. Spójrz, zanim puścisz.", "Tiny and light. Long rows, and a sweep scatters it.": "Malutki i lekki. Długie rzędy, a machnięcie go rozsypuje.", "Any order": "Dowolna kolejność", "The sticks can ask for any kind next. Watch the top of the board.": "Pałeczki mogą poprosić o dowolny rodzaj. Patrz na górę planszy.", "Long and heavy. Push one and it swings round.": "Długa i ciężka. Pchnięta obraca się.", "Touch and hold. The lentils walk into the sticks.": "Dotknij i przytrzymaj. Soczewica sama wchodzi między pałeczki.", "Fill the row to grow your multiplier.": "Wypełnij rząd, a mnożnik urośnie.", "After every row the sticks switch to the other kind.": "Po każdym rzędzie pałeczki przechodzą na drugi rodzaj.", "Rice next to the tips creeps in. Push it aside with the side of the sticks.": "Ryż przy końcówkach wkrada się do środka. Odsuń go bokiem pałeczek.", "The line under the multiplier wears away. Fill the row before it is gone.": "Kreska pod mnożnikiem się ściera. Wypełnij rząd, zanim zniknie.", "A short row keeps the multiplier but shrinks it.": "Krótki rząd zachowuje mnożnik, ale go zmniejsza.", "A third kind, with its own pile in the middle.": "Trzeci rodzaj, z własną kupką na środku.", "{n} left": "{n}", "Lightning": "Błyskawica", "Quick": "Szybko", "Steady": "Równo", "Slow": "Wolno", "Short row {m}": "Krótki rząd {m}", "{kind} cleared {m}": "Koniec: {kind} {m}", "Steady hands": "Pewne ręce", "Grain master": "Mistrz ziaren", "Zen hands": "Ręce zen", "+{b} for {n} full rows in a row": "+{b} za {n} pełnych rzędów z rzędu", "New chopsticks": "Nowe pałeczki", "Multiplier {m}, {n} full rows in a row": "Mnożnik {m}, pełne rzędy z rzędu: {n}", "A lentil got in": "Wpadła soczewica", "Rice got in": "Wpadł ryż", "A mung bean got in": "Wpadła fasola mung", "A stone got in": "Wpadł kamyk", "A chickpea got in": "Wpadła ciecierzyca", "Sesame got in": "Wpadł sezam", "A kidney bean got in": "Wpadła fasola", "A wrong grain got in": "Wpadło złe ziarno", ", back to ×1": ", z powrotem ×1", "Broken": "Przerwany", "Wrong pile": "Zła kupka", "Touch the board to pick the row up again.": "Dotknij planszy, by znów podnieść rząd.", "Tap the arrow again to leave this level.": "Dotknij strzałki jeszcze raz, by wyjść z poziomu.", "Tap again to start this level over.": "Dotknij jeszcze raz, by zacząć od nowa.", "{n} more open {board}": "{n} do otwarcia: {board}", "Every board is open": "Wszystkie plansze otwarte", "{board}, {n} stars": "{board}, gwiazdki: {n}", "{board}, opens with {n} stars": "{board}, otwiera się przy gwiazdkach: {n}", "{n} more {star} to open": "jeszcze {n} {star} do otwarcia", "{board} levels": "Poziomy: {board}", "{level}, {n} of 5 stars": "{level}, {n} z 5 gwiazdek", "{level}, locked": "{level}, zablokowany", "Clear {level} to open this one.": "Najpierw ukończ: {level}.", "{level} cleared": "Ukończono: {level}", "{n} of 5 stars": "{n} z 5 gwiazdek", "Combo prizes": "Nagrody za serie", "Time {t} of {par}": "Czas {t} z {par}", "No row broken": "Bez przerwanego rzędu", "New best": "Rekord", "Next star at {s}": "Następna gwiazdka przy {s}", "New chopsticks: <b>{names}</b>. Pick them under Chopsticks.": "Nowe pałeczki: <b>{names}</b>. Wybierzesz je w menu Pałeczki.", "Cherry lacquer": "Wiśniowa laka", "Ebony": "Hebanowe", "Jade": "Jadeitowe", "Steel": "Stalowe", "Gold leaf": "Złocone", "Reach a ×3 multiplier": "Osiągnij mnożnik ×3", "Make 7 full rows in a row": "Zrób 7 pełnych rzędów z rzędu", "Sort 1,000 grains": "Posortuj 1000 ziaren", "Collect 20 stars": "Zbierz 20 gwiazdek", "Reach a ×6 multiplier": "Osiągnij mnożnik ×6", "Your first pair": "Twoja pierwsza para", "In use": "W użyciu", "Use": "Użyj", "{req} to earn these.": "{req}, żeby je zdobyć.", "Control: drag anywhere": "Sterowanie: przeciąganie", "Control: above the finger": "Sterowanie: nad palcem", "Drag anywhere: the sticks move with your drag, your thumb can stay low.": "Przeciągaj gdziekolwiek: pałeczki idą za ruchem, kciuk może zostać nisko.", "The tips sit above your finger.": "Końcówki są nad twoim palcem.", "Sound on": "Dźwięk: tak", "Sound off": "Dźwięk: nie", "Music on": "Muzyka: tak", "Music off": "Muzyka: nie", "Back to the default feel.": "Przywrócono domyślne ustawienia.", "Select the values and copy them.": "Zaznacz wartości i skopiuj.", "Values copied.": "Skopiowano.", "Tips above the finger": "Końcówki nad palcem", "How tightly the sticks follow": "Jak ciasno pałeczki podążają", "Reach of the open sticks": "Zasięg otwartych pałeczek", "How far ahead of the tips they pull": "Jak daleko przed końcówkami ciągną", "Wrong grains creep from": "Złe ziarna wkradają się z", "Wrong grain creep speed": "Szybkość wkradania się złych ziaren", "How far a sweep flicks grains": "Jak daleko machnięcie odrzuca ziarna", "Next grain joins every (s)": "Kolejne ziarno dołącza co (s)", "Walking speed": "Szybkość marszu", "Pace (higher is more forgiving)": "Tempo (więcej = łagodniej)", "Row length": "Długość rzędu" };
   let lang = 'en';
   function tr(en, v) {
     let t = lang === 'pl' && PL[en] != null ? PL[en] : en;
@@ -2076,7 +2088,7 @@ const GrainSim = (() => {
       }
       // the boards whose opening you have seen; before this was kept, walnut was the only other board that could open
       const ids = GS.BOARDS.map((B) => B.id);
-      if (Array.isArray(s.seen)) fresh.seen = ['slate'].concat(s.seen.filter((id) => id !== 'slate' && ids.includes(id)));
+      if (Array.isArray(s.seen)) fresh.seen = ['slate'].concat(s.seen.filter((id) => id !== 'slate' && (ids.includes(id) || GS.CHAPTERS.some((c) => c.id === id))));
       else if (Object.values(fresh.levels).reduce((a, r) => a + r.stars, 0) >= 25) fresh.seen = ['slate', 'walnut'];   // walnut's mark back then
       if (s.sticks && Array.isArray(s.sticks.owned)) {
         fresh.sticks.owned = ['bamboo'].concat(s.sticks.owned.filter((id) => id !== 'bamboo' && STICKS.some((k) => k.id === id)));
@@ -2644,7 +2656,7 @@ const GrainSim = (() => {
   const drag = { sx: 0, sy: 0, x0: 0, y0: 0 };
   const keys = new Set();
   const fx = {
-    pops: new Map(), lands: new Map(), sparks: [], steam: [], floats: [], rings: [], wave: null, shakeT: 0, bad: null, falls: [], tickT: 0,
+    pops: new Map(), lands: new Map(), sparks: [], steam: [], floats: [], rings: [], wave: null, shakeT: 0, bad: null, falls: [], tickT: 0, targetPulse: 1,
     stop: 0, heat: 0, quench: 0, beatT: 0, beat: 0, spill: null, shimmer: null, score: 0, settle: new Map(), prevSt: null,
   };
 
@@ -2858,13 +2870,14 @@ const GrainSim = (() => {
   function paintSurface(c, bx, bw, H, d, id, flat) {
     const rnd = GS.mulberry32(20261025 + id.length * 977);
     const base = { slate: ['#353c44', '#262b31', '#1a1e23'], walnut: ['#3d2b1f', '#2d2017', '#1f160f'], iron: ['#323438', '#25272a', '#1b1c1f'], table: ['#9a6a41', '#83562f', '#663f20'],
-      bamboo: ['#3b3522', '#2b2618', '#1c1910'], clay: ['#4d2d20', '#3a2116', '#27160e'], lacquer: ['#1d1517', '#130d0f', '#0b0708'],
-      paper: ['#283d66', '#1c2c4c', '#111a31'] }[id];
+      bamboo: ['#4a3720', '#342614', '#20170b'], clay: ['#231915', '#17100d', '#0e0907'], lacquer: ['#1d1517', '#130d0f', '#0b0708'],
+      paper: ['#283d66', '#1c2c4c', '#111a31'], damascus: ['#3a3e45', '#2b2e33', '#1d1f23'], marble: ['#222226', '#18181b', '#0f0f11'],
+      cedar: ['#24201f', '#191615', '#0f0d0c'], obsidian: ['#18171d', '#100f14', '#09080c'] }[id];
     const lg = c.createLinearGradient(bx, 0, bx + bw, H);
     lg.addColorStop(0, base[0]); lg.addColorStop(0.55, base[1]); lg.addColorStop(1, base[2]);
     c.fillStyle = lg; c.fillRect(bx, 0, bw, H);
     // the soft light pool on the left, as in the reference footage
-    const pool = { walnut: '255,214,170', table: '255,214,170', iron: '200,190,175', bamboo: '235,222,170', clay: '255,192,150', lacquer: '255,176,150', paper: '175,195,245' }[id] || '185,200,216';
+    const pool = { walnut: '255,214,170', table: '255,214,170', iron: '200,190,175', bamboo: '235,222,170', clay: '255,192,150', lacquer: '255,176,150', paper: '175,195,245', damascus: '210,220,235', marble: '220,220,235', cedar: '255,200,160', obsidian: '180,185,230' }[id] || '185,200,216';
     const rg = c.createRadialGradient(bx + bw * 0.1, H * 0.42, 0, bx + bw * 0.1, H * 0.42, bw * 0.95);
     rg.addColorStop(0, 'rgba(' + pool + ',' + (id === 'slate' ? 0.13 : 0.08) + ')'); rg.addColorStop(1, 'rgba(' + pool + ',0)');
     c.fillStyle = rg; c.fillRect(bx, 0, bw, H);
@@ -2908,35 +2921,63 @@ const GrainSim = (() => {
       const pores = Math.floor(bw * H / 900);
       for (let i = 0; i < pores; i++) { c.fillStyle = `rgba(0,0,0,${0.08 + rnd() * 0.1})`; c.fillRect(bx + rnd() * bw, rnd() * H, 0.7 * d, (2 + rnd() * 5) * d); }
     } else if (id === 'bamboo') {
-      // a smoked bamboo mat: long slats with their seams, the nodes across each one, fine fibres along it
-      const slat = 46 * d, n = Math.ceil(bw / slat) + 1;
+      // a mat of smoked bamboo (susudake): round slats lit from the left, smoke-darkened in patches, a knuckle on each
+      // every so often, and the cords that tie the mat running across
+      const slat = 38 * d, n = Math.ceil(bw / slat) + 1;
       for (let k = 0; k < n; k++) {
-        const x = bx + k * slat + (rnd() - 0.5) * 3 * d, tone = (rnd() - 0.5) * 0.06;
-        c.fillStyle = tone > 0 ? `rgba(255,235,180,${tone})` : `rgba(0,0,0,${-tone * 1.6})`; c.fillRect(x, 0, slat, H);
-        c.fillStyle = 'rgba(10,8,3,0.5)'; c.fillRect(x - 1 * d, 0, 2 * d, H);
-        c.fillStyle = 'rgba(255,230,170,0.06)'; c.fillRect(x + 1 * d, 0, 1.2 * d, H);
-        for (let y = rnd() * 160 * d; y < H; y += (150 + rnd() * 90) * d) {   // a node: a ridge with a shadow under it
-          c.fillStyle = 'rgba(255,235,180,0.07)'; c.fillRect(x + 2 * d, y, slat - 4 * d, 1.6 * d);
-          c.fillStyle = 'rgba(0,0,0,0.22)'; c.fillRect(x + 2 * d, y + 1.6 * d, slat - 4 * d, 2.2 * d);
+        const x = bx + k * slat, tone = rnd();
+        const sg = c.createLinearGradient(x, 0, x + slat, 0);
+        sg.addColorStop(0, 'rgba(0,0,0,0.6)'); sg.addColorStop(0.2, `rgba(255,222,150,${0.1 + tone * 0.06})`);
+        sg.addColorStop(0.48, 'rgba(255,215,140,0.03)'); sg.addColorStop(0.86, 'rgba(0,0,0,0.25)'); sg.addColorStop(1, 'rgba(0,0,0,0.65)');
+        c.fillStyle = sg; c.fillRect(x, 0, slat, H);
+        for (let j = 0; j < 4; j++) {
+          const y = rnd() * H, h = (60 + rnd() * 220) * d, pg = c.createLinearGradient(0, y, 0, y + h);
+          pg.addColorStop(0, 'rgba(0,0,0,0)'); pg.addColorStop(0.5, `rgba(18,8,0,${0.12 + rnd() * 0.18})`); pg.addColorStop(1, 'rgba(0,0,0,0)');
+          c.fillStyle = pg; c.fillRect(x, y, slat, h);
         }
-        for (let f = 0; f < 6; f++) {
-          const fx0 = x + rnd() * slat; c.fillStyle = `rgba(${rnd() < 0.5 ? '255,235,190' : '0,0,0'},${0.03 + rnd() * 0.04})`;
-          c.fillRect(fx0, 0, 0.7 * d, H);
+        for (let y = rnd() * 220 * d; y < H; y += (200 + rnd() * 130) * d) {   // a knuckle: a raised ring, dark under it
+          const ng = c.createLinearGradient(0, y - 6 * d, 0, y + 7 * d);
+          ng.addColorStop(0, 'rgba(0,0,0,0)'); ng.addColorStop(0.35, 'rgba(255,212,135,0.24)'); ng.addColorStop(0.58, 'rgba(28,12,0,0.6)'); ng.addColorStop(1, 'rgba(0,0,0,0)');
+          c.fillStyle = ng; c.fillRect(x + 2 * d, y - 6 * d, slat - 4 * d, 13 * d);
+        }
+        for (let f = 0; f < 4; f++) { c.fillStyle = `rgba(${rnd() < 0.5 ? '255,225,165' : '0,0,0'},${0.03 + rnd() * 0.04})`; c.fillRect(x + rnd() * slat, 0, 0.7 * d, H); }
+      }
+      for (let y = (110 + rnd() * 60) * d; y < H; y += (320 + rnd() * 50) * d) {      // the cords, two together
+        const wob = (rnd() - 0.5) * 8 * d;
+        for (const off of [0, 7 * d]) {
+          c.strokeStyle = 'rgba(0,0,0,0.4)'; c.lineWidth = 3.4 * d;
+          c.beginPath(); c.moveTo(bx, y + off + 3 * d); c.lineTo(bx + bw, y + off + wob + 3 * d); c.stroke();
+          c.strokeStyle = '#2a1a0c'; c.lineWidth = 3 * d;
+          c.beginPath(); c.moveTo(bx, y + off); c.lineTo(bx + bw, y + off + wob); c.stroke();
+          c.strokeStyle = 'rgba(225,190,125,0.4)'; c.lineWidth = 1.1 * d; c.setLineDash([4 * d, 5 * d]);
+          c.beginPath(); c.moveTo(bx, y + off - 0.6 * d); c.lineTo(bx + bw, y + off + wob - 0.6 * d); c.stroke(); c.setLineDash([]);
         }
       }
     } else if (id === 'clay') {
-      // unglazed clay: soft mottling, a fine grit, a few pale flecks of sand
-      for (let i = 0; i < 26; i++) {
-        const x = bx + rnd() * bw, y = rnd() * H, r = (60 + rnd() * 180) * d, a = 0.03 + rnd() * 0.05;
-        const mg = c.createRadialGradient(x, y, 0, x, y, r);
-        mg.addColorStop(0, rnd() < 0.5 ? `rgba(255,190,150,${a})` : `rgba(0,0,0,${a * 1.8})`); mg.addColorStop(1, 'rgba(0,0,0,0)');
-        c.fillStyle = mg; c.fillRect(x - r, y - r, r * 2, r * 2);
+      // tenmoku: a black tea-bowl glaze, rust streaks running down it like hare's fur, silvery oil spots, the glaze
+      // pooled darker in places and one soft gloss across it
+      for (let i = 0; i < 16; i++) {
+        const x = bx + rnd() * bw, y = rnd() * H, r = (90 + rnd() * 220) * d, pg = c.createRadialGradient(x, y, 0, x, y, r);
+        pg.addColorStop(0, `rgba(0,0,0,${0.18 + rnd() * 0.2})`); pg.addColorStop(1, 'rgba(0,0,0,0)');
+        c.fillStyle = pg; c.fillRect(x - r, y - r, r * 2, r * 2);
       }
-      const grit = Math.floor(bw * H / 110);
-      for (let i = 0; i < grit; i++) {
-        c.fillStyle = rnd() < 0.3 ? `rgba(255,225,190,${0.04 + rnd() * 0.06})` : `rgba(0,0,0,${0.06 + rnd() * 0.1})`;
-        const sz = (0.5 + rnd() * 1.2) * d; c.fillRect(bx + rnd() * bw, rnd() * H, sz, sz);
+      const fur = Math.floor(bw * H / (700 * d * d));
+      for (let i = 0; i < fur; i++) {
+        const x = bx + rnd() * bw, y = rnd() * H, len = (30 + rnd() * 150) * d, sway = (rnd() - 0.5) * 10 * d;
+        c.strokeStyle = rnd() < 0.75 ? `rgba(170,92,40,${0.05 + rnd() * 0.11})` : `rgba(215,150,75,${0.05 + rnd() * 0.08})`;
+        c.lineWidth = (0.5 + rnd() * 1.1) * d;
+        c.beginPath(); c.moveTo(x, y); c.quadraticCurveTo(x + sway, y + len * 0.5, x + sway * 0.4, y + len); c.stroke();
       }
+      const spots = Math.floor(bw * H / (4200 * d * d));
+      for (let i = 0; i < spots; i++) {
+        const x = bx + rnd() * bw, y = rnd() * H, r = (1.2 + rnd() * 2.6) * d, og = c.createRadialGradient(x - r * 0.3, y - r * 0.3, 0, x, y, r * 1.8);
+        og.addColorStop(0, `rgba(225,232,245,${0.3 + rnd() * 0.25})`); og.addColorStop(0.45, 'rgba(130,150,190,0.16)'); og.addColorStop(1, 'rgba(0,0,0,0)');
+        c.fillStyle = og; c.beginPath(); c.arc(x, y, r * 1.8, 0, Math.PI * 2); c.fill();
+      }
+      c.save(); c.translate(bx + bw * 0.25, H * 0.3); c.rotate(-0.55);
+      const gl = c.createLinearGradient(0, -70 * d, 0, 70 * d);
+      gl.addColorStop(0, 'rgba(255,235,210,0)'); gl.addColorStop(0.5, 'rgba(255,235,210,0.06)'); gl.addColorStop(1, 'rgba(255,235,210,0)');
+      c.fillStyle = gl; c.fillRect(-bw, -70 * d, bw * 2.5, 140 * d); c.restore();
     } else if (id === 'paper') {
       // old indigo-dyed washi: the dye taken unevenly, a wave print (seigaiha) worn patchy, long kozo fibres in the
       // sheet, one soft fold, and the edges and a few spots gone brown with age
@@ -2994,10 +3035,108 @@ const GrainSim = (() => {
       sh.addColorStop(0, 'rgba(255,232,215,0)'); sh.addColorStop(0.5, 'rgba(255,232,215,0.085)'); sh.addColorStop(1, 'rgba(255,232,215,0)');
       c.fillStyle = sh; c.fillRect(-bw, -60 * d, bw * 2.5, 120 * d);
       c.restore();
+      for (let i = 0; i < 9; i++) {      // gold dust (nashiji), in drifts
+        const cx = bx + rnd() * bw, cy = rnd() * H, R = (50 + rnd() * 170) * d, n = 30 + Math.floor(rnd() * 70);
+        for (let k = 0; k < n; k++) {
+          const a = rnd() * Math.PI * 2, r = R * Math.sqrt(rnd()) * (0.4 + 0.6 * rnd()), sz = (0.6 + rnd() * 1.4) * d;
+          c.fillStyle = `rgba(${rnd() < 0.7 ? '228,184,92' : '250,220,150'},${0.15 + rnd() * 0.4})`;
+          c.fillRect(cx + Math.cos(a) * r, cy + Math.sin(a) * r, sz, sz * (0.6 + rnd() * 0.8));
+        }
+      }
       for (let i = 0; i < 18; i++) {     // fine brush marks in the lacquer
         const y = rnd() * H; c.strokeStyle = `rgba(255,200,180,${0.008 + rnd() * 0.016})`; c.lineWidth = (0.6 + rnd()) * d;
         c.beginPath(); c.moveTo(bx - 10, y); c.bezierCurveTo(bx + bw * 0.4, y + (rnd() - 0.5) * 20 * d, bx + bw * 0.6, y + (rnd() - 0.5) * 30 * d, bx + bw + 10, y + (rnd() - 0.5) * 20 * d); c.stroke();
       }
+    } else if (id === 'damascus') {
+      // damascus steel: many thin layers, folded and twisted, etched so they show as wavy light and dark lines; worked
+      // out pixel by pixel at half size, then laid over the board
+      const sw = Math.ceil(bw / 2), sh = Math.ceil(H / 2), img = c.createImageData(sw, sh), px = img.data, k = 2 / d;
+      const p1 = rnd() * 6.28, p2 = rnd() * 6.28, p3 = rnd() * 6.28;
+      for (let y = 0; y < sh; y++) {
+        for (let x = 0; x < sw; x++) {
+          const X = x * k, Y = y * k;
+          const u = Y * 0.34 + 9 * Math.sin(X * 0.02 + p1 + 1.4 * Math.sin(Y * 0.011 + p2)) + 3.5 * Math.sin(X * 0.055 + Y * 0.008 + p3);
+          const band = 0.5 + 0.5 * Math.sin(u), fine = 0.5 + 0.5 * Math.sin(u * 2.7 + X * 0.012);
+          const v = 0.65 * band + 0.35 * fine, L = 32 + 24 * v * v, i4 = (y * sw + x) * 4;
+          px[i4] = L * 0.93; px[i4 + 1] = L * 0.97; px[i4 + 2] = L * 1.06; px[i4 + 3] = 255;
+        }
+      }
+      const tmp = document.createElement('canvas'); tmp.width = sw; tmp.height = sh; tmp.getContext('2d').putImageData(img, 0, 0);
+      c.imageSmoothingEnabled = true; c.drawImage(tmp, bx, 0, bw, H);
+      const sh2 = c.createLinearGradient(bx, 0, bx + bw, H);
+      sh2.addColorStop(0, 'rgba(210,220,235,0.08)'); sh2.addColorStop(0.5, 'rgba(0,0,0,0)'); sh2.addColorStop(1, 'rgba(0,0,0,0.25)');
+      c.fillStyle = sh2; c.fillRect(bx, 0, bw, H);
+    } else if (id === 'marble') {
+      // black marble: cloudy depth in the stone, white veins wandering across it and splitting, faint hairlines
+      for (let i = 0; i < 20; i++) {
+        const x = bx + rnd() * bw, y = rnd() * H, r = (80 + rnd() * 240) * d, mg = c.createRadialGradient(x, y, 0, x, y, r);
+        mg.addColorStop(0, rnd() < 0.5 ? `rgba(70,70,82,${0.06 + rnd() * 0.06})` : `rgba(0,0,0,${0.15 + rnd() * 0.15})`); mg.addColorStop(1, 'rgba(0,0,0,0)');
+        c.fillStyle = mg; c.fillRect(x - r, y - r, r * 2, r * 2);
+      }
+      const veins = [];
+      for (let i = 0; i < 5; i++) veins.push([bx + rnd() * bw * 0.3 - bw * 0.1, rnd() * H, -0.6 + rnd() * 0.9, (500 + rnd() * 700) * d, (1 + rnd() * 1.6) * d, 0]);
+      for (let i = 0; i < 18; i++) veins.push([bx + rnd() * bw, rnd() * H, rnd() * Math.PI * 2, (60 + rnd() * 220) * d, 0.5 * d, 2]);
+      while (veins.length) {
+        const [x0, y0, a0, len, w, depth] = veins.shift();
+        let x = x0, y = y0, a = a0;
+        const pts = [[x, y]];
+        for (let t = 0; t < len; t += 6 * d) {
+          a += (rnd() - 0.5) * 0.34; x += Math.cos(a) * 6 * d; y += Math.sin(a) * 6 * d; pts.push([x, y]);
+          if (depth < 2 && rnd() < 0.018) veins.push([x, y, a + (rnd() < 0.5 ? -1 : 1) * (0.4 + rnd() * 0.6), len * 0.45, w * 0.55, depth + 1]);
+        }
+        const path = () => { c.beginPath(); pts.forEach(([px1, py1], j) => (j ? c.lineTo(px1, py1) : c.moveTo(px1, py1))); };
+        c.lineJoin = 'round'; c.lineCap = 'round';
+        path(); c.strokeStyle = 'rgba(220,220,230,0.05)'; c.lineWidth = w * 5; c.stroke();
+        path(); c.strokeStyle = `rgba(236,236,242,${depth === 2 ? 0.09 : 0.2 + rnd() * 0.2})`; c.lineWidth = w; c.stroke();
+      }
+    } else if (id === 'cedar') {
+      // charred cedar (yakisugi): the burnt face crazed like a crocodile's back, wavy cracks running across the grain
+      // and short ones between them, each little island of char a touch glossy where the light catches its edge
+      const rows = [];
+      for (let y = rnd() * 10 * d; y < H + 30 * d; y += (12 + rnd() * 14) * d) rows.push(y);
+      const crack = (pts, w, a) => {
+        c.beginPath(); pts.forEach(([x, y], j) => (j ? c.lineTo(x, y) : c.moveTo(x, y)));
+        c.strokeStyle = `rgba(0,0,0,${a})`; c.lineWidth = w; c.stroke();
+      };
+      const lines = rows.map((y0) => {
+        const pts = [], ph = rnd() * 6.28, amp = (2 + rnd() * 4) * d;
+        for (let x = bx - 10 * d; x <= bx + bw + 10 * d; x += 9 * d) pts.push([x, y0 + Math.sin(x / (34 * d) + ph) * amp + (rnd() - 0.5) * 2.5 * d]);
+        return pts;
+      });
+      lines.forEach((pts, r) => {
+        const next = lines[r + 1];
+        if (next) {                                   // the islands between this crack and the next, each with its own gloss
+          for (let x = bx - rnd() * 30 * d; x < bx + bw;) {
+            const w = (14 + rnd() * 38) * d, yTop = pts[Math.max(0, Math.min(pts.length - 1, Math.round((x - bx + 10 * d) / (9 * d))))][1];
+            const hg = c.createLinearGradient(x, yTop, x + w * 0.5, yTop + 10 * d);
+            hg.addColorStop(0, `rgba(200,195,205,${0.04 + rnd() * 0.07})`); hg.addColorStop(1, 'rgba(200,195,205,0)');
+            c.fillStyle = hg; c.fillRect(x + 2 * d, yTop + 1.5 * d, w - 4 * d, 9 * d);
+            const yBot = next[Math.max(0, Math.min(next.length - 1, Math.round((x + w - bx + 10 * d) / (9 * d))))][1];
+            crack([[x + w + (rnd() - 0.5) * 3 * d, yTop], [x + w + (rnd() - 0.5) * 5 * d, (yTop + yBot) / 2], [x + w + (rnd() - 0.5) * 3 * d, yBot]], (1.2 + rnd() * 1.4) * d, 0.85);
+            x += w;
+          }
+        }
+        crack(pts, (1.6 + rnd() * 1.6) * d, 0.9);
+      });
+      for (let i = 0; i < 30; i++) {                      // the wood's grain still showing through the char
+        const x = bx + rnd() * bw, sway = (rnd() - 0.5) * 30 * d;
+        c.strokeStyle = `rgba(120,70,40,${0.03 + rnd() * 0.04})`; c.lineWidth = (0.6 + rnd()) * d;
+        c.beginPath(); c.moveTo(x, 0); c.bezierCurveTo(x + sway, H * 0.3, x - sway, H * 0.7, x, H); c.stroke();
+      }
+    } else if (id === 'obsidian') {
+      // obsidian: black volcanic glass, smooth curving ripples where it broke, a faint rainbow in its sheen
+      for (let r = 0; r < 6; r++) {
+        const cx = bx + (rnd() * 1.6 - 0.3) * bw, cy = (rnd() * 1.4 - 0.2) * H, r0 = (60 + rnd() * 200) * d;
+        for (let k = 0; k < 9; k++) {
+          c.strokeStyle = `rgba(150,160,215,${0.025 + rnd() * 0.035})`; c.lineWidth = (1 + rnd() * 1.5) * d;
+          c.beginPath(); c.arc(cx, cy, r0 + k * (12 + rnd() * 8) * d, rnd() * 6.28, rnd() * 6.28 + 1 + rnd() * 2); c.stroke();
+        }
+      }
+      c.save(); c.translate(bx + bw * 0.5, H * 0.45); c.rotate(-0.7);
+      const rb = c.createLinearGradient(0, -110 * d, 0, 110 * d);
+      rb.addColorStop(0, 'rgba(0,0,0,0)'); rb.addColorStop(0.3, 'rgba(120,80,200,0.05)'); rb.addColorStop(0.5, 'rgba(70,160,200,0.06)');
+      rb.addColorStop(0.7, 'rgba(210,170,90,0.04)'); rb.addColorStop(1, 'rgba(0,0,0,0)');
+      c.fillStyle = rb; c.fillRect(-bw * 1.5, -110 * d, bw * 3, 220 * d); c.restore();
     } else {
       const dots = Math.floor(bw * H / 70);   // the fine pitting of cast iron
       for (let i = 0; i < dots; i++) {
@@ -3005,7 +3144,7 @@ const GrainSim = (() => {
         const sz = (0.4 + rnd() * 1.1) * d; c.fillRect(bx + rnd() * bw, rnd() * H, sz, sz);
       }
     }
-    if (id !== 'iron' && id !== 'table' && id !== 'lacquer') {
+    if (!['iron', 'table', 'lacquer', 'damascus', 'obsidian', 'cedar'].includes(id)) {
       const dots = Math.floor(bw * H / 240);
       for (let i = 0; i < dots; i++) {   // speckle
         c.fillStyle = rnd() < 0.5 ? `rgba(255,255,255,${0.015 + rnd() * 0.04})` : `rgba(0,0,0,${0.04 + rnd() * 0.08})`;
@@ -3071,11 +3210,18 @@ const GrainSim = (() => {
     }
     return 0;
   }
+  // "Bamboo is open"; Polish has a phrase for each, since the word for open follows the name's gender
+  function isOpenText(en) { const k = en + ' is open'; return lang === 'pl' && PL[k] == null ? tr('{board} is open', { board: tr(en) }) : tr(k); }
   function starsToGo(n, B, ask) {
     if (lang === 'pl') return tr(B.name) + ': brakuje jeszcze ' + n + (n === 1 ? ' gwiazdki.' : ' gwiazdek.');
     return ask ? 'Collect ' + n + ' more ' + (n === 1 ? 'star' : 'stars') + ' to open ' + B.name + '.' : n + ' more ' + (n === 1 ? 'star opens ' : 'stars open ') + B.name + '.';
   }
-  const levelName = (i) => { const B = GS.boardOf(i); return tr(B.name) + ' ' + (i - B.first + 1); };
+  // a level's name: its board and its place on it; on the endless board, its material and its place in that
+  const levelName = (i) => { const B = GS.boardOf(i), ch = GS.chapterOf(i); return ch ? tr(ch.name) + ' ' + (i - ch.first + 1) : tr(B.name) + ' ' + (i - B.first + 1); };
+  // what a board page and the table under it show: the endless board in the material of the level you play next
+  const pageLevel = (B) => (B.endless ? (firstOpenOn(B) != null ? firstOpenOn(B) : B.first) : B.first);
+  const surfaceFor = (B) => GS.surfaceOf(pageLevel(B));
+  const pageName = (B) => { const ch = GS.chapterOf(pageLevel(B)); return tr(ch ? ch.name : B.name); };
   function playLabel() { const i = nextLevelIndex(); return i === 0 && !save.levels[idAt(0)] ? 'Play' : 'Play ' + levelName(i); }
   const STAR_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.4l2.8 6.3 6.8.6-5.2 4.5 1.6 6.7-6-3.6-6 3.6 1.6-6.7-5.1-4.5 6.8-.6z"/></svg>';
 
@@ -3084,7 +3230,7 @@ const GrainSim = (() => {
     const L = levelAt(levelIndex);
     sim = GS.create(cfg, L, layout(), ((Date.now() >>> 0) ^ (levelIndex * 7919)) >>> 0);
     autoBot = null; pendingDone = null; levelUnlocks = [];
-    fx.pops.clear(); fx.lands.clear(); fx.sparks = []; fx.steam = []; fx.floats = []; fx.rings = []; fx.wave = null; fx.bad = null; fx.shakeT = 0; fx.falls = [];
+    fx.pops.clear(); fx.lands.clear(); fx.sparks = []; fx.steam = []; fx.floats = []; fx.rings = []; fx.wave = null; fx.bad = null; fx.shakeT = 0; fx.falls = []; fx.targetPulse = 1;
     fx.stop = 0; fx.heat = 0; fx.quench = 0; fx.beat = 0; fx.beatT = 0; fx.shimmer = null; fx.score = 0; fx.settle.clear(); fx.prevSt = null;
     if (reducedMotion()) fx.spill = null;
     else {
@@ -3533,7 +3679,7 @@ const GrainSim = (() => {
   // under the board pages, and at the end of the camera's move: the chosen board's own surface, as it is in play
   function drawTableTop() {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.drawImage(backgroundFor((tableBoard || GS.boardOf(nextLevelIndex())).id), 0, 0);
+    ctx.drawImage(backgroundFor(surfaceFor(tableBoard || GS.boardOf(nextLevelIndex()))), 0, 0);
   }
   function enterTable() {
     if (screen !== 'title' || cam.to === 1) return;
@@ -3584,10 +3730,10 @@ const GrainSim = (() => {
     GS.BOARDS.forEach((B) => {
       const open = boardOpen(B), got = boardStars(B), page = document.createElement('section');
       page.className = 'bpage' + (open ? '' : ' locked'); page.dataset.board = B.id;
-      page.setAttribute('aria-label', open ? tr('{board}, {n} stars', { board: tr(B.name), n: got }) : tr('{board}, opens with {n} stars', { board: tr(B.name), n: B.stars }));
-      page.innerHTML = '<p class="bhead chalk"><b>' + tr(B.name) + '</b><span>' +
+      page.setAttribute('aria-label', open ? tr('{board}, {n} stars', { board: pageName(B), n: got }) : tr('{board}, opens with {n} stars', { board: pageName(B), n: B.stars }));
+      page.innerHTML = '<p class="bhead chalk"><b>' + pageName(B) + '</b><span>' +
         (open ? STAR_SVG + got + (B.endless ? '' : ' / ' + B.count * 5) : LOCK + ' ' + tr('{n} more {star} to open', { n: B.stars - total, star: STAR_SVG })) + '</span></p>';
-      page.prepend(backgroundFor(B.id));
+      page.prepend(backgroundFor(surfaceFor(B)));
       const cards = document.createElement('div'); cards.className = 'cards'; cards.setAttribute('role', 'list'); cards.setAttribute('aria-label', tr('{board} levels', { board: tr(B.name) }));
       fillCards(cards, B); page.appendChild(cards);
       rail.appendChild(page);
@@ -3602,12 +3748,17 @@ const GrainSim = (() => {
   let openingT = [];
   function openingMoment() {
     openingT.forEach(clearTimeout); openingT = [];
-    const B = GS.BOARDS.find((b) => boardOpen(b) && !save.seen.includes(b.id));
-    if (!B) return;
-    save.seen.push(B.id); persist();
+    let B = GS.BOARDS.find((b) => boardOpen(b) && !save.seen.includes(b.id)), name;
+    if (B) { save.seen.push(B.id); name = B.endless ? GS.chapterOf(pageLevel(B)).name : B.name; }
+    else {                                     // or the endless board has come to a material not met before
+      const E = GS.BOARDS.find((b) => b.endless), ch = E && boardOpen(E) ? GS.chapterOf(pageLevel(E)) : null;
+      if (!ch || ch.index === 0 || save.seen.includes(ch.id)) return;
+      save.seen.push(ch.id); B = E; name = ch.name;
+    }
+    persist();
     const i = GS.BOARDS.indexOf(B), page = $('boardRail').children[i];
     if (!page) return;
-    const note = document.createElement('p'); note.className = 'bopen chalk'; note.textContent = tr(B.name + ' is open');
+    const note = document.createElement('p'); note.className = 'bopen chalk'; note.textContent = isOpenText(name);
     page.appendChild(note); page.classList.add('sealed', 'veiled');
     page.querySelectorAll('.lcard').forEach((c, k) => c.style.setProperty('--delay', (k * 0.06) + 's'));
     tableBoard = GS.BOARDS[Math.max(0, i - 1)];
@@ -3649,13 +3800,13 @@ const GrainSim = (() => {
   function fillCards(box, B) {
     const open = boardOpen(B), next = firstOpenOn(B);
     let first = B.first, last = B.first + B.count - 1;
-    if (B.endless) { let i = B.first; while (save.levels[idAt(i)]) i++; last = i + 2; first = Math.max(B.first, last - 11); }
+    if (B.endless) { const ch = GS.chapterOf(pageLevel(B)); first = ch.first; last = ch.first + 9; }
     for (let i = first; i <= last; i++) {
       const rec = save.levels[idAt(i)], ok = open && unlocked(i), c = document.createElement('button');
       c.className = 'lcard' + (ok ? '' : ' locked') + (i === next ? ' next' : '');
       c.setAttribute('role', 'listitem');
       c.style.setProperty('--tilt', (((i * 7) % 5) - 2) * 0.6 + 'deg');
-      c.innerHTML = '<b>' + (i - B.first + 1) + '</b>' + (ok ? '<span class="stars">' + starsHtml(rec ? rec.stars : 0) + '</span>' + (rec && rec.best ? '<small>' + fmt(rec.best) + '</small>' : '') : LOCK);
+      c.innerHTML = '<b>' + (B.endless ? i - GS.chapterOf(i).first + 1 : i - B.first + 1) + '</b>' + (ok ? '<span class="stars">' + starsHtml(rec ? rec.stars : 0) + '</span>' + (rec && rec.best ? '<small>' + fmt(rec.best) + '</small>' : '') : LOCK);
       c.setAttribute('aria-label', ok ? tr('{level}, {n} of 5 stars', { level: levelName(i), n: rec ? rec.stars : 0 }) : tr('{level}, locked', { level: levelName(i) }));
       c.addEventListener('click', () => {
         if (!open) { toast(starsToGo(B.stars - starCount(), B, true)); return; }
@@ -3715,7 +3866,7 @@ const GrainSim = (() => {
     $('doneNext').textContent = '';
     const pz = $('donePrize');
     pz.hidden = true;
-    const prizes = (opened || []).map((B) => '<b>' + tr(B.name + ' is open') + '.</b>');
+    const prizes = (opened || []).map((B) => '<b>' + isOpenText(B.name) + '.</b>');
     if (unlocks.length) prizes.push(tr('New chopsticks: <b>{names}</b>. Pick them under Chopsticks.', { names: unlocks.map((k) => tr(k.name)).join(', ') }));
     pz.innerHTML = prizes.join(' ');
     setScreen('done');
@@ -3861,7 +4012,7 @@ const GrainSim = (() => {
           updateHud(false);
           break;
         }
-        case 'target': Sound.swap(); updateHud(true); break;
+        case 'target': Sound.swap(); updateHud(true); if (!reducedMotion()) fx.targetPulse = 1; break;
         case 'jar': Sound.scatter(Math.min(12, e.n * 2)); break;
         case 'lost': {
           fx.falls.push({ id: e.id, t: 0 });
@@ -4180,6 +4331,15 @@ const GrainSim = (() => {
     }
     worldTransform(ox, oy);
   }
+  let haloCanvas = null;
+  function haloSprite() {
+    if (haloCanvas) return haloCanvas;
+    const cv = document.createElement('canvas'); cv.width = cv.height = 128;
+    const c = cv.getContext('2d'), g = c.createRadialGradient(64, 64, 0, 64, 64, 64);
+    g.addColorStop(0, 'rgba(255,240,205,0.95)'); g.addColorStop(0.42, 'rgba(255,232,185,0.42)'); g.addColorStop(1, 'rgba(255,222,165,0)');
+    c.fillStyle = g; c.fillRect(0, 0, 128, 128);
+    return (haloCanvas = cv);
+  }
   function drawWarnRing(g, a, ox, oy) {
     worldTransform(ox, oy);
     ctx.strokeStyle = 'rgba(255,107,94,' + a + ')'; ctx.lineWidth = 3;
@@ -4197,7 +4357,7 @@ const GrainSim = (() => {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     if (screen === 'title') { drawRoom(dt); return; }
     if (screen === 'table' || screen === 'sticks') { drawTableTop(dt); return; }
-    ctx.drawImage(backgroundFor(GS.boardOf(levelIndex).id), 0, 0);
+    ctx.drawImage(backgroundFor(GS.surfaceOf(levelIndex)), 0, 0);
     const s = sim;
     if (!s || !sprites) return;
     ctx.save();                                  // nothing draws past the board on a wide screen
@@ -4226,6 +4386,21 @@ const GrainSim = (() => {
       if (!sp) { drawShadow(g, 1, 0, 0.9, ox, oy); continue; }
       const k = spillK(g);
       if (k > 0) drawShadow(g, 1, (1 - k) * 1.2, Math.min(1, k * 2.5) * 0.9, ox, oy);
+    }
+    // the kind the sticks are after lies in a soft light, so it is plain what to gather; brightest on the first board,
+    // where the rule is new, and swelling for a moment whenever the sticks switch kind
+    if (s === sim && !s.done) {
+      const B = GS.boardOf(levelIndex), base = B.first === 0 ? 0.5 : B.first < 30 ? 0.36 : 0.28, pulse = fx.targetPulse;
+      const sp2 = haloSprite(), T = TYPES[s.target];
+      ctx.globalAlpha = Math.min(1, base + 0.45 * pulse);
+      worldTransform(ox, oy);
+      for (const g of gs) {
+        if (g.type !== s.target || (g.st !== ST.REST && g.st !== ST.SLIDE)) continue;
+        if (sp && spillK(g) <= 0) continue;
+        const r = T.rx * 2.3 * g.s * (1 + 0.4 * pulse);
+        ctx.drawImage(sp2, g.x - r, g.y - r, r * 2, r * 2);
+      }
+      ctx.globalAlpha = 1;
     }
     for (const g of gs) {
       if (g.st !== ST.REST && g.st !== ST.SLIDE) continue;
@@ -4318,6 +4493,7 @@ const GrainSim = (() => {
     fx.sparks = fx.sparks.filter((p) => p.t < p.life);
     for (const r of fx.rings) r.t += dt;
     fx.rings = fx.rings.filter((r) => r.t < r.life);
+    fx.targetPulse = Math.max(0, fx.targetPulse - dt / 1.1);
     for (const f of fx.falls) f.t += dt;
     fx.falls = fx.falls.filter((f) => f.t < 0.45);
     if (fx.wave) { fx.wave.t += dt; if (fx.wave.t > 0.6) fx.wave = null; }

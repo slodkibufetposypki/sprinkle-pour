@@ -743,3 +743,14 @@ test('progression: every board opens with its own idea, the new things come one 
     assert.ok(!L.tune.drift && !(L.tune.fieldCone < 180) && !(L.tune.zoneR < 100), 'no twist on level ' + (i + 1));
   }
 });
+
+test('every board has a material of its own; the endless board changes material every ten levels, round and round', () => {
+  const ids = GS.BOARDS.filter((b) => !b.endless).map((b) => b.id), E = GS.BOARDS.find((b) => b.endless);
+  const chapters = GS.CHAPTERS.map((c) => c.id);
+  assert.equal(new Set(ids.concat(chapters)).size, ids.length + chapters.length, 'no two alike');
+  for (let i = 0; i < E.first; i++) assert.equal(GS.surfaceOf(i), GS.boardOf(i).id);
+  for (let k = 0; k < chapters.length * 2; k++) {
+    for (let j = 0; j < 10; j++) assert.equal(GS.surfaceOf(E.first + k * 10 + j), chapters[k % chapters.length], 'level ' + (E.first + k * 10 + j + 1));
+    assert.equal(GS.chapterOf(E.first + k * 10 + 3).first, E.first + k * 10);
+  }
+});
