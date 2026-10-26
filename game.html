@@ -666,6 +666,17 @@ const GrainSim = (() => {
     // stones are never sorted: they cannot be picked, have no pile, go for the open tips from a little further out
     // and a little faster than wrong grains, and they are heavy to shove; they stay on the board all round
     stone: { label: 'Stones', one: 'stone', rx: 12.5, ry: 10.5, pitch: 25, gap: 30, size: 11.5, stone: true, mass: 2.4, creepK: 1.15, reachK: 0.7 },
+    // the grander beans of zen mode, met as the night goes on. Moonseeds are light and float about on their own; ember
+    // beans now and then burst and scatter what lies round them; the rest are worth more and more, and look it.
+    moon: { label: 'Moonseeds', one: 'moonseed', rx: 11, ry: 9, pitch: 23, gap: 28, size: 10, mass: 0.5, slide: 0.3, flickK: 1.6, float: 14 },
+    star: { label: 'Star beans', one: 'star bean', rx: 12.5, ry: 10.5, pitch: 25, gap: 32, size: 11.5 },
+    ember: { label: 'Ember beans', one: 'ember bean', rx: 13, ry: 10, pitch: 27, gap: 32, size: 12, ember: true },
+    nebula: { label: 'Nebula beans', one: 'nebula bean', rx: 15, ry: 11, pitch: 31, gap: 34, size: 13, mass: 1.4 },
+    neon: { label: 'Neon beans', one: 'neon bean', rx: 13, ry: 9, pitch: 27, gap: 30, size: 11.5 },
+    crystal: { label: 'Crystal beans', one: 'crystal bean', rx: 12, ry: 11, pitch: 25, gap: 32, size: 11.5, slide: 0.7, bounce: 0.7 },
+    galaxy: { label: 'Galaxy beans', one: 'galaxy bean', rx: 14, ry: 12.5, pitch: 29, gap: 36, size: 13, mass: 1.6 },
+    // never sorted: hops about for a few seconds and leaps off the board; caught by open sticks whatever they are after
+    gold: { label: 'Golden bean', one: 'golden bean', rx: 13, ry: 11, pitch: 27, gap: 32, size: 12, gold: true, mass: 0.8, bounce: 0.8 },
   };
 
   // Score. Every row pays (grains × 10, plus 100 for a full row or 50 for clearing a kind) times the multiplier.
@@ -1111,9 +1122,12 @@ const GrainSim = (() => {
   }
   function levelFor(i) { return i < AUTHORED.length ? AUTHORED[i] : generatedLevel(i); }
 
-  // Zen mode: no levels and no clock. A jar keeps pouring, faster and faster, a third kind joins after a while and
-  // stones after that; three lives, one gone for every broken row and for a board left to fill up. Full piles are
-  // packed away as you go. How long can you keep the board in order?
+  // Zen mode: no levels and no clock. A jar keeps pouring, a little faster every minute and never stopping getting
+  // faster, so every run ends; three lives, one gone for every broken row and for a board left to fill up. The night
+  // goes on in stages of two minutes, and with each the beans change and get grander, worth more and more: never more
+  // than three kinds to sort, a kind leaving has its bowl packed and the new one takes its corner. Now and then a
+  // golden bean drops in and hops about; catch it before it leaps off. Full bowls are packed as you go, and every few
+  // the Zen Capybara gives a life back.
   const ZEN = {
     id: 'zen', name: 'Zen', seed: 2026, types: ['lentil', 'rice', 'mung'], zen: true, lives: 3,
     piles: [
@@ -1121,7 +1135,22 @@ const GrainSim = (() => {
       { type: 'rice', kind: 'blob', cx: 0.68, cy: 0.42, r: 0.1, count: 10 },
     ],
   };
-  const ZEN_PILE = 40, ZEN_FULL = 95;      // a pile is packed away at this many; this many loose grains is a full board
+  const ZEN_STAGES = [
+    { id: 'dusk', name: 'Dusk', kinds: ['lentil', 'rice'] },
+    { id: 'night', name: 'Night', kinds: ['lentil', 'rice', 'mung'], stones: true },
+    { id: 'deep', name: 'Deep night', kinds: ['mung', 'chickpea', 'sesame'], stones: true },
+    { id: 'moon', name: 'Moonrise', kinds: ['sesame', 'moon', 'kidney'], stones: true },
+    { id: 'stars', name: 'Stars', kinds: ['moon', 'star', 'ember'], stones: true },
+    { id: 'nebula', name: 'Nebula', kinds: ['star', 'ember', 'nebula'], stones: true },
+    { id: 'neon', name: 'Neon', kinds: ['nebula', 'neon', 'crystal'], stones: true },
+    { id: 'galaxy', name: 'Galaxy', kinds: ['neon', 'crystal', 'galaxy'], stones: true },
+  ];
+  const ZEN_WORTH = { lentil: 1, rice: 1, mung: 1.5, chickpea: 2, sesame: 2, moon: 3, kidney: 3, star: 4, ember: 4, nebula: 6, neon: 8, crystal: 9, galaxy: 10 };
+  const ZEN_STAGE_S = 120;   // seconds a stage lasts
+  const ZEN_PILE = 30, ZEN_FULL = 95, ZEN_THANKS = 5;   // a bowl is this many grains; this many loose is a full board; a life back every so many bowls
+  const zenStageAt = (t) => Math.min(ZEN_STAGES.length - 1, Math.floor(t / ZEN_STAGE_S));
+  // grains a second the jar pours: 0.9 to begin with, one tenth more every minute, without end
+  const zenPour = (t) => 0.9 + t / 600;
 
   // The title screen plays this board by itself, in its top half.
   const DEMO = {
@@ -1327,7 +1356,7 @@ const GrainSim = (() => {
     return {
       id, type, x, y, rot, s, tint, st: ST.REST, vx: 0, vy: 0, w: 0, d: 0, warn: 0, cw: false, slot: -1, pt: 0,
       ca: 1, sa: 0, aw: true, px: NaN, py: NaN, prot: NaN, pk: -1, hit: -1, hx: 0, hy: 0, hd: undefined,
-      ax: 0, ay: 0, arot: 0, bx: 0, by: 0, brot: 0, spare: false,
+      ax: 0, ay: 0, arot: 0, bx: 0, by: 0, brot: 0, spare: false, life: 0, hopT: 0, burst: 0, cool: false,
     };
   }
 
@@ -1352,6 +1381,7 @@ const GrainSim = (() => {
 
   // layout: { H, top, bottom } in board units. seed only drives how a broken row scatters and grains wander.
   function create(cfgIn, level, layout, seed) {
+    if (level.zen) level = Object.assign({}, level, { types: level.types.slice() });     // its kinds change during a run
     const cfg = Object.assign({}, DEFAULTS, cfgIn || {}, level.tune || {});
     // what the chopsticks in hand do: reach further, wrong grains or stones slower, a pace line that wears away slower
     const perks = (cfgIn && cfgIn.perks) || {};
@@ -1404,7 +1434,8 @@ const GrainSim = (() => {
     }
     sim.ideal = idealScore(level.types, sim.total, sim.caps, sim.par);
     if (sim.zen) {
-      sim.lives = level.lives || 3; sim.overT = 0; sim.zenN = 0; sim.packs = [];
+      sim.lives = level.lives || 3; sim.overT = 0; sim.zenN = 0; sim.packs = []; sim.stage = 0; sim.bowls = 0; sim.continues = 0;
+      sim.retiring = new Set(); sim.goldT = 40; sim.emberT = 9; sim.golds = 0;
       sim.jar = { scoops: [], pour: [], every: 7.5, next: 1.2, gap: 0, idle: 0, aim: 0, left: true, x: 62, y: sim.top + 50, tip: 0, reach: 1 };
     }
     // The time the level may take: a few times par (more on the first levels, less on later boards), a little more
@@ -1430,7 +1461,7 @@ const GrainSim = (() => {
     // still to sort (in the jar too), and what the sticks can get at right now
     sim.remaining = function (type) {
       let n = 0;
-      for (const g of sim.grains) if (g.st !== ST.GONE && g.st !== ST.POUR && g.st !== ST.LOST && (type ? g.type === type : !TYPES[g.type].stone)) n++;
+      for (const g of sim.grains) if (g.st !== ST.GONE && g.st !== ST.POUR && g.st !== ST.LOST && !g.spare && (type ? g.type === type : !TYPES[g.type].stone && !TYPES[g.type].gold)) n++;
       return n;
     };
     sim.available = function (type) {
@@ -1579,18 +1610,19 @@ const GrainSim = (() => {
       const rowTime = sim.clock - sim.lastPull, ratio = rowTime / paceFor(n, cfg), speed = speedLabel(ratio);
       sim.lastPull = sim.clock;
       let points, milestone = null, bonus = 0, gain = 0;
+      const worth = sim.zen ? ZEN_WORTH[type] || 1 : 1;
       if (kind !== 'short') {
         sim.combo++;
         gain = multGain(sim.combo, ratio, kind);
         sim.mult = Math.min(SCORE.maxMult, sim.mult + gain);
-        points = rowPoints(n, kind, sim.mult);
+        points = Math.round(rowPoints(n, kind, sim.mult) * worth);
         const ms = MILESTONES[sim.combo];
         if (ms) { milestone = ms.name; bonus = ms.bonus; points += bonus; }
         sim.stats.fullRows++;
         if (kind === 'full' && (speed === 'Slow' || speed === 'Steady')) sim.stats.slow++;
       } else {
         sim.stats.short++;
-        points = rowPoints(n, kind, sim.mult);
+        points = Math.round(rowPoints(n, kind, sim.mult) * worth);
         sim.combo = 0;
         sim.mult = Math.max(1, sim.mult * SCORE.shortDecay);
       }
@@ -1600,7 +1632,7 @@ const GrainSim = (() => {
       sim.bestMult = Math.max(sim.bestMult, sim.mult);
       sim.stats.rows++;
       sim.stats.taken[type] = (sim.stats.taken[type] || 0) + n; sim.stats.sorted += n;
-      if (sim.zen && st.n >= ZEN_PILE) sim.packs.push({ type, at: sim.t + 0.5 });
+      if (sim.zen && st.n >= ZEN_PILE && !sim.packs.some((p) => p.type === type)) sim.packs.push({ type, at: sim.t + 0.5 });
       const hp = slotPos(st, Math.max(0, st.n - Math.ceil(n / 2)));
       const cleared = sim.remaining(type) === 0;
       emit('row_taken', {
@@ -1628,61 +1660,153 @@ const GrainSim = (() => {
       emit('level_complete', sim.result);
     }
 
-    // zen: a life gone; the last one ends the game
+    // zen: a life gone; the last one ends the run (the Zen Capybara can bring it back, see revive)
     function loseLife(why) {
       sim.lives = Math.max(0, sim.lives - 1);
       emit('life_lost', { lives: sim.lives, why });
       if (sim.lives > 0) return;
       sim.done = true;
       sim.result = { zen: true, score: sim.score, time: sim.clock, sorted: sim.stats.sorted, rows: sim.stats.rows, fullRows: sim.stats.fullRows,
-        bestCombo: sim.bestCombo, bestMult: sim.bestMult, why };
+        bestCombo: sim.bestCombo, bestMult: sim.bestMult, why, bowls: sim.bowls, stage: sim.stage, golds: sim.golds, continues: sim.continues };
       emit('zen_over', sim.result);
     }
+    // the run over, one more life to carry on: the board is left as it was, the jar waits a breath
+    sim.revive = function () {
+      if (!sim.zen || !sim.done || sim.lives > 0) return false;
+      sim.lives = 1; sim.done = false; sim.result = null; sim.continues++;
+      sim.overT = -6; if (sim.jar) sim.jar.next = sim.clock + 4;
+      emit('revived', { continues: sim.continues });
+      return true;
+    };
     // zen: a grain for the jar, from those packed away if there are any, else a new one
     function spareGrain(type) {
       let g = null;
       for (const q of sim.grains) if (q.spare) { g = q; break; }
       if (!g) { g = makeGrain(sim.grains.length, type, W / 2, -100, 0, 1, 0); sim.grains.push(g); }
       g.type = type; g.st = ST.JAR; g.spare = false; g.rot = rng() * Math.PI * 2; g.s = 0.9 + rng() * 0.2; g.tint = Math.floor(rng() * 4);
-      g.vx = g.vy = g.w = 0; g.warn = 0; g.slot = -1; g.px = NaN; g.hd = undefined;
+      g.vx = g.vy = g.w = 0; g.warn = 0; g.slot = -1; g.px = NaN; g.hd = undefined; g.life = 0; g.hopT = 0; g.burst = 0; g.cool = false;
       return g;
     }
-    // zen: the next scoop, a row of one kind, kinds in turn; the jar comes quicker as time goes on, a third kind joins
-    // at a minute and a half, and from two minutes a stone now and then
+    // zen: the kinds the jar pours now: the stage's, in their corners, not those on their way out
+    const pourKinds = () => level.types.filter((t) => ZEN_STAGES[sim.stage].kinds.includes(t) && !sim.retiring.has(t));
+    // zen: the next scoop, a row of one kind, kinds in turn; how often comes from the jar's pace, which never stops rising
     function zenScoop() {
-      const J = sim.jar, t = sim.clock, kinds = level.types.filter((k, i) => i < 2 || t >= 90 * (i - 1));
-      const type = kinds[sim.zenN % kinds.length], ids = [];
+      const J = sim.jar, t = sim.clock, kinds = pourKinds();
+      const type = kinds.length ? kinds[sim.zenN % kinds.length] : level.types[level.types.length - 1], ids = [];
       sim.zenN++;
       for (let i = 0; i < sim.caps[type]; i++) ids.push(spareGrain(type).id);
-      if (t > 120 && rng() < Math.min(0.6, (t - 120) / 240)) ids.push(spareGrain('stone').id);
-      J.every = Math.max(2.6, 7.5 - t / 36);
+      if (ZEN_STAGES[sim.stage].stones && rng() < Math.min(0.5, 0.15 + t / 1200)) ids.push(spareGrain('stone').id);
+      J.every = Math.max(0.6, ids.length / zenPour(t));
       J.left = rng() < 0.5; J.x = J.left ? 62 : W - 62;
       return ids;
     }
-    // zen: a full pile is packed away (its grains go back to the jar's store) and pays a little
+    // zen: a new stage: the kinds not in it stop coming and, once none are left on the board, hand their corner on
+    function zenStages() {
+      const k = zenStageAt(sim.clock);
+      if (k !== sim.stage) {
+        sim.stage = k;
+        for (const t of level.types) if (!ZEN_STAGES[k].kinds.includes(t)) sim.retiring.add(t);
+        emit('stage', { stage: k, id: ZEN_STAGES[k].id, name: ZEN_STAGES[k].name });
+      }
+      for (const old of Array.from(sim.retiring)) {
+        if (sim.available(old) > 0 || S.row.some((id) => sim.grains[id].type === old) || S.trail.length && S.rowType === old) continue;
+        if (S.phase !== 'away' && S.rowType === old) continue;
+        const fresh = ZEN_STAGES[sim.stage].kinds.find((t) => !level.types.includes(t));
+        if (!fresh) continue;
+        // the old bowl is packed, the new kind takes the corner
+        const i = level.types.indexOf(old), st = sim.stores[old];
+        packStore(old, 'kind');
+        delete sim.stores[old]; sim.retiring.delete(old);
+        level.types[i] = fresh;
+        sim.total[fresh] = ZEN_PILE; sim.caps[fresh] = capacity(fresh, cfg);
+        sim.stores[fresh] = storeLayout([fresh], sim.total, sim.H - sim.bottom, [st.kind])[fresh];
+        if (sim.target === old) switchTarget();
+        emit('new_kind', { grain: fresh, old, x: st.x, y: st.y });
+      }
+    }
+    // zen: a bowl is packed (its grains go back to the jar's store) and pays; every few bowls the capybara thanks you
+    function packStore(type, why) {
+      const st = sim.stores[type];
+      if (!st) return;
+      const n = st.ids.length;
+      for (const id of st.ids) { const g = sim.grains[id]; g.st = ST.JAR; g.spare = true; g.slot = -1; }
+      st.ids = []; st.n = 0; sim.stats.taken[type] = 0;
+      if (!n) return;
+      const bonus = Math.round(25 * n * (ZEN_WORTH[type] || 1));
+      sim.score += bonus; sim.bowls++;
+      emit('pile_packed', { grain: type, n, bonus, x: st.x, y: st.y, score: sim.score, bowls: sim.bowls, why });
+      if (sim.bowls % ZEN_THANKS === 0) {
+        if (sim.lives < 3) { sim.lives++; emit('capybara', { gave: 'life', lives: sim.lives, bowls: sim.bowls }); }
+        else { const b = Math.round(250 * (ZEN_WORTH[type] || 1) * sim.mult); sim.score += b; emit('capybara', { gave: 'points', points: b, bowls: sim.bowls }); }
+      }
+    }
     function packPiles() {
       for (let i = sim.packs.length - 1; i >= 0; i--) {
         const pk = sim.packs[i];
         if (sim.t < pk.at) continue;
         const st = sim.stores[pk.type];
+        if (!st) { sim.packs.splice(i, 1); continue; }
         if (st.ids.some((id) => sim.grains[id].st === ST.POUR)) continue;
         sim.packs.splice(i, 1);
-        const n = st.ids.length, bonus = 25 * n;
-        for (const id of st.ids) { const g = sim.grains[id]; g.st = ST.JAR; g.spare = true; g.slot = -1; }
-        st.ids = []; st.n = 0; sim.stats.taken[pk.type] = 0;
-        sim.score += bonus;
-        emit('pile_packed', { grain: pk.type, n, bonus, x: st.x, y: st.y, score: sim.score });
+        packStore(pk.type, 'full');
       }
     }
     // zen: too many grains loose on the board for a few seconds costs a life, and the jar waits a moment
     function zenCrowd(dt) {
       let n = 0;
-      for (const g of sim.grains) if ((g.st === ST.REST || g.st === ST.SLIDE) && !TYPES[g.type].stone) n++;
+      for (const g of sim.grains) if ((g.st === ST.REST || g.st === ST.SLIDE) && !TYPES[g.type].stone && !TYPES[g.type].gold) n++;
       sim.crowd = n / ZEN_FULL;
       if (sim.overT < 0) { sim.overT = Math.min(0, sim.overT + dt); return; }      // a breather after a life lost to a full board
       if (n < ZEN_FULL) { sim.overT = 0; return; }
       sim.overT += dt;
       if (sim.overT >= 3) { sim.overT = -6; sim.jar.next = sim.clock + 6; loseLife('full'); }
+    }
+    // zen: the golden bean: drops in now and then, hops about, and after a few seconds leaps off the board
+    function zenGold(dt) {
+      sim.goldT -= dt;
+      if (sim.goldT <= 0) {
+        sim.goldT = 35 + rng() * 40;
+        const B = bounds(), g = spareGrain('gold');
+        g.x = B.x0 + 40 + rng() * (B.x1 - B.x0 - 80); g.y = B.y0 + 40 + rng() * (B.y1 - B.y0) * 0.7;
+        g.st = ST.REST; g.life = 7; g.hopT = 0.5; g.px = NaN;
+        emit('gold', { id: g.id, x: g.x, y: g.y, life: g.life });
+      }
+      for (const g of sim.grains) {
+        if (!TYPES[g.type].gold || (g.st !== ST.REST && g.st !== ST.SLIDE)) continue;
+        g.life -= dt; g.hopT -= dt;
+        if (g.life <= 0) { g.st = ST.LOST; emit('gold_escaped', { id: g.id, x: g.x, y: g.y }); continue; }
+        if (g.hopT <= 0 && g.st === ST.REST) {
+          const a = rng() * Math.PI * 2, v = (70 + rng() * 90) * cfg.friction;
+          g.st = ST.SLIDE; g.vx = Math.cos(a) * v; g.vy = Math.sin(a) * v; g.w = (rng() - 0.5) * 16;
+          g.hopT = 0.45 + rng() * 0.35;
+          emit('gold_hop', { id: g.id });
+        }
+      }
+    }
+    // zen: ember beans burst now and then: one glows hotter for a moment, then pops, scatters what lies round it, and goes cold
+    function zenEmbers(dt) {
+      sim.emberT -= dt;
+      for (const g of sim.grains) {
+        if (!g.burst || (g.st !== ST.REST && g.st !== ST.SLIDE)) { if (g.burst && g.st !== ST.REST && g.st !== ST.SLIDE) g.burst = 0; continue; }
+        g.burst -= dt;
+        if (g.burst > 0) continue;
+        g.burst = 0; g.cool = true;
+        for (const o of sim.grains) {
+          if (o === g || (o.st !== ST.REST && o.st !== ST.SLIDE)) continue;
+          const dx = o.x - g.x, dy = o.y - g.y, d = Math.hypot(dx, dy);
+          if (d > 120 || d < 1e-6) continue;
+          const v = (1 - d / 120) * 95 * cfg.friction * (TYPES[o.type].slide || 1);
+          o.st = ST.SLIDE; o.vx += (dx / d) * v; o.vy += (dy / d) * v; o.w = (rng() - 0.5) * 20;
+        }
+        emit('ember_burst', { id: g.id, x: g.x, y: g.y });
+      }
+      if (sim.emberT > 0) return;
+      sim.emberT = 6 + rng() * 6;
+      const hot = sim.grains.filter((g) => TYPES[g.type].ember && !g.cool && !g.burst && g.st === ST.REST);
+      if (!hot.length) return;
+      const g = hot[Math.floor(rng() * hot.length)];
+      g.burst = 1.5;
+      emit('ember_warn', { id: g.id, x: g.x, y: g.y });
     }
 
     // a row let go over another kind's pile: that whole pile and the row fly back onto the board
@@ -1761,6 +1885,15 @@ const GrainSim = (() => {
       S.danger *= Math.exp(-5 * dt);
       // 1) grains of another kind in the creep field drift toward the tips; one reaching them breaks the row
       for (const g of sim.grains) {
+        if (TYPES[g.type].gold) {
+          if ((g.st === ST.REST || g.st === ST.SLIDE) && inField(g.x, g.y, G, R)) {
+            g.st = ST.LOST; sim.golds++;
+            const top = Math.max(...level.types.map((t) => ZEN_WORTH[t] || 1)), bonus = Math.round(400 * top * sim.mult);
+            sim.score += bonus;
+            emit('gold_caught', { id: g.id, x: g.x, y: g.y, bonus, score: sim.score });
+          }
+          continue;
+        }
         if (g.st !== ST.REST || g.type === type) continue;
         const T = TYPES[g.type], CR = T.reachK ? Math.max(cfg.creepR, R * T.reachK) : cfg.creepR, span = CR * (1 + cfg.fieldAhead);
         if (!inField(g.x, g.y, G, CR)) continue;
@@ -1863,10 +1996,11 @@ const GrainSim = (() => {
           if (g.vx * g.vx + g.vy * g.vy < 100) { g.st = ST.REST; g.vx = 0; g.vy = 0; g.w = 0; }
         } else if (g.st === ST.REST) {
           if (sim.tilt && !g.cw) g.y += sim.tilt * (TYPES[g.type].tiltK || 1) * dt;
-          if (cfg.drift > 0 && !g.cw && !TYPES[g.type].stone) {    // restless grains: a slow wander with a turning heading
+          const wander = Math.max(TYPES[g.type].stone ? 0 : cfg.drift, TYPES[g.type].float || 0);
+          if (wander > 0 && !g.cw) {    // restless grains, and those that float: a slow wander with a turning heading
             if (g.hd === undefined) g.hd = rng() * Math.PI * 2;
             g.hd += (rng() - 0.5) * 6 * dt;
-            g.x += Math.cos(g.hd) * cfg.drift * dt; g.y += Math.sin(g.hd) * cfg.drift * dt;
+            g.x += Math.cos(g.hd) * wander * dt; g.y += Math.sin(g.hd) * wander * dt;
             if (g.x <= B.x0 || g.x >= B.x1) g.hd = Math.PI - g.hd;
             if (g.y <= B.y0 || g.y >= yMax) g.hd = -g.hd;
           }
@@ -2136,7 +2270,10 @@ const GrainSim = (() => {
       if (S.phase === 'away' && !sim.done && sim.available(sim.target) === 0) switchTarget();
       // the last grains slid off the tray, or the last of the jar is gone too: nothing left to sort
       if (!sim.done && sim.started && !sim.zen && !S.row.length && !S.trail.length && S.phase !== 'carry' && S.phase !== 'pour' && sim.remaining() === 0) finish();
-      if (sim.zen && sim.started && !sim.done) { packPiles(); zenCrowd(dt); }
+      if (sim.zen && sim.started && !sim.done) {
+        zenStages(); packPiles(); zenCrowd(dt); zenGold(dt); zenEmbers(dt);
+        if (sim.mult > 1 && sim.clock - sim.lastPull > 5) sim.mult = Math.max(1, sim.mult - 0.12 * dt);
+      }
     };
 
     sim.hash = function () {
@@ -2283,7 +2420,7 @@ const GrainSim = (() => {
   }
 
   return {
-    W, ST, DEFAULTS, STICK, TYPES, AUTHORED, DEMO, ZEN, ZEN_PILE, ZEN_FULL, SCORE, MILESTONES, TWIST, NEWS, KIND_FROM,
+    W, ST, DEFAULTS, STICK, TYPES, AUTHORED, DEMO, ZEN, ZEN_PILE, ZEN_FULL, ZEN_STAGES, ZEN_WORTH, ZEN_STAGE_S, ZEN_THANKS, zenPour, SCORE, MILESTONES, TWIST, NEWS, KIND_FROM,
     BOARDS, CHAPTERS, boardOf, chapterOf, surfaceOf, newsAt, creepPull, mulberry32, mixOf, mixTarget, capacity, totalsFor, paceFor, speedFactor, speedLabel, multGain, rowPoints, idealScore, starsFor, parTime, difficulty,
     validateLevel, levelFor, create, makeBot,
     overlapOf(a, b) { orient(a); orient(b); return overlap(a, b, { nx: 0, ny: 0 }); },

@@ -880,3 +880,92 @@ test('zen mode: the jar never stops, full piles are packed away, broken rows and
   assert.ok(ev3.some((e) => e.type === 'life_lost' && e.why === 'break'));
   assert.equal(b.lives, 2);
 });
+
+test('zen: the night goes on in stages, the kinds change and get grander, worth more, and the jar never stops speeding up', () => {
+  assert.ok(GS.zenPour(1800) > GS.zenPour(600) * 1.8 && GS.zenPour(600) > GS.zenPour(0), 'the pour keeps rising');
+  const sim = GS.create({ limitK: 0 }, GS.ZEN, LAYOUT, 11);
+  const bot = GS.makeBot(sim, 5), ev = [];
+  const play = (s, until) => {
+    for (let i = 0; i < s * 120 && !sim.done && !(until && until()); i++) {
+      sim.step(bot()); ev.push(...sim.drainEvents());
+      if (sim.lives < 2) sim.lives = 3;        // keep it going long enough to see the stages turn
+    }
+  };
+  // the clock is moved on to each stage's edge rather than played through
+  const fullRow = (t) => ev.some((e) => e.type === 'row_taken' && e.grain === t && e.kind === 'full');
+  play(25, () => fullRow('lentil'));
+  sim.clock = GS.ZEN_STAGE_S - 0.01; play(1);
+  sim.clock = 2 * GS.ZEN_STAGE_S - 0.01; play(70, () => fullRow('chickpea'));
+  sim.clock = 3 * GS.ZEN_STAGE_S - 0.01; play(1);
+  const stages = ev.filter((e) => e.type === 'stage').map((e) => e.id);
+  assert.deepEqual(stages.slice(0, 3), ['night', 'deep', 'moon'], 'stages ' + stages.join(','));
+  const fresh = ev.filter((e) => e.type === 'new_kind').map((e) => e.grain);
+  assert.ok(fresh.includes('chickpea') && fresh.includes('sesame'), 'new kinds came in: ' + fresh.join(','));
+  assert.ok(sim.level.types.length === 3 && new Set(sim.level.types).size === 3, 'three corners, three kinds');
+  assert.equal(GS.ZEN.types.join(), 'lentil,rice,mung', 'the shared zen level is not changed by a run');
+  const rows = ev.filter((e) => e.type === 'row_taken');
+  const per = (t) => { const r = rows.filter((e) => e.grain === t && e.kind === 'full'); return r.length ? r.reduce((a, e) => a + e.points / e.n / e.mult, 0) / r.length : 0; };
+  assert.ok(per('chickpea') > per('lentil') * 1.6, 'grander kinds pay more: ' + per('lentil').toFixed(1) + ' vs ' + per('chickpea').toFixed(1));
+  for (const t in sim.stores) assert.ok(sim.level.types.includes(t), 'every corner belongs to a kind in play');
+});
+
+test('zen: the golden bean hops and leaps off if nobody catches it; open sticks catch it whatever they are after', () => {
+  const sim = GS.create({}, GS.ZEN, LAYOUT, 12);
+  sim.started = true; sim.goldT = 0.01;
+  let ev = release(sim, 0.2);
+  const drop = ev.find((e) => e.type === 'gold');
+  assert.ok(drop, 'a golden bean dropped in');
+  const g = sim.grains[drop.id];
+  ev = release(sim, 9);
+  assert.ok(ev.some((e) => e.type === 'gold_hop'), 'it hops');
+  assert.ok(ev.some((e) => e.type === 'gold_escaped') && g.st === ST.LOST, 'and leaps off');
+  const before = sim.remaining();
+  // now one right in front of the open sticks while they gather lentils
+  sim.goldT = 0.01; release(sim, 0.05);
+  const g2 = sim.grains.find((q) => q.type === 'gold' && q.st !== ST.LOST);
+  const l = sim.grains.find((q) => q.type === sim.target && q.st === ST.REST);
+  holdAt(sim, l.x, l.y + 60, 0.2);
+  const G = sim.geom(); g2.x = G.mx + G.ux * 40; g2.y = G.my + G.uy * 40; g2.st = ST.REST;
+  ev = holdAt(sim, l.x, l.y + 60, 0.3);
+  const caught = ev.find((e) => e.type === 'gold_caught');
+  assert.ok(caught && caught.bonus > 0, 'caught, with a bonus');
+  assert.ok(!ev.some((e) => e.type === 'break'), 'it never breaks the row');
+  assert.equal(sim.remaining(), before, 'and is never counted as something to sort');
+});
+
+test('zen: an ember bean glows, then bursts and scatters what lies round it, and goes cold', () => {
+  const sim = GS.create({}, GS.ZEN, LAYOUT, 13);
+  sim.started = true;
+  const e = sim.debugPut('ember', 300, 600), near = sim.debugPut('lentil', 330, 600);
+  sim.emberT = 0.01;
+  let ev = release(sim, 0.2);
+  assert.ok(ev.some((x) => x.type === 'ember_warn' && x.id === e.id), 'it warns first');
+  ev = release(sim, 2);
+  assert.ok(ev.some((x) => x.type === 'ember_burst' && x.id === e.id), 'then bursts');
+  assert.ok(near.x > 360, 'the lentil beside it was thrown off: ' + near.x.toFixed(0));
+  assert.ok(e.cool, 'and the ember is cold now');
+});
+
+test('zen: every few bowls the Zen Capybara gives a life back; at the end she can give one more to carry on', () => {
+  const sim = GS.create({}, GS.ZEN, LAYOUT, 14);
+  sim.started = true; sim.lives = 1;
+  const st = sim.stores.lentil;
+  const ev = [];
+  for (let b = 0; b < GS.ZEN_THANKS; b++) {
+    for (let i = 0; i < GS.ZEN_PILE; i++) { const g = sim.debugPut('lentil', 300, 300); g.st = ST.GONE; st.ids.push(g.id); st.n++; }
+    sim.stats.taken.lentil = st.n;
+    sim.packs = [{ type: 'lentil', at: 0 }];
+    sim.step({ down: false }); ev.push(...sim.drainEvents());
+  }
+  assert.equal(sim.bowls, GS.ZEN_THANKS);
+  assert.ok(ev.some((e) => e.type === 'capybara' && e.gave === 'life'), 'a life back');
+  assert.equal(sim.lives, 2);
+  // a full board for three seconds takes the last life
+  sim.lives = 1; sim.overT = 0;
+  for (let i = 0; i < GS.ZEN_FULL + 10; i++) sim.debugPut('rice', 80 + (i % 12) * 26, 200 + Math.floor(i / 12) * 26);
+  for (let i = 0; i < 4 * 120 && !sim.done; i++) sim.step({ down: false });
+  assert.ok(sim.done && sim.result.zen, 'over');
+  assert.ok(sim.revive(), 'carried on');
+  assert.ok(!sim.done && sim.lives === 1 && sim.continues === 1);
+  assert.equal(sim.revive(), false, 'only when the run is over');
+});
