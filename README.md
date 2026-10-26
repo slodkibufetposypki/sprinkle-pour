@@ -1,4 +1,4 @@
-# Zen Grain — source
+# Zen Grains — source
 
 The public page is `docs/zen-grain/index.html`, built from this folder. Edit `game.html`, never the built page.
 

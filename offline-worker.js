@@ -1,4 +1,4 @@
-// Zen Grain offline: the page and everything it needs are kept on the phone after the first visit.
+// Zen Grains offline: the page and everything it needs are kept on the phone after the first visit.
 // The page itself is asked for fresh each time (so an update shows up at once) and falls back to the kept copy;
 // pictures, sound and fonts come from the kept copy. The room video is left to the network: phones fetch it in
 // pieces, which a kept whole file cannot answer, and without it the room shows its still picture instead.

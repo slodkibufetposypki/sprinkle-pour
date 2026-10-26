@@ -1,4 +1,4 @@
-# Zen Grain — what is next
+# Zen Grains — what is next
 
 ## Open
 - **Zen mode, the next pass** (from the analysis of endless games: Mini Metro, Tetris Effect, Dorfromantik, Fruit Ninja, Block Blast, Geometry Dash, Subway Surfers, Balatro, Peggle; and the owner's ideas). Built in phases:

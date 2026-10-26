@@ -1,6 +1,6 @@
 {
-  "name": "Zen Grain",
-  "short_name": "Zen Grain",
+  "name": "Zen Grains",
+  "short_name": "Zen Grains",
   "description": "Sort a spilled mess of grains with chopsticks, one straight row at a time.",
   "start_url": "./",
   "scope": "./",
