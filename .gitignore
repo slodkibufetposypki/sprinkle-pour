@@ -6,6 +6,7 @@ node_modules/
 # zen-grain: the local test build and its copied media
 zen-grain/local.html
 zen-grain/zen-*
+zen-grain/medal-*
 zen-grain/icon-*.png
 # Python bytecode from the media tools
 __pycache__/
