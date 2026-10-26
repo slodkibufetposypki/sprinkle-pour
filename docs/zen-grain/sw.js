@@ -1,8 +1,8 @@
-// Zen Grain offline: the page and everything it needs are kept on the phone after the first visit.
+// Zen Grains offline: the page and everything it needs are kept on the phone after the first visit.
 // The page itself is asked for fresh each time (so an update shows up at once) and falls back to the kept copy;
 // pictures, sound and fonts come from the kept copy. The room video is left to the network: phones fetch it in
 // pieces, which a kept whole file cannot answer, and without it the room shows its still picture instead.
-const VERSION = 'c9ebf58680';
+const VERSION = '0f885f9894';
 const CACHE = 'zen-grain-' + VERSION;
 const CORE = ['./', 'index.html', 'zen-room.jpg', 'zen-room.mp3', 'zen-night.jpg', 'zen-flame.png', 'zen-chime.png', 'zen-lantern.png',
   'icon-192.png', 'icon-512.png', 'icon-180.png', 'manifest.webmanifest'];
