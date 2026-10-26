@@ -357,43 +357,31 @@
     padding-top: calc(env(safe-area-inset-top, 0px) + 16px); padding-bottom: 22px; animation-name: drop; box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45); }
   #zenEnd[data-v="top"] .slab::before, #fail[data-v="top"] .slab::before, #done[data-v="top"] .slab::before { top: auto; bottom: 9px; }
   /* zen mode: its way in at the top of the board screen, and its three lives, brush circles under the score */
-  /* The menu in the room, after the first tap. Two ema, the wooden plaques hung at a shrine, on red cords from a
-     bamboo rod: the levels and zen mode, written in ink, the same wood as the level tags. Under them, in chalk on the
-     dark of the table, the quiet mode switch and the settings. They drop onto their cords and sway once. */
-  .mainmenu { position: absolute; z-index: 2; left: 0; right: 0; bottom: 0; padding: 40px 0 calc(env(safe-area-inset-bottom, 0px) + 12px);
-    background: linear-gradient(to bottom, rgba(14, 9, 5, 0), rgba(14, 9, 5, 0.72) 30%, rgba(14, 9, 5, 0.9)); }
-  /* a twisted straw rope strung across, sagging in the middle; the plaques hang under it on long cords */
-  .mainmenu .hang { position: relative; width: min(100%, 440px); margin: 0 auto; padding-top: 38px; }
-  .mainmenu .rope { position: absolute; z-index: 1; left: 0; top: 0; width: 100%; height: 60px; overflow: visible; pointer-events: none;
-    filter: drop-shadow(0 5px 4px rgba(0, 0, 0, .5)); }
-  .mainmenu .rope path { fill: none; vector-effect: non-scaling-stroke; stroke-linecap: round; }
-  .mainmenu .rope .r0 { stroke: #5a4320; stroke-width: 11px; }
-  .mainmenu .rope .r1 { stroke: #c9ab66; stroke-width: 8px; }
-  .mainmenu .rope .r2 { stroke: #8c6c34; stroke-width: 8px; stroke-dasharray: 2.5 5.5; }
-  .mainmenu .rope .r3 { stroke: rgba(255, 241, 205, .45); stroke-width: 1.6px; stroke-dasharray: 2.5 5.5; stroke-dashoffset: -3; }
-  .mainmenu .plaques { width: min(calc(100% - 40px), 380px); margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  .ema { position: relative; height: 128px; margin-top: 46px; border: 0; padding: 40px 8px 12px; background: none; color: #2b1b0e;
-    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; transform-origin: 50% -46px;
-    filter: drop-shadow(0 8px 9px rgba(10, 5, 2, .6));
+  /* The menu in the room, after the first tap. Two ema, the wooden plaques hung at a shrine, looped on red-and-white
+     cords over a bamboo pole that hangs from the rafters: the levels and zen mode, written in ink, each with its
+     vermilion seal. Under them, in chalk on the dark of the table, the quiet mode switch and the settings. The plaques
+     drop onto their cords and keep swaying a little, like the wind chime in the room. */
+  .mainmenu { position: absolute; z-index: 2; left: 0; right: 0; bottom: 0; padding: 70px 0 calc(env(safe-area-inset-bottom, 0px) + 12px);
+    background: linear-gradient(to bottom, rgba(14, 9, 5, 0), rgba(14, 9, 5, 0.7) 32%, rgba(14, 9, 5, 0.9)); }
+  .mainmenu .hang { position: relative; width: min(calc(100% - 12px), 430px); margin: 0 auto; }
+  .mainmenu .pole { position: relative; z-index: 1; display: block; width: 100%; height: 24px; overflow: visible; filter: drop-shadow(0 6px 5px rgba(0, 0, 0, .55)); }
+  .mainmenu .pole .str { fill: none; stroke: url(#poleStr); stroke-width: 1.6px; vector-effect: non-scaling-stroke; }
+  .mainmenu .plaques { position: relative; z-index: 2; display: flex; justify-content: center; gap: 18px; margin-top: 26px; }
+  .ema { position: relative; flex: none; width: min(156px, calc((100vw - 60px) / 2)); height: 128px; border: 0; padding: 50px 8px 14px; background: none; color: #2b1b0e;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; transform-origin: 50% -37px;
+    filter: drop-shadow(0 9px 8px rgba(10, 5, 2, .6));
     animation: hang .9s cubic-bezier(.3, .7, .25, 1) backwards, sway 4.6s ease-in-out .9s infinite alternate; }
   .ema + .ema { animation-delay: .08s, 1.4s; animation-duration: .9s, 5.3s; }
-  .ema::before { content: ""; position: absolute; inset: 0; z-index: -1; clip-path: polygon(0 24%, 50% 0, 100% 24%, 100% 100%, 0 100%);
-    background:
-      radial-gradient(circle at 50% 16px, rgba(22, 12, 5, .92) 0 4px, rgba(110, 70, 34, .5) 4.5px 6px, transparent 6.5px),
-      repeating-linear-gradient(92deg, transparent 0 7px, rgba(110, 66, 26, .08) 7px 8px, transparent 8px 15px),
-      linear-gradient(100deg, transparent 0 28%, rgba(255, 238, 200, .2) 45%, transparent 62%),
-      linear-gradient(172deg, #edcc94, #d2a466 58%, #b9874d); }
-  .ema::after { content: ""; position: absolute; left: 7px; right: 7px; top: 24%; bottom: 7px; z-index: -1; border: 1px solid rgba(70, 40, 15, .22);
-    border-top: 0; pointer-events: none; }
-  .ema .cord { position: absolute; left: 50%; top: -46px; width: 12px; height: 62px; transform: translateX(-50%); overflow: visible; }
-  .ema .cord path { fill: none; stroke: #b33a28; stroke-width: 2.4px; vector-effect: non-scaling-stroke; }
+  .ema .art { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; }
+  .ema .cord { position: absolute; left: 50%; top: -48px; width: 40px; height: 78px; transform: translateX(-50%); overflow: visible; }
+  .ema .cord path { fill: none; stroke-linejoin: round; stroke-linecap: round; }
+  .ema .cord .c0 { stroke: #b8392a; stroke-width: 3; }
+  .ema .cord .c1 { stroke: #f6efe2; stroke-width: 3; stroke-dasharray: 1.4 3.4; }
   .ema .cord circle { fill: #8e2a1c; }
-  .ema b { position: relative; font: 400 var(--fs-28)/1.15 var(--sketch); letter-spacing: var(--sketch-ls); }
-  .ema small { position: relative; font: 400 var(--fs-15)/1.2 var(--hand); color: rgba(43, 27, 14, .68); text-align: center; }
-  .ema .mark { position: absolute; left: 50%; top: 58%; width: 92px; height: 92px; transform: translate(-50%, -50%) rotate(-12deg); color: rgba(43, 27, 14, .16); stroke: none; }
-  .ema .mark path { stroke-width: 3.4; }
+  .ema b { position: relative; font: 400 var(--fs-28)/1.15 var(--sketch); letter-spacing: var(--sketch-ls); text-shadow: 0 1px 0 rgba(255, 240, 210, .35); }
+  .ema small { position: relative; font: 400 var(--fs-15)/1.2 var(--hand); color: rgba(43, 27, 14, .7); text-align: center; padding: 0 8px; }
   .ema:active { scale: 0.97; }
-  .ema.locked::before { filter: saturate(.55) brightness(.72); }
+  .ema.locked .art { filter: saturate(.5) brightness(.7); }
   .ema.locked { color: #4a3826; }
   @keyframes hang { 0% { opacity: 0; transform: translateY(-26px) rotate(-5deg); } 45% { opacity: 1; transform: translateY(3px) rotate(3deg); }
     70% { transform: rotate(-1.4deg); } 100% { transform: none; } }
@@ -509,16 +497,17 @@
 </svg></div>
 <div id="hint" class="note chalk off" aria-live="polite"></div>
 
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="emaWood" x1="0" y1="0" x2=".3" y2="1"><stop offset="0" stop-color="#f2d6a3"/><stop offset=".55" stop-color="#d9ad6f"/><stop offset="1" stop-color="#bf8d52"/></linearGradient><linearGradient id="emaRoof" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#bd8853"/><stop offset="1" stop-color="#8c5b2c"/></linearGradient><linearGradient id="emaSheen" x1="0" y1="0" x2="1" y2=".25"><stop offset=".22" stop-color="#fff3d8" stop-opacity="0"/><stop offset=".42" stop-color="#fff3d8" stop-opacity=".24"/><stop offset=".6" stop-color="#fff3d8" stop-opacity="0"/></linearGradient><clipPath id="emaClip"><path d="M4 36 80 6 156 36V121q0 5-5 5H9q-5 0-5-5z"/></clipPath><linearGradient id="bambooBody" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ecd897"/><stop offset=".35" stop-color="#cfb267"/><stop offset=".75" stop-color="#a1843c"/><stop offset="1" stop-color="#6a5220"/></linearGradient><linearGradient id="bambooTint" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#7f9440" stop-opacity=".22"/><stop offset=".3" stop-color="#7f9440" stop-opacity="0"/><stop offset=".62" stop-color="#7f9440" stop-opacity=".14"/><stop offset="1" stop-color="#7f9440" stop-opacity="0"/></linearGradient><linearGradient id="bambooNode" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e2cb84"/><stop offset=".5" stop-color="#b49447"/><stop offset="1" stop-color="#5e4718"/></linearGradient><linearGradient id="poleStr" x1="0" y1="12" x2="0" y2="-90" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#2a1c0e" stop-opacity=".85"/><stop offset="1" stop-color="#2a1c0e" stop-opacity="0"/></linearGradient></defs></svg>
 <section id="title" class="roomview" hidden>
   <button id="enterBtn" class="enter" aria-label="Open the menu"></button>
   <h1 id="roomTitle" class="roomtitle" hidden>Zen Grain</h1>
   <p id="enterHint" class="note chalk off">Tap to begin</p>
   <nav id="mainMenu" class="mainmenu" hidden aria-label="Menu">
     <div class="hang">
-    <svg class="rope" viewBox="0 0 100 60" preserveAspectRatio="none" aria-hidden="true"><path class="r0" d="M-4 4Q50 92 104 4"/><path class="r1" d="M-4 4Q50 92 104 4"/><path class="r2" d="M-4 4Q50 92 104 4"/><path class="r3" d="M-4 4Q50 92 104 4"/></svg>
+    <svg class="pole" viewBox="0 0 420 24" preserveAspectRatio="none" aria-hidden="true"><path class="str" d="M16 12V-90M404 12V-90"/><rect x="8" y="5" width="404" height="14" rx="7" fill="url(#bambooBody)"/><rect x="8" y="5" width="404" height="14" rx="7" fill="url(#bambooTint)"/><path d="M14 8.6H406" stroke="#fff6d8" stroke-opacity=".55" stroke-width="1.3"/><path d="M20 15.5C120 15 200 16.2 400 15.4" stroke="#5a4416" stroke-opacity=".25" stroke-width=".8" fill="none"/><g transform="translate(74 0)"><rect x="-3.4" y="4" width="6.8" height="16" rx="3" fill="url(#bambooNode)"/><path d="M0 4.4V19.6" stroke="#4d3a12" stroke-opacity=".55" stroke-width="1"/><path d="M2 5.5V18.5" stroke="#fff3cc" stroke-opacity=".35" stroke-width=".8"/></g><g transform="translate(168 0)"><rect x="-3.4" y="4" width="6.8" height="16" rx="3" fill="url(#bambooNode)"/><path d="M0 4.4V19.6" stroke="#4d3a12" stroke-opacity=".55" stroke-width="1"/><path d="M2 5.5V18.5" stroke="#fff3cc" stroke-opacity=".35" stroke-width=".8"/></g><g transform="translate(252 0)"><rect x="-3.4" y="4" width="6.8" height="16" rx="3" fill="url(#bambooNode)"/><path d="M0 4.4V19.6" stroke="#4d3a12" stroke-opacity=".55" stroke-width="1"/><path d="M2 5.5V18.5" stroke="#fff3cc" stroke-opacity=".35" stroke-width=".8"/></g><g transform="translate(346 0)"><rect x="-3.4" y="4" width="6.8" height="16" rx="3" fill="url(#bambooNode)"/><path d="M0 4.4V19.6" stroke="#4d3a12" stroke-opacity=".55" stroke-width="1"/><path d="M2 5.5V18.5" stroke="#fff3cc" stroke-opacity=".35" stroke-width=".8"/></g><ellipse cx="9" cy="12" rx="3.2" ry="7" fill="#cdb26a"/><ellipse cx="9" cy="12" rx="1.8" ry="4.4" fill="#4e3a12"/><ellipse cx="411" cy="12" rx="3.2" ry="7" fill="#c2a660"/><ellipse cx="411" cy="12" rx="1.8" ry="4.4" fill="#4e3a12"/></svg>
     <div class="plaques">
-      <button id="menuLevels" class="ema"><svg class="cord" viewBox="0 0 12 62" preserveAspectRatio="none" aria-hidden="true"><path d="M6 0V62"/><circle cx="6" cy="3" r="3.4"/></svg><b>Levels</b><small id="menuNext"></small></button>
-      <button id="menuZen" class="ema zen"><svg class="cord" viewBox="0 0 12 62" preserveAspectRatio="none" aria-hidden="true"><path d="M6 0V62"/><circle cx="6" cy="3" r="3.4"/></svg><svg class="mark" viewBox="0 0 24 24" aria-hidden="true"><path d="M15.6 4.1C10.4 2.4 4.4 5.6 3.7 11.4c-.7 5.6 3.8 9.5 8.8 9.2 5-.3 8.6-4.6 7.8-9.6-.3-1.9-1.2-3.4-2.4-4.6" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/></svg><b>Zen mode</b><small id="menuZenNote"></small></button>
+      <button id="menuLevels" class="ema"><svg class="cord" viewBox="0 0 40 78" aria-hidden="true"><path class="c0" d="M20 75 13 13Q20-5 27 13L20 75"/><path class="c1" d="M20 75 13 13Q20-5 27 13L20 75"/><circle cx="20" cy="75" r="2.6"/></svg><svg class="art" viewBox="0 0 160 130" preserveAspectRatio="none" aria-hidden="true"><path d="M4 36 80 6 156 36V121q0 5-5 5H9q-5 0-5-5z" fill="url(#emaWood)"/><g clip-path="url(#emaClip)"><g fill="none" stroke="#7a4a1c" stroke-opacity=".17" stroke-width="1"><path d="M0 54c26 -3 52 3 80 1s50 -4 80 0"/><path d="M0 63c30 2 55 -2 80 2s48 3 80 -1"/><path d="M0 72c22 -2 50 4 80 -1s52 -3 80 1"/><path d="M0 81c28 3 56 -1 80 2s46 2 80 -2"/><path d="M0 90c24 -3 50 2 80 0s50 -2 80 2"/><path d="M0 99c30 2 54 -3 80 1s47 3 80 -1"/><path d="M0 108c26 -2 52 3 80 -2s51 -3 80 1"/><path d="M0 117c22 3 50 -2 80 1s49 2 80 0"/></g><rect width="160" height="130" fill="url(#emaSheen)"/><path d="M4 47 80 17 156 47 156 52 80 22 4 52z" fill="#4a2a0e" fill-opacity=".2"/><path d="M4 36 80 6 156 36 156 47 80 17 4 47z" fill="url(#emaRoof)"/><path d="M5 37 80 7.5 155 37" fill="none" stroke="#f6dcae" stroke-opacity=".55" stroke-width="1.2"/></g><path d="M7.5 52V120q0 3 3 3" fill="none" stroke="#fff1d6" stroke-opacity=".38" stroke-width="1.2"/><path d="M4 36 80 6 156 36V121q0 5-5 5H9q-5 0-5-5z" fill="none" stroke="#3e230b" stroke-opacity=".6" stroke-width="1.6"/><circle cx="80" cy="29" r="5.6" fill="#5b3a1a" fill-opacity=".55"/><circle cx="80" cy="29" r="3.9" fill="#1e1006"/><g transform="translate(144 118) rotate(-5) scale(.78)"><rect x="-8.5" y="-8.5" width="17" height="17" rx="2.6" fill="#b33a28" fill-opacity=".86"/><g fill="#f7e8d2"><ellipse cx="-3.4" cy="-2.6" rx="2.4" ry="1.9"/><ellipse cx="3.2" cy="-1.4" rx="2.4" ry="1.9"/><ellipse cx="-0.6" cy="3.4" rx="2.4" ry="1.9"/></g></g></svg><b>Levels</b><small id="menuNext"></small></button>
+      <button id="menuZen" class="ema zen"><svg class="cord" viewBox="0 0 40 78" aria-hidden="true"><path class="c0" d="M20 75 13 13Q20-5 27 13L20 75"/><path class="c1" d="M20 75 13 13Q20-5 27 13L20 75"/><circle cx="20" cy="75" r="2.6"/></svg><svg class="art" viewBox="0 0 160 130" preserveAspectRatio="none" aria-hidden="true"><path d="M4 36 80 6 156 36V121q0 5-5 5H9q-5 0-5-5z" fill="url(#emaWood)"/><g clip-path="url(#emaClip)"><g fill="none" stroke="#7a4a1c" stroke-opacity=".17" stroke-width="1"><path d="M0 54c26 -3 52 3 80 1s50 -4 80 0"/><path d="M0 63c30 2 55 -2 80 2s48 3 80 -1"/><path d="M0 72c22 -2 50 4 80 -1s52 -3 80 1"/><path d="M0 81c28 3 56 -1 80 2s46 2 80 -2"/><path d="M0 90c24 -3 50 2 80 0s50 -2 80 2"/><path d="M0 99c30 2 54 -3 80 1s47 3 80 -1"/><path d="M0 108c26 -2 52 3 80 -2s51 -3 80 1"/><path d="M0 117c22 3 50 -2 80 1s49 2 80 0"/></g><rect width="160" height="130" fill="url(#emaSheen)"/><path d="M4 47 80 17 156 47 156 52 80 22 4 52z" fill="#4a2a0e" fill-opacity=".2"/><path d="M4 36 80 6 156 36 156 47 80 17 4 47z" fill="url(#emaRoof)"/><path d="M5 37 80 7.5 155 37" fill="none" stroke="#f6dcae" stroke-opacity=".55" stroke-width="1.2"/></g><path d="M7.5 52V120q0 3 3 3" fill="none" stroke="#fff1d6" stroke-opacity=".38" stroke-width="1.2"/><path d="M4 36 80 6 156 36V121q0 5-5 5H9q-5 0-5-5z" fill="none" stroke="#3e230b" stroke-opacity=".6" stroke-width="1.6"/><circle cx="80" cy="29" r="5.6" fill="#5b3a1a" fill-opacity=".55"/><circle cx="80" cy="29" r="3.9" fill="#1e1006"/><g transform="translate(144 118) rotate(-5) scale(.78)"><rect x="-8.5" y="-8.5" width="17" height="17" rx="2.6" fill="#b33a28" fill-opacity=".86"/><path d="M2.6-5.4C-1.6-6.4-5.6-3.6-5.6.6c0 3.6 2.8 5.6 5.8 5.4 3.4-.2 5.6-3 5-6.4" fill="none" stroke="#f7e8d2" stroke-width="1.8" stroke-linecap="round"/></g></svg><b>Zen mode</b><small id="menuZenNote"></small></button>
     </div>
     </div>
     <div class="menurow">
@@ -2368,7 +2357,8 @@ const GrainSim = (() => {
     "The tray tilts and the grains slide down. Catch them before they fall off.": "Taca się przechyla, a ziarna zsuwają się w dół. Złap je, zanim spadną.",
     "Everything you already know, in new pairs on every level.": "Wszystko, co już znasz, w nowych parach na każdym poziomie.",
     "A board without end, harder level by level, in a new material every ten.": "Plansza bez końca, coraz trudniejsza, co dziesięć poziomów z nowego materiału.",
-    "Plain and steady.": "Zwykłe i pewne.", "The kind you gather glows softly.": "Ziarno, które zbierasz, lekko świeci.",
+    "Plain and steady.": "Zwykłe i pewne.", "When the kind changes, it lights up for a moment.": "Gdy zmienia się rodzaj, ziarna na chwilę się rozświetlają.",
+    "The kind you gather glows all the time.": "Ziarno, które zbierasz, świeci cały czas.", "Mother-of-pearl": "Perłowe", "Collect 120 stars": "Zbierz 120 gwiazdek",
     "Wrong grains creep in more slowly.": "Obce ziarna wkradają się wolniej.", "They reach grains from further away.": "Sięgają po ziarna z dalszej odległości.",
     "Stones are slow to come at them.": "Kamyki wolniej do nich podchodzą.", "The pace line wears away more slowly.": "Kreska tempa ściera się wolniej.",
     "New chopsticks: <b>{name}</b>. {perk} Pick them under Chopsticks.": "Nowe pałeczki: <b>{name}</b>. {perk} Wybierzesz je w menu Pałeczki.",
@@ -2404,11 +2394,12 @@ const GrainSim = (() => {
 
   // ---------- chopsticks you can earn ----------
   // Each pair does one thing of its own, and you play with one pair at a time, so choosing is a choice. The light under
-  // the kind to gather comes only with the cherry pair.
+  // the kind to gather: the cherry pair flashes it for a moment when the kind changes; the far harder mother-of-pearl
+  // pair keeps it lit all the time.
   const STICKS = [
     { id: 'bamboo', name: 'Bamboo', body: ['#7a522d', '#c8955a', '#eccb96', '#d4a667', '#85592f'], perk: 'Plain and steady.' },
     { id: 'cherry', name: 'Cherry lacquer', body: ['#43100d', '#8e1d1a', '#d0473d', '#a3271f', '#4d0f0d'], tip: ['#140d0b', '#3a2c26', '#140d0b'],
-      req: { kind: 'mult', n: 3, text: 'Reach a ×3 multiplier' }, perk: 'The kind you gather glows softly.', glow: true },
+      req: { kind: 'mult', n: 3, text: 'Reach a ×3 multiplier' }, perk: 'When the kind changes, it lights up for a moment.', flash: true },
     { id: 'ebony', name: 'Ebony', body: ['#0e0b09', '#2a211c', '#4d3e35', '#2e241e', '#110d0b'],
       req: { kind: 'combo', n: 7, text: 'Make 7 full rows in a row' }, perk: 'Wrong grains creep in more slowly.', perks: { creep: 0.8 } },
     { id: 'jade', name: 'Jade', body: ['#1c4532', '#3f8a66', '#97d6b3', '#4f9c76', '#214d39'],
@@ -2417,6 +2408,8 @@ const GrainSim = (() => {
       req: { kind: 'stars', n: 20, text: 'Collect 20 stars' }, perk: 'Stones are slow to come at them.', perks: { stone: 0.6 } },
     { id: 'gold', name: 'Gold leaf', body: ['#684710', '#c39a3d', '#f8e09a', '#d4ab4a', '#775414'], tip: ['#3a1a0e', '#7a2e1c', '#3a1a0e'],
       req: { kind: 'mult', n: 6, text: 'Reach a ×6 multiplier' }, perk: 'The pace line wears away more slowly.', perks: { pace: 1.2 } },
+    { id: 'pearl', name: 'Mother-of-pearl', body: ['#4f5866', '#aeb9c6', '#f5f7fb', '#cdd7e2', '#5b6472'], tip: ['#16181d', '#2e3440', '#16181d'],
+      req: { kind: 'stars', n: 120, text: 'Collect 120 stars' }, perk: 'The kind you gather glows all the time.', glow: true, flash: true },
   ];
   const stickById = (id) => STICKS.find((s) => s.id === id) || STICKS[0];
 
@@ -4445,21 +4438,22 @@ const GrainSim = (() => {
       }
     });
   }, { passive: true });
-  // What a level holds, as small icons for its tag: its kinds, then stones, the jar, a tilted tray, carrying by hand.
+  // What makes a level different, as small ink marks at the foot of its tag: stones, the jar, a tilted tray, carrying
+  // by hand. (Its kinds of grain are not shown: they are plain the moment it starts.)
   const INK = 'rgba(43,27,14,.6)';
   const WHAT_ICON = {
-    stone: '<path d="M4 11.5C3.4 8 6 5.2 9.6 5.4c3.4.2 6.6 2 6.5 5.6-.1 3-3 4.6-6.4 4.4C6.3 15.2 4.4 14.2 4 11.5z" fill="#8d9196" stroke="' + INK + '" stroke-width="1.1"/>',
-    jar: '<path d="M7 3.5h6v2.2c2.6 1.1 3.6 3.4 3.4 6.2-.3 3.4-2.6 5-6.4 5s-6.1-1.6-6.4-5C3.4 9.1 4.4 6.8 7 5.7z" fill="#7a5532" stroke="' + INK + '" stroke-width="1.1"/><path d="M6.6 3.4h6.8" stroke="#3b2a1a" stroke-width="1.6" stroke-linecap="round"/>',
+    stone: '<path d="M4 11.5C3.4 8 6 5.2 9.6 5.4c3.4.2 6.6 2 6.5 5.6-.1 3-3 4.6-6.4 4.4C6.3 15.2 4.4 14.2 4 11.5z" fill="' + INK + '"/>',
+    jar: '<path d="M7 3.5h6v2.2c2.6 1.1 3.6 3.4 3.4 6.2-.3 3.4-2.6 5-6.4 5s-6.1-1.6-6.4-5C3.4 9.1 4.4 6.8 7 5.7z" fill="' + INK + '"/><path d="M6.6 3.4h6.8" stroke="#3b2a1a" stroke-width="1.6" stroke-linecap="round"/>',
     tilt: '<path d="M2.5 6.5l15 5" stroke="#3b2a1a" stroke-width="2.2" stroke-linecap="round"/><path d="M11.5 14.8l5 1.6-1-5" fill="none" stroke="#3b2a1a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>',
     manual: '<path d="M3.5 7.5c4.5-4 11-3.2 12.6 3.6" fill="none" stroke="#3b2a1a" stroke-width="2" stroke-linecap="round"/><path d="M12.6 10.4l3.6 2.2 1.8-3.6" fill="none" stroke="#3b2a1a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>',
   };
   function whatHtml(i) {
     const L = levelAt(i), out = [];
-    for (const t of L.types) out.push('<svg viewBox="0 0 20 20" aria-hidden="true"><g stroke="' + INK + '" stroke-width="1.2">' + chipIcon(t) + '</g></svg>');
     if (L.piles.some((p) => TYPES[p.type].stone)) out.push(WHAT_ICON.stone);
     if (L.jar) out.push(WHAT_ICON.jar);
     if (L.tilt) out.push(WHAT_ICON.tilt);
     if (L.manual) out.push(WHAT_ICON.manual);
+    if (!out.length) return '';
     return '<span class="what">' + out.map((x) => (x.startsWith('<svg') ? x : '<svg viewBox="0 0 20 20" aria-hidden="true">' + x + '</svg>')).join('') + '</span>';
   }
   // a board's levels as cards: the one to play next lifted a little; on the endless board, the last few played and the next
@@ -5405,8 +5399,8 @@ const GrainSim = (() => {
     // the kind the sticks are after lies in a soft light, so it is plain what to gather; brightest on the first board,
     // where the rule is new, and swelling for a moment whenever the sticks switch kind
     if (s === sim && !s.done) {
-      const B = GS.boardOf(levelIndex), lit = !!stickById(save.sticks.equipped).glow;
-      const base = lit ? (B.first < 30 ? 0.36 : 0.3) : 0, pulse = lit ? fx.targetPulse : 0;
+      const B = GS.boardOf(levelIndex), k = stickById(save.sticks.equipped);
+      const base = k.glow ? (B.first < 30 ? 0.36 : 0.3) : 0, pulse = k.glow || k.flash ? fx.targetPulse : 0;
       const sp2 = haloSprite(), T = TYPES[s.target];
       ctx.globalAlpha = Math.min(1, base + 0.45 * pulse);
       worldTransform(ox, oy);
