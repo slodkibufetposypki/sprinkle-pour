@@ -2,12 +2,15 @@
 <meta name="theme-color" content="#0f1215">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Cabin+Sketch:wght@700&family=Patrick+Hand&family=Zen+Antique+Soft&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Klee+One:wght@400;600&family=Yuji+Syuku&family=Cabin+Sketch:wght@700&family=Patrick+Hand&display=swap">
 <style>
   /* Chalk on slate. Whatever is written on the board (score, multiplier, tallies, notes) is chalk in a hand;
      the menus are a slate slab across the bottom, inside thumb reach, with a chalk rule along its top edge.
      Small print stays in a plain face. The one loud thing is on the board itself: the chopstick tips heat up
      with the multiplier and a wrong grain quenches them. */
+  :root.chalkfont { --hand: "Patrick Hand", "Segoe Print", "Bradley Hand", cursive; --sketch: "Cabin Sketch", "Patrick Hand", cursive; --sketch-w: 700; --sketch-ls: 0; --btn-fs: var(--fs-24); }
+  /* the pen hand runs wider than the chalk one: buttons and the header line a size down, the brush set a little tighter */
+  :root { --sketch-ls: -0.03em; --btn-fs: var(--fs-20); }
   :root {
     --slate: #0f1215;
     --slab: #171b20;
@@ -21,8 +24,11 @@
     --kidney: #b8463e;
     --ember: #f6c453;
     --chalk-red: #ff7a6b;
-    --hand: "Patrick Hand", "Segoe Print", "Bradley Hand", cursive;
-    --sketch: "Cabin Sketch", "Patrick Hand", cursive;
+    /* a Japanese pen hand for everything written on the board, a brush for names and big numbers; both carry every
+       Polish letter. ?font=chalk brings back the chalk faces of the first boards to compare. */
+    --hand: "Klee One", "Segoe Print", "Bradley Hand", cursive;
+    --sketch: "Yuji Syuku", "Klee One", serif;
+    --sketch-w: 400;
     --print: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     --fs-13: 13px; --fs-15: 15px; --fs-17: 17px; --fs-20: 20px; --fs-24: 24px; --fs-28: 28px; --fs-34: 34px; --fs-44: 44px; --fs-56: 56px;
     --halo: 0 0 3px rgba(15, 18, 21, 0.95), 0 0 14px rgba(15, 18, 21, 0.9);
@@ -130,7 +136,7 @@
     -webkit-mask-image: var(--chalk-mask); mask-image: var(--chalk-mask); -webkit-mask-size: 180px; mask-size: 180px; }
   @keyframes rise { from { transform: translateY(40px); opacity: 0; } }
   h1, h2 { margin: 0; font-weight: 400; text-wrap: balance; }
-  h1 { font: 700 var(--fs-56)/0.95 var(--sketch); letter-spacing: 0.01em; }
+  h1 { font: var(--sketch-w) var(--fs-56)/0.95 var(--sketch); letter-spacing: var(--sketch-ls); }
   h2 { font: 400 var(--fs-34)/1.05 var(--hand); }
   .kicker { margin: 0 0 -10px; font: 400 var(--fs-20)/1.2 var(--hand); color: var(--chalk-2); }
   .lede { margin: 0; font: 400 var(--fs-24)/1.25 var(--hand); color: var(--chalk-2); }
@@ -141,20 +147,30 @@
   .primary:active { transform: scale(0.985) rotate(-0.3deg); }
   .ghost {
     min-height: 52px; border-radius: 9px 7px 10px 8px; border: 2px solid var(--chalk-2); background: rgba(236, 232, 222, 0.07); padding: 0 16px;
-    font: 400 var(--fs-24)/1.1 var(--hand); color: var(--chalk); display: flex; align-items: center; justify-content: center; gap: 8px; flex: none;
+    font: 400 var(--btn-fs)/1.1 var(--hand); color: var(--chalk); display: flex; align-items: center; justify-content: center; gap: 8px; flex: none;
   }
   .ghost:active { background: rgba(236, 232, 222, 0.14); }
   .ghost svg { width: 22px; height: 22px; flex: none; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
   .ghost.back { margin-top: 6px; }
   .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  /* a volume: its name, then a chalk line with a round stone to slide */
+  .vol { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); align-items: center; gap: 14px; min-height: 48px; padding: 0 4px;
+    font: 400 var(--fs-20)/1.1 var(--hand); }
+  .vol input { -webkit-appearance: none; appearance: none; width: 100%; height: 44px; margin: 0; background: none; }
+  .vol input::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: linear-gradient(to right, var(--chalk) var(--v, 100%), var(--chalk-3) var(--v, 100%)); }
+  .vol input::-moz-range-track { height: 4px; border-radius: 2px; background: var(--chalk-3); }
+  .vol input::-moz-range-progress { height: 4px; border-radius: 2px; background: var(--chalk); }
+  .vol input::-webkit-slider-thumb { -webkit-appearance: none; width: 26px; height: 26px; margin-top: -11px; border-radius: 50%; background: var(--chalk); box-shadow: 0 2px 6px rgba(0, 0, 0, .5); }
+  .vol input::-moz-range-thumb { width: 26px; height: 26px; border: 0; border-radius: 50%; background: var(--chalk); box-shadow: 0 2px 6px rgba(0, 0, 0, .5); }
   .stack { display: flex; flex-direction: column; gap: 10px; }
   .sub { margin: 0; color: var(--chalk-2); font: 400 var(--fs-15)/1.4 var(--print); }
 
   /* the lobby: your stars, how far to the next board, the boards themselves */
   .purse { margin: 0; display: flex; align-items: center; gap: 10px; }
   .purse svg { width: 30px; height: 30px; fill: var(--ember); stroke: var(--ember); stroke-width: 1.2; stroke-linejoin: round; transform: rotate(-6deg); flex: none; }
-  .purse b { font: 700 var(--fs-44)/1 var(--sketch); }
-  .purse span { font: 400 var(--fs-20)/1.2 var(--hand); color: var(--chalk-2); }
+  .purse b { font: var(--sketch-w) var(--fs-44)/1 var(--sketch); letter-spacing: var(--sketch-ls); }
+  .purse span { font: 400 var(--fs-17)/1.2 var(--hand); color: var(--chalk-2); white-space: nowrap; }
+  :root.chalkfont .purse span { font-size: var(--fs-20); }
   /* the room: the painting fills the screen; a tap anywhere sits you down at the table */
   .roomview { position: fixed; inset: 0; z-index: 3; }
   .enter { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; padding: 0; background: transparent; cursor: pointer; }
@@ -162,7 +178,7 @@
   #enterHint.off { opacity: 0; }
   /* the title, in the dark of the ceiling above the window, lit by the lantern */
   .roomtitle { position: absolute; left: 0; right: 0; top: calc((var(--ceil, 140px) + env(safe-area-inset-top, 0px)) / 2); margin: 0;
-    text-align: center; pointer-events: none; font: 400 var(--fs-56)/1 "Zen Antique Soft", "Cabin Sketch", serif; letter-spacing: 0.05em;
+    text-align: center; pointer-events: none; font: 400 var(--fs-56)/1 var(--sketch); letter-spacing: 0.02em;
     color: #f8e8c8; text-shadow: 0 0 16px rgba(255, 176, 92, 0.55), 0 0 44px rgba(255, 150, 70, 0.3), 0 2px 3px rgba(0, 0, 0, 0.6);
     opacity: 0; transform: translateY(calc(-50% + 8px)); transition: opacity .45s ease, transform .45s ease; }
   .roomtitle.on { opacity: 1; transform: translateY(-50%); transition-duration: 1.6s; }
@@ -184,9 +200,9 @@
   .bpage > canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
   .bpage.locked > canvas { filter: brightness(.5) saturate(.6); }
   .bhead { position: absolute; left: 0; right: 0; top: calc(env(safe-area-inset-top, 0px) + 66px); margin: 0; text-align: center; text-shadow: var(--halo); }
-  .bhead b { display: block; font: 700 var(--fs-44)/1 var(--sketch); }
-  /* the sketch face has no Polish letters (Ł, Ż…): in Polish every board name is written in the hand instead, so they match */
-  :root:lang(pl) .bhead b { font: 400 var(--fs-44)/1 var(--hand); }
+  .bhead b { display: block; font: var(--sketch-w) var(--fs-44)/1 var(--sketch); letter-spacing: var(--sketch-ls); }
+  /* the chalk sketch face has no Polish letters (Ł, Ż…): with it, Polish board names are written in the hand, so they match */
+  :root.chalkfont:lang(pl) .bhead b { font: 400 var(--fs-44)/1 var(--hand); }
   .bhead span { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; font-size: var(--fs-20); color: var(--chalk-2); }
   .bhead svg { width: 17px; height: 17px; fill: var(--ember); stroke: var(--ember); }
   .cards { position: absolute; left: 50%; top: var(--cards-top, 170px); transform: translateX(-50%); width: calc(var(--card-w, 76px) * 3 + var(--card-gap, 20px) * 2);
@@ -212,7 +228,7 @@
       linear-gradient(172deg, #e6c28b, #cfa265 58%, #bb8c51); }
   .lcard::after { content: ""; position: absolute; left: calc(50% - 6px); top: -13px; width: 12px; height: 22px; box-sizing: border-box;
     border: 1.6px solid #8d6c49; border-bottom-color: transparent; border-radius: 50% 50% 45% 45%; transform: rotate(-8deg); }
-  .lcard b { font: 400 var(--fs-28)/1 "Zen Antique Soft", "Cabin Sketch", serif; }
+  .lcard b { font: 400 var(--fs-28)/1 var(--sketch); }
   .lcard .stars { display: flex; gap: 1px; }
   .lcard .stars svg { width: 11px; height: 11px; stroke: rgba(70, 40, 15, .45); fill: none; }
   .lcard .stars svg.on { fill: #2b1b0e; stroke: #2b1b0e; }
@@ -261,7 +277,7 @@
   @keyframes write { from { opacity: 0; transform: translateX(-8px); } }
   .total { margin: 0; display: flex; align-items: center; gap: 12px; border-top: 2px solid var(--chalk-3); padding-top: 10px; }
   .total span { font: 400 var(--fs-20)/1 var(--hand); color: var(--chalk-2); }
-  .total b { margin-left: auto; font: 700 var(--fs-44)/1 var(--sketch); }
+  .total b { margin-left: auto; font: var(--sketch-w) var(--fs-44)/1 var(--sketch); letter-spacing: var(--sketch-ls); }
   .total em { font: 400 var(--fs-17)/1 var(--hand); color: var(--ember); border: 2px solid var(--ember); border-radius: 50% / 46%;
     padding: 5px 10px 4px; transform: rotate(-6deg); animation: stamp .3s cubic-bezier(.3, 1.6, .5, 1) backwards; }
   .prize { margin: 0; font: 400 var(--fs-20)/1.3 var(--hand); color: var(--chalk); }
@@ -352,11 +368,12 @@
     <div class="stack">
       <button id="controlBtn" class="ghost"></button>
       <button id="restartBtn" class="ghost"><svg viewBox="0 0 22 22" aria-hidden="true"><path d="M18.6 13.4a7.8 7.8 0 1 1-1.9-8L20 8.6"/><path d="M20.3 3.6v5.2h-5.1"/></svg>Restart level</button>
+      <div class="vol"><label for="sfxVol">Game sounds</label><input type="range" id="sfxVol" min="0" max="100" step="5"></div>
+      <div class="vol"><label for="ambVol">Ambience</label><input type="range" id="ambVol" min="0" max="100" step="5"></div>
       <div class="pair">
-        <button id="soundBtn" class="ghost">Sound on</button>
-        <button id="langBtn" class="ghost">Język: polski</button>
+        <button id="langBtn" class="ghost"><svg viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="8.2"/><path d="M2.8 11h16.4M11 2.8c-2.6 2.6-2.6 13.8 0 16.4M11 2.8c2.6 2.6 2.6 13.8 0 16.4"/></svg><span>English</span></button>
+        <button id="tuneBtn" class="ghost">Tune feel</button>
       </div>
-      <button id="tuneBtn" class="ghost">Tune feel</button>
       <button id="musicBtn" class="ghost" hidden>Music on</button>
       <button id="pauseLevelsBtn" class="ghost back"><svg viewBox="0 0 22 22" aria-hidden="true"><path d="M13.6 4.4c-2.5 2.3-4.4 4.3-6.3 6.5 1.9 2.1 3.9 4.1 6.4 6.5"/></svg>Back to the boards</button>
     </div>
@@ -1907,7 +1924,7 @@ const GrainSim = (() => {
   const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
   // ---------- language: English, or Polish on a phone set to Polish; switched in the pause menu ----------
   // Every text keeps its English wording as its key; tr() swaps in the Polish one and fills {names}.
-  const PL = { "Tap to sit at the table": "Dotknij, by usiąść przy stole", "Sit down at the table": "Usiądź przy stole", "Back to the room": "Wróć do pokoju", "Boards": "Plansze", "Change chopsticks": "Zmień pałeczki", "Game board": "Plansza gry", "Pause": "Pauza", "Start the level again": "Zacznij poziom od nowa", "Back to the boards": "Wróć do plansz", "Chopsticks": "Pałeczki", "Each pair is earned by playing well.": "Każdą parę zdobywasz dobrą grą.", "Back": "Wstecz", "Paused": "Pauza", "Resume": "Wznów", "Restart level": "Zacznij od nowa", "Tune feel": "Dostrój", "Score": "Wynik", "Next level": "Następny poziom", "Retry": "Powtórz", "Choose a level": "Wybierz poziom", "On to {board}": "Dalej: {board}", "Changes apply right away and stay on this device. Row length applies from the next level. A level with its own rule keeps it.": "Zmiany działają od razu i zostają na tym urządzeniu. Długość rzędu zmienia się od następnego poziomu. Poziom z własną zasadą ją zachowuje.", "Show how far the sticks reach": "Pokaż zasięg pałeczek", "Vibrate": "Wibracje", "Solid grains": "Twarde ziarna", "Reset": "Przywróć", "Copy values": "Kopiuj wartości", "Done": "Gotowe", "Language: English": "Język: polski", "Slate": "Łupek", "Walnut": "Orzech", "Bamboo": "Bambus", "Clay": "Glina", "Lacquer": "Laka", "Cast iron": "Żeliwo", "Walnut is open": "Orzech otwarty", "Bamboo is open": "Bambus otwarty", "Clay is open": "Glina otwarta", "Lacquer is open": "Laka otwarta", "Cast iron is open": "Żeliwo otwarte", "Lentils": "Soczewica", "Rice": "Ryż", "Mung beans": "Fasola mung", "Chickpeas": "Ciecierzyca", "Sesame": "Sezam", "Kidney beans": "Fasola czerwona", "Stones": "Kamyki", "First row": "Pierwszy rząd", "Two heaps": "Dwie kupki", "Touching": "Stykają się", "Strays": "Zabłąkane", "The slate": "Łupek", "Short reach": "Krótki zasięg", "Mixed heap": "Pomieszana kupka", "Restless": "Niespokojne", "Pantry spill": "Rozsypana spiżarnia", "Heaps": "Kupki", "Spill": "Rozsypka", "Edges": "Brzegi", "Stripes": "Pasy", "Clusters": "Skupiska", "Pushy rice": "Natrętny ryż", "Rice creeps in from further away. Sweep the heap apart, then gather.": "Ryż wkrada się z daleka. Rozgarnij kupkę, potem zbieraj.", "Short reach, restless": "Krótki zasięg, niespokojne", "Close reach and wandering grains, all three kinds.": "Bliski zasięg i wędrujące ziarna, wszystkie trzy rodzaje.", "Restless grains": "Niespokojne ziarna", "They wander and mix again. Sort them before they spread.": "Wędrują i znów się mieszają. Posortuj je, zanim się rozejdą.", "The sticks pull from close by. Drive the tips through the grains.": "Pałeczki ciągną z bliska. Prowadź końcówki przez ziarna.", "Narrow reach": "Wąski zasięg", "The sticks only pull from straight ahead. Come at grains from below.": "Pałeczki ciągną tylko na wprost. Podchodź do ziaren od dołu.", "Long sticks": "Długie pałeczki", "They hold a longer row: more points, and more to lose.": "Mieszczą dłuższy rząd: więcej punktów i więcej do stracenia.", "They can’t be picked, and they go for the tips. Push them aside.": "Nie da się ich zebrać, a pchają się do końcówek. Odsuwaj je.", "Carry it yourself": "Nieś sam", "Take each row to its pile and let go. The wrong pile spills back onto the board.": "Zanieś każdy rząd na jego kupkę i puść. Zła kupka rozsypie się z powrotem na planszę.", "The jar": "Słoik", "It pours more grains in as you go. Keep up with it.": "Dosypuje ziaren w trakcie gry. Nadążaj za nim.", "The tray tilts": "Taca się przechyla", "Grains slide down it. Catch them before they fall off the edge.": "Ziarna zsuwają się w dół. Złap je, zanim spadną z krawędzi.", "Round and heavy. A quick sweep sends them rolling.": "Okrągła i ciężka. Po szybkim machnięciu toczy się daleko.", "Piles move": "Kupki się przesuwają", "The piles change places from level to level. Look before you let go.": "Kupki zmieniają miejsca z poziomu na poziom. Spójrz, zanim puścisz.", "Tiny and light. Long rows, and a sweep scatters it.": "Malutki i lekki. Długie rzędy, a machnięcie go rozsypuje.", "Any order": "Dowolna kolejność", "The sticks can ask for any kind next. Watch the top of the board.": "Pałeczki mogą poprosić o dowolny rodzaj. Patrz na górę planszy.", "Long and heavy. Push one and it swings round.": "Długa i ciężka. Pchnięta obraca się.", "Touch and hold. The lentils walk into the sticks.": "Dotknij i przytrzymaj. Soczewica sama wchodzi między pałeczki.", "Fill the row to grow your multiplier.": "Wypełnij rząd, a mnożnik urośnie.", "After every row the sticks switch to the other kind.": "Po każdym rzędzie pałeczki przechodzą na drugi rodzaj.", "Rice next to the tips creeps in. Push it aside with the side of the sticks.": "Ryż przy końcówkach wkrada się do środka. Odsuń go bokiem pałeczek.", "The line under the multiplier wears away. Fill the row before it is gone.": "Kreska pod mnożnikiem się ściera. Wypełnij rząd, zanim zniknie.", "A short row keeps the multiplier but shrinks it.": "Krótki rząd zachowuje mnożnik, ale go zmniejsza.", "A third kind, with its own pile in the middle.": "Trzeci rodzaj, z własną kupką na środku.", "{n} left": "{n}", "Lightning": "Błyskawica", "Quick": "Szybko", "Steady": "Równo", "Slow": "Wolno", "Short row {m}": "Krótki rząd {m}", "{kind} cleared {m}": "Koniec: {kind} {m}", "Steady hands": "Pewne ręce", "Grain master": "Mistrz ziaren", "Zen hands": "Ręce zen", "+{b} for {n} full rows in a row": "+{b} za {n} pełnych rzędów z rzędu", "New chopsticks": "Nowe pałeczki", "Multiplier {m}, {n} full rows in a row": "Mnożnik {m}, pełne rzędy z rzędu: {n}", "A lentil got in": "Wpadła soczewica", "Rice got in": "Wpadł ryż", "A mung bean got in": "Wpadła fasola mung", "A stone got in": "Wpadł kamyk", "A chickpea got in": "Wpadła ciecierzyca", "Sesame got in": "Wpadł sezam", "A kidney bean got in": "Wpadła fasola", "A wrong grain got in": "Wpadło złe ziarno", ", back to ×1": ", z powrotem ×1", "Broken": "Przerwany", "Wrong pile": "Zła kupka", "Touch the board to pick the row up again.": "Dotknij planszy, by znów podnieść rząd.", "Tap the arrow again to leave this level.": "Dotknij strzałki jeszcze raz, by wyjść z poziomu.", "Tap again to start this level over.": "Dotknij jeszcze raz, by zacząć od nowa.", "{n} more open {board}": "{n} do otwarcia: {board}", "Every board is open": "Wszystkie plansze otwarte", "{board}, {n} stars": "{board}, gwiazdki: {n}", "{board}, opens with {n} stars": "{board}, otwiera się przy gwiazdkach: {n}", "{n} more {star} to open": "jeszcze {n} {star} do otwarcia", "{board} levels": "Poziomy: {board}", "{level}, {n} of 5 stars": "{level}, {n} z 5 gwiazdek", "{level}, locked": "{level}, zablokowany", "Clear {level} to open this one.": "Najpierw ukończ: {level}.", "{level} cleared": "Ukończono: {level}", "{n} of 5 stars": "{n} z 5 gwiazdek", "Combo prizes": "Nagrody za serie", "Time {t} of {par}": "Czas {t} z {par}", "No row broken": "Bez przerwanego rzędu", "New best": "Rekord", "Next star at {s}": "Następna gwiazdka przy {s}", "New chopsticks: <b>{names}</b>. Pick them under Chopsticks.": "Nowe pałeczki: <b>{names}</b>. Wybierzesz je w menu Pałeczki.", "Cherry lacquer": "Wiśniowa laka", "Ebony": "Hebanowe", "Jade": "Jadeitowe", "Steel": "Stalowe", "Gold leaf": "Złocone", "Reach a ×3 multiplier": "Osiągnij mnożnik ×3", "Make 7 full rows in a row": "Zrób 7 pełnych rzędów z rzędu", "Sort 1,000 grains": "Posortuj 1000 ziaren", "Collect 20 stars": "Zbierz 20 gwiazdek", "Reach a ×6 multiplier": "Osiągnij mnożnik ×6", "Your first pair": "Twoja pierwsza para", "In use": "W użyciu", "Use": "Użyj", "{req} to earn these.": "{req}, żeby je zdobyć.", "Control: drag anywhere": "Sterowanie: przeciąganie", "Control: tips above your finger": "Sterowanie: końcówki nad palcem", "Drag anywhere: the sticks move with your drag, your thumb can stay low.": "Przeciągaj gdziekolwiek: pałeczki idą za ruchem, kciuk może zostać nisko.", "The tips sit above your finger.": "Końcówki są nad twoim palcem.", "Sound on": "Dźwięk: tak", "Sound off": "Dźwięk: nie", "Music on": "Muzyka: tak", "Music off": "Muzyka: nie", "Back to the default feel.": "Przywrócono domyślne ustawienia.", "Select the values and copy them.": "Zaznacz wartości i skopiuj.", "Values copied.": "Skopiowano.", "Tips above the finger": "Końcówki nad palcem", "How tightly the sticks follow": "Jak ciasno pałeczki podążają", "Reach of the open sticks": "Zasięg otwartych pałeczek", "How far ahead of the tips they pull": "Jak daleko przed końcówkami ciągną", "Wrong grains creep from": "Złe ziarna wkradają się z", "Wrong grain creep speed": "Szybkość wkradania się złych ziaren", "How far a sweep flicks grains": "Jak daleko machnięcie odrzuca ziarna", "Next grain joins every (s)": "Kolejne ziarno dołącza co (s)", "Walking speed": "Szybkość marszu", "Pace (higher is more forgiving)": "Tempo (więcej = łagodniej)", "Row length": "Długość rzędu" };
+  const PL = { "Tap to sit at the table": "Dotknij, by usiąść przy stole", "Sit down at the table": "Usiądź przy stole", "Back to the room": "Wróć do pokoju", "Boards": "Plansze", "Change chopsticks": "Zmień pałeczki", "Game board": "Plansza gry", "Pause": "Pauza", "Start the level again": "Zacznij poziom od nowa", "Back to the boards": "Wróć do plansz", "Chopsticks": "Pałeczki", "Each pair is earned by playing well.": "Każdą parę zdobywasz dobrą grą.", "Back": "Wstecz", "Paused": "Pauza", "Resume": "Wznów", "Restart level": "Zacznij od nowa", "Tune feel": "Dostrój", "Score": "Wynik", "Next level": "Następny poziom", "Retry": "Powtórz", "Choose a level": "Wybierz poziom", "On to {board}": "Dalej: {board}", "Changes apply right away and stay on this device. Row length applies from the next level. A level with its own rule keeps it.": "Zmiany działają od razu i zostają na tym urządzeniu. Długość rzędu zmienia się od następnego poziomu. Poziom z własną zasadą ją zachowuje.", "Show how far the sticks reach": "Pokaż zasięg pałeczek", "Vibrate": "Wibracje", "Solid grains": "Twarde ziarna", "Reset": "Przywróć", "Copy values": "Kopiuj wartości", "Done": "Gotowe", "Game sounds": "Dźwięki gry", "Ambience": "Otoczenie", "Slate": "Łupek", "Walnut": "Orzech", "Bamboo": "Bambus", "Clay": "Glina", "Lacquer": "Laka", "Cast iron": "Żeliwo", "Walnut is open": "Orzech otwarty", "Bamboo is open": "Bambus otwarty", "Clay is open": "Glina otwarta", "Lacquer is open": "Laka otwarta", "Cast iron is open": "Żeliwo otwarte", "Lentils": "Soczewica", "Rice": "Ryż", "Mung beans": "Fasola mung", "Chickpeas": "Ciecierzyca", "Sesame": "Sezam", "Kidney beans": "Fasola czerwona", "Stones": "Kamyki", "First row": "Pierwszy rząd", "Two heaps": "Dwie kupki", "Touching": "Stykają się", "Strays": "Zabłąkane", "The slate": "Łupek", "Short reach": "Krótki zasięg", "Mixed heap": "Pomieszana kupka", "Restless": "Niespokojne", "Pantry spill": "Rozsypana spiżarnia", "Heaps": "Kupki", "Spill": "Rozsypka", "Edges": "Brzegi", "Stripes": "Pasy", "Clusters": "Skupiska", "Pushy rice": "Natrętny ryż", "Rice creeps in from further away. Sweep the heap apart, then gather.": "Ryż wkrada się z daleka. Rozgarnij kupkę, potem zbieraj.", "Short reach, restless": "Krótki zasięg, niespokojne", "Close reach and wandering grains, all three kinds.": "Bliski zasięg i wędrujące ziarna, wszystkie trzy rodzaje.", "Restless grains": "Niespokojne ziarna", "They wander and mix again. Sort them before they spread.": "Wędrują i znów się mieszają. Posortuj je, zanim się rozejdą.", "The sticks pull from close by. Drive the tips through the grains.": "Pałeczki ciągną z bliska. Prowadź końcówki przez ziarna.", "Narrow reach": "Wąski zasięg", "The sticks only pull from straight ahead. Come at grains from below.": "Pałeczki ciągną tylko na wprost. Podchodź do ziaren od dołu.", "Long sticks": "Długie pałeczki", "They hold a longer row: more points, and more to lose.": "Mieszczą dłuższy rząd: więcej punktów i więcej do stracenia.", "They can’t be picked, and they go for the tips. Push them aside.": "Nie da się ich zebrać, a pchają się do końcówek. Odsuwaj je.", "Carry it yourself": "Nieś sam", "Take each row to its pile and let go. The wrong pile spills back onto the board.": "Zanieś każdy rząd na jego kupkę i puść. Zła kupka rozsypie się z powrotem na planszę.", "The jar": "Słoik", "It pours more grains in as you go. Keep up with it.": "Dosypuje ziaren w trakcie gry. Nadążaj za nim.", "The tray tilts": "Taca się przechyla", "Grains slide down it. Catch them before they fall off the edge.": "Ziarna zsuwają się w dół. Złap je, zanim spadną z krawędzi.", "Round and heavy. A quick sweep sends them rolling.": "Okrągła i ciężka. Po szybkim machnięciu toczy się daleko.", "Piles move": "Kupki się przesuwają", "The piles change places from level to level. Look before you let go.": "Kupki zmieniają miejsca z poziomu na poziom. Spójrz, zanim puścisz.", "Tiny and light. Long rows, and a sweep scatters it.": "Malutki i lekki. Długie rzędy, a machnięcie go rozsypuje.", "Any order": "Dowolna kolejność", "The sticks can ask for any kind next. Watch the top of the board.": "Pałeczki mogą poprosić o dowolny rodzaj. Patrz na górę planszy.", "Long and heavy. Push one and it swings round.": "Długa i ciężka. Pchnięta obraca się.", "Touch and hold. The lentils walk into the sticks.": "Dotknij i przytrzymaj. Soczewica sama wchodzi między pałeczki.", "Fill the row to grow your multiplier.": "Wypełnij rząd, a mnożnik urośnie.", "After every row the sticks switch to the other kind.": "Po każdym rzędzie pałeczki przechodzą na drugi rodzaj.", "Rice next to the tips creeps in. Push it aside with the side of the sticks.": "Ryż przy końcówkach wkrada się do środka. Odsuń go bokiem pałeczek.", "The line under the multiplier wears away. Fill the row before it is gone.": "Kreska pod mnożnikiem się ściera. Wypełnij rząd, zanim zniknie.", "A short row keeps the multiplier but shrinks it.": "Krótki rząd zachowuje mnożnik, ale go zmniejsza.", "A third kind, with its own pile in the middle.": "Trzeci rodzaj, z własną kupką na środku.", "{n} left": "{n}", "Lightning": "Błyskawica", "Quick": "Szybko", "Steady": "Równo", "Slow": "Wolno", "Short row {m}": "Krótki rząd {m}", "{kind} cleared {m}": "Koniec: {kind} {m}", "Steady hands": "Pewne ręce", "Grain master": "Mistrz ziaren", "Zen hands": "Ręce zen", "+{b} for {n} full rows in a row": "+{b} za {n} pełnych rzędów z rzędu", "New chopsticks": "Nowe pałeczki", "Multiplier {m}, {n} full rows in a row": "Mnożnik {m}, pełne rzędy z rzędu: {n}", "A lentil got in": "Wpadła soczewica", "Rice got in": "Wpadł ryż", "A mung bean got in": "Wpadła fasola mung", "A stone got in": "Wpadł kamyk", "A chickpea got in": "Wpadła ciecierzyca", "Sesame got in": "Wpadł sezam", "A kidney bean got in": "Wpadła fasola", "A wrong grain got in": "Wpadło złe ziarno", ", back to ×1": ", z powrotem ×1", "Broken": "Przerwany", "Wrong pile": "Zła kupka", "Touch the board to pick the row up again.": "Dotknij planszy, by znów podnieść rząd.", "Tap the arrow again to leave this level.": "Dotknij strzałki jeszcze raz, by wyjść z poziomu.", "Tap again to start this level over.": "Dotknij jeszcze raz, by zacząć od nowa.", "{n} more open {board}": "{n} do otwarcia: {board}", "Every board is open": "Wszystkie plansze otwarte", "{board}, {n} stars": "{board}, gwiazdki: {n}", "{board}, opens with {n} stars": "{board}, otwiera się przy gwiazdkach: {n}", "{n} more {star} to open": "jeszcze {n} {star} do otwarcia", "{board} levels": "Poziomy: {board}", "{level}, {n} of 5 stars": "{level}, {n} z 5 gwiazdek", "{level}, locked": "{level}, zablokowany", "Clear {level} to open this one.": "Najpierw ukończ: {level}.", "{level} cleared": "Ukończono: {level}", "{n} of 5 stars": "{n} z 5 gwiazdek", "Combo prizes": "Nagrody za serie", "Time {t} of {par}": "Czas {t} z {par}", "No row broken": "Bez przerwanego rzędu", "New best": "Rekord", "Next star at {s}": "Następna gwiazdka przy {s}", "New chopsticks: <b>{names}</b>. Pick them under Chopsticks.": "Nowe pałeczki: <b>{names}</b>. Wybierzesz je w menu Pałeczki.", "Cherry lacquer": "Wiśniowa laka", "Ebony": "Hebanowe", "Jade": "Jadeitowe", "Steel": "Stalowe", "Gold leaf": "Złocone", "Reach a ×3 multiplier": "Osiągnij mnożnik ×3", "Make 7 full rows in a row": "Zrób 7 pełnych rzędów z rzędu", "Sort 1,000 grains": "Posortuj 1000 ziaren", "Collect 20 stars": "Zbierz 20 gwiazdek", "Reach a ×6 multiplier": "Osiągnij mnożnik ×6", "Your first pair": "Twoja pierwsza para", "In use": "W użyciu", "Use": "Użyj", "{req} to earn these.": "{req}, żeby je zdobyć.", "Control: drag anywhere": "Sterowanie: przeciąganie", "Control: above the finger": "Sterowanie: nad palcem", "Drag anywhere: the sticks move with your drag, your thumb can stay low.": "Przeciągaj gdziekolwiek: pałeczki idą za ruchem, kciuk może zostać nisko.", "The tips sit above your finger.": "Końcówki są nad twoim palcem.", "Sound on": "Dźwięk: tak", "Sound off": "Dźwięk: nie", "Music on": "Muzyka: tak", "Music off": "Muzyka: nie", "Back to the default feel.": "Przywrócono domyślne ustawienia.", "Select the values and copy them.": "Zaznacz wartości i skopiuj.", "Values copied.": "Skopiowano.", "Tips above the finger": "Końcówki nad palcem", "How tightly the sticks follow": "Jak ciasno pałeczki podążają", "Reach of the open sticks": "Zasięg otwartych pałeczek", "How far ahead of the tips they pull": "Jak daleko przed końcówkami ciągną", "Wrong grains creep from": "Złe ziarna wkradają się z", "Wrong grain creep speed": "Szybkość wkradania się złych ziaren", "How far a sweep flicks grains": "Jak daleko machnięcie odrzuca ziarna", "Next grain joins every (s)": "Kolejne ziarno dołącza co (s)", "Walking speed": "Szybkość marszu", "Pace (higher is more forgiving)": "Tempo (więcej = łagodniej)", "Row length": "Długość rzędu" };
   let lang = 'en';
   function tr(en, v) {
     let t = lang === 'pl' && PL[en] != null ? PL[en] : en;
@@ -1953,12 +1970,16 @@ const GrainSim = (() => {
     const fresh = {
       saveVersion: SAVE_VERSION, levels: {}, reached: 0, sound: true, music: true, haptics: true, showReach: true, control: 'direct',
       totals: { grains: 0, bestCombo: 0, bestMult: 1 }, sticks: { owned: ['bamboo'], equipped: 'bamboo' }, seen: ['slate'], lang: null,
+      sfxVol: 1, ambVol: 1,
     };
     const s = Store.get(SAVE_KEY);
     if (!s || typeof s !== 'object' || ![1, 2, 3, 4].includes(s.saveVersion)) return fresh;
     fresh.sound = s.sound !== false; fresh.music = s.music !== false; fresh.haptics = s.haptics !== false; fresh.showReach = s.showReach !== false;
     if (s.control === 'drag') fresh.control = 'drag';
     if (s.lang === 'en' || s.lang === 'pl') fresh.lang = s.lang;
+    const vol = (v, d) => (Number.isFinite(v) ? clamp(v, 0, 1) : d);
+    fresh.sfxVol = vol(s.sfxVol, fresh.sound ? 1 : 0); fresh.ambVol = vol(s.ambVol, fresh.sound ? 1 : 0);
+    fresh.sound = fresh.sfxVol > 0 || fresh.ambVol > 0;
     if (s.levels && typeof s.levels === 'object') {
       for (const id of Object.keys(s.levels)) {
         const r = s.levels[id];
@@ -2072,31 +2093,55 @@ const GrainSim = (() => {
     chickpea: 'A chickpea got in', sesame: 'Sesame got in', kidney: 'A kidney bean got in' };
   const Sound = {
     ctx: null, out: null, noise: null, unlocked: false, lastPush: 0, lastLand: 0,
+    // Game sounds go to out, the room's night to amb; each has its own volume, both meet in one compressor.
+    build() {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return false;
+      const ctx = new AC();
+      const comp = ctx.createDynamicsCompressor();
+      comp.threshold.value = -14; comp.knee.value = 10; comp.ratio.value = 4; comp.attack.value = 0.002; comp.release.value = 0.12;
+      const master = ctx.createGain(); master.connect(comp).connect(ctx.destination);
+      const out = ctx.createGain(); out.gain.value = 0.8 * save.sfxVol; out.connect(master);
+      const amb = ctx.createGain(); amb.gain.value = save.ambVol; amb.connect(master);
+      const len = Math.floor(ctx.sampleRate * 0.6), buf = ctx.createBuffer(1, len, ctx.sampleRate), ch = buf.getChannelData(0);
+      for (let i = 0; i < len; i++) ch[i] = Math.random() * 2 - 1;
+      this.ctx = ctx; this.out = out; this.amb = amb; this.noise = buf;
+      return true;
+    },
+    // the sound may play from here on: say so once it really runs, and let the night come in
+    running() {
+      if (this.unlocked || !this.ctx || this.ctx.state !== 'running') return;
+      this.unlocked = true; Room.init(); Night.start();
+    },
     unlock() {
       try {
         // iPhone: play through the silent switch, like a game would (Safari 16.4+)
         if (navigator.audioSession && navigator.audioSession.type !== 'playback') navigator.audioSession.type = 'playback';
-        if (!this.ctx) {
-          const AC = window.AudioContext || window.webkitAudioContext;
-          if (!AC) return;
-          const ctx = new AC();
-          const comp = ctx.createDynamicsCompressor();
-          comp.threshold.value = -14; comp.knee.value = 10; comp.ratio.value = 4; comp.attack.value = 0.002; comp.release.value = 0.12;
-          const out = ctx.createGain(); out.gain.value = 0.8;
-          out.connect(comp).connect(ctx.destination);
-          const len = Math.floor(ctx.sampleRate * 0.6), buf = ctx.createBuffer(1, len, ctx.sampleRate), ch = buf.getChannelData(0);
-          for (let i = 0; i < len; i++) ch[i] = Math.random() * 2 - 1;
-          this.ctx = ctx; this.out = out; this.noise = buf;
+        if (!this.ctx && !this.build()) return;
+        if (this.ctx.state !== 'running') {                     // 'suspended', or 'interrupted' on iPhone after a call
+          const p = this.ctx.resume();
+          if (p && p.then) p.then(() => this.running(), () => {});
         }
-        if (this.ctx.state !== 'running') this.ctx.resume();     // 'suspended', or 'interrupted' on iPhone after a call
         if (!this.unlocked) {
           const s = this.ctx.createBufferSource();
           s.buffer = this.ctx.createBuffer(1, 1, 22050); s.connect(this.ctx.destination); s.start(0);
-          this.unlocked = this.ctx.state === 'running';
         }
         this.keepAwake();
-        if (this.unlocked) { Room.init(); Night.start(); }
+        this.running();
       } catch (e) { /* sound is optional */ }
+    },
+    // Before any touch: build the sound and load the night, so it is ready the moment it may play. Browsers only let a
+    // page make sound after the first touch (the video plays because it is silent), so early() just asks; on some
+    // phones (a game added to the home screen on Android, or a site visited often on a computer) the answer is yes.
+    prepare() { try { if (save.sound && (this.ctx || this.build())) Night.load(); } catch (e) { /* sound is optional */ } },
+    early() {
+      if (!save.sound || !this.ctx || this.unlocked) return;
+      try { const p = this.ctx.resume(); if (p && p.then) p.then(() => this.running(), () => {}); } catch (e) { /* ask again on the first touch */ }
+    },
+    volumes() {
+      if (!this.ctx) return;
+      const t = this.ctx.currentTime;
+      this.out.gain.setTargetAtTime(0.8 * save.sfxVol, t, 0.04); this.amb.gain.setTargetAtTime(save.ambVol, t, 0.04);
     },
     // Older iPhones mute Web Audio with the silent switch unless a media element is playing. A looping,
     // silent clip moves the page into the "playback" audio category, as games and video do.
@@ -2117,7 +2162,7 @@ const GrainSim = (() => {
       if (this.tag.paused) { const p = this.tag.play(); if (p && p.catch) p.catch(() => {}); }
     },
     sleep() { if (this.tag && !this.tag.paused) this.tag.pause(); },
-    ready() { return save.sound && this.ctx && this.ctx.state === 'running'; },
+    ready() { return save.sfxVol > 0 && this.ctx && this.ctx.state === 'running'; },
     env(g, t, peak, decay) {
       g.gain.setValueAtTime(0.0001, t);
       g.gain.exponentialRampToValueAtTime(Math.max(0.0002, peak), t + 0.0015);
@@ -2283,21 +2328,36 @@ const GrainSim = (() => {
   // It loops by laying each copy over the end of the one before, one fading in as the other fades out, so the seam
   // is never heard.
   const Night = {
-    buf: null, gain: null, loading: false, next: 0, timer: 0, X: 2.5,
+    buf: null, gain: null, loaded: null, playing: false, next: 0, timer: 0, X: 2.5, rampEnd: 0, rampTo: 0, RAMP: 5,
     LEVEL: { hut: 0.9, table: 0.55, play: 0.32, off: 0 },
-    start() {
+    // fetched and decoded once, while the room is still silent
+    load() {
       const c = Sound.ctx;
-      if (!c || this.loading || roomMode() !== 'film') return;
-      this.loading = true;
-      fetch(FILM.sound).then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(r.status)))
+      if (this.loaded || !c || roomMode() !== 'film') return this.loaded;
+      this.loaded = fetch(FILM.sound).then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(r.status)))
         .then((a) => new Promise((ok, no) => c.decodeAudioData(a, ok, no)))
         .then((b) => {
-          this.buf = b; this.gain = c.createGain(); this.gain.gain.value = 0; this.gain.connect(Sound.out);
           const n = 64; this.fadeIn = new Float32Array(n); this.fadeOut = new Float32Array(n);
           for (let i = 0; i < n; i++) { const q = i / (n - 1); this.fadeIn[i] = Math.sin(q * Math.PI / 2); this.fadeOut[i] = Math.cos(q * Math.PI / 2); }
-          this.next = c.currentTime + 0.05; this.tick(); this.timer = setInterval(() => this.tick(), 500); this.level();
+          this.buf = b; return b;
         })
-        .catch(() => { /* the room is quiet without it */ });
+        .catch(() => null);                 // the room is quiet without it
+      return this.loaded;
+    },
+    // the first time it comes in slowly, over five seconds, quiet for most of the first of them
+    start() {
+      const c = Sound.ctx;
+      if (!c || this.playing || roomMode() !== 'film') return;
+      this.playing = true;
+      Promise.resolve(this.load()).then((b) => {
+        if (!b) { this.playing = false; return; }
+        this.gain = c.createGain(); this.gain.gain.value = 0; this.gain.connect(Sound.amb);
+        this.next = c.currentTime + 0.05; this.tick(); this.timer = setInterval(() => this.tick(), 500);
+        const v = this.LEVEL[Room.scene] || 0, n = 64, curve = new Float32Array(n), t = c.currentTime + 0.05;
+        for (let i = 0; i < n; i++) curve[i] = v * Math.pow(i / (n - 1), 2);
+        this.gain.gain.setValueAtTime(0, t); this.gain.gain.setValueCurveAtTime(curve, t, this.RAMP);
+        this.rampEnd = t + this.RAMP; this.rampTo = v;
+      });
     },
     tick() {
       const c = Sound.ctx, d = this.buf.duration, X = this.X;
@@ -2310,7 +2370,14 @@ const GrainSim = (() => {
         this.next = t + d - X;
       }
     },
-    level() { if (!this.gain) return; const v = save.sound ? this.LEVEL[Room.scene] || 0 : 0; this.gain.gain.setTargetAtTime(v, Sound.ctx.currentTime, 0.9); },
+    // from the room to the board and into play it gets quieter; while still coming in, it keeps coming in gently
+    level() {
+      if (!this.gain) return;
+      const c = Sound.ctx, t = c.currentTime, g = this.gain.gain, v = this.LEVEL[Room.scene] || 0, now = g.value;
+      if (t < this.rampEnd && v === this.rampTo) return;                // still coming in toward this very level
+      this.rampTo = v;
+      g.cancelScheduledValues(t); g.setValueAtTime(now, t); g.setTargetAtTime(v, t, t < this.rampEnd ? 2.2 : 0.9);
+    },
   };
   const Room = {
     amb: null, keys: null, wind: null, timer: 0, scene: 'off', phase: dayPhase(hourNow()), due: {}, bar: 0, nextBar: 0,
@@ -2321,13 +2388,13 @@ const GrainSim = (() => {
     init() {
       const c = Sound.ctx;
       if (!ROOM_SOUND || !c || this.amb) return;
-      this.amb = c.createGain(); this.amb.gain.value = 0; this.amb.connect(Sound.out);
+      this.amb = c.createGain(); this.amb.gain.value = 0; this.amb.connect(Sound.amb);
       this.keys = c.createGain(); this.keys.gain.value = 0;
       const len = Math.floor(c.sampleRate * 2.6), ir = c.createBuffer(2, len, c.sampleRate);
       for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.8); }
       const verb = c.createConvolver(); verb.buffer = ir;
       const wet = c.createGain(); wet.gain.value = 0.34; const dry = c.createGain(); dry.gain.value = 0.85;
-      this.keys.connect(dry).connect(Sound.out); this.keys.connect(verb).connect(wet).connect(Sound.out);
+      this.keys.connect(dry).connect(Sound.amb); this.keys.connect(verb).connect(wet).connect(Sound.amb);
       // wind: brown noise through a low band whose loudness and colour drift
       const n = Math.floor(c.sampleRate * 5), wb = c.createBuffer(1, n, c.sampleRate), w = wb.getChannelData(0);
       let v = 0; for (let i = 0; i < n; i++) { v = (v + (Math.random() * 2 - 1) * 0.02) * 0.998; w[i] = v * 3.2; }
@@ -2481,8 +2548,9 @@ const GrainSim = (() => {
     }
     return chalkFills.get(color) || color;
   }
-  const HAND = '"Patrick Hand", "Segoe Print", "Bradley Hand", cursive';
-  if (document.fonts && document.fonts.load) { try { document.fonts.load('40px "Patrick Hand"'); } catch (e) { /* ignore */ } }
+  if (/[?&]font=chalk/.test(location.search)) document.documentElement.classList.add('chalkfont');
+  const HAND = getComputedStyle(document.documentElement).getPropertyValue('--hand').trim() || 'cursive';
+  if (document.fonts && document.fonts.load) { try { document.fonts.load('40px ' + HAND.split(',')[0]); } catch (e) { /* ignore */ } }
 
   // ---------- canvas & layout ----------
   const canvas = $('game'), ctx = canvas.getContext('2d');
@@ -3014,7 +3082,7 @@ const GrainSim = (() => {
     if (s === 'title') {
       if (cam.to !== 0) { cam.to = 0; }
       $('enterHint').classList.add('off');
-      setTimeout(() => { if (screen === 'title' && cam.to === 0) $('enterHint').classList.remove('off'); }, 2200);
+      setTimeout(() => { if (screen === 'title' && cam.to === 0) { $('enterHint').classList.remove('off'); Sound.early(); } }, 2200);
     }
     if (s === 'table') { cam.k = 1; cam.to = 1; renderTable(); requestAnimationFrame(() => $('table').classList.add('show')); }
     else $('table').classList.remove('show');
@@ -3438,18 +3506,20 @@ const GrainSim = (() => {
     const rail = $('boardRail'), i = GS.BOARDS.indexOf(B);
     if (rail.scrollTo) rail.scrollTo({ left: i * rail.clientWidth, behavior: smooth && !reducedMotion() ? 'smooth' : 'auto' }); else rail.scrollLeft = i * rail.clientWidth;
   }
-  // swiped to another board: it becomes the one in play here, the dots follow
-  let railT = 0;
+  // swiped to another board: the moment the next page covers more than half the screen it is the one in play here,
+  // and its dot and its sound come with it, not after the page has settled
+  let railRaf = 0;
   $('boardRail').addEventListener('scroll', () => {
-    clearTimeout(railT);
-    railT = setTimeout(() => {
+    if (railRaf) return;
+    railRaf = requestAnimationFrame(() => {
+      railRaf = 0;
       const rail = $('boardRail'), i = clamp(Math.round(rail.scrollLeft / Math.max(1, rail.clientWidth)), 0, GS.BOARDS.length - 1), B = GS.BOARDS[i];
       if (B !== tableBoard) {
         tableBoard = B;
         [...$('boardDots').children].forEach((d, k) => d.classList.toggle('on', k === i));
         Sound.swap();
       }
-    }, 90);
+    });
   }, { passive: true });
   // a board's levels as cards: the one to play next lifted a little; on the endless board, the last few played and the next
   function fillCards(box, B) {
@@ -4230,7 +4300,7 @@ const GrainSim = (() => {
   $('tuneDoneBtn').addEventListener('click', () => setScreen(tuneFrom));
 
   // ---------- buttons ----------
-  function syncControl() { $('controlBtn').textContent = tr(save.control === 'drag' ? 'Control: drag anywhere' : 'Control: tips above your finger'); }
+  function syncControl() { $('controlBtn').textContent = tr(save.control === 'drag' ? 'Control: drag anywhere' : 'Control: above the finger'); }
   $('controlBtn').addEventListener('click', () => {
     save.control = save.control === 'drag' ? 'direct' : 'drag'; persist(); syncControl();
     if (sim && save.control === 'drag') { virt.x = sim.sticks.tx; virt.y = clamp(sim.sticks.ty, view.top, view.H - 200); }
@@ -4256,8 +4326,24 @@ const GrainSim = (() => {
     Analytics.emit('level_retry', { level: levelAt(levelIndex).id, from: 'hud' }); startLevel(levelIndex, 'restart');
   }));
   $('musicBtn').hidden = !ROOM_SOUND;
-  const syncSound = () => { $('soundBtn').textContent = tr(save.sound ? 'Sound on' : 'Sound off'); $('musicBtn').textContent = tr(save.music ? 'Music on' : 'Music off'); };
-  $('soundBtn').addEventListener('click', () => { save.sound = !save.sound; persist(); syncSound(); if (save.sound) Sound.unlock(); else Sound.sleep(); Room.apply(); Night.level(); });
+  const syncSound = () => {
+    for (const [id, key] of [['sfxVol', 'sfxVol'], ['ambVol', 'ambVol']]) { const el = $(id); el.value = Math.round(save[key] * 100); el.style.setProperty('--v', el.value + '%'); }
+    $('musicBtn').textContent = tr(save.music ? 'Music on' : 'Music off');
+  };
+  // each slider sets its own volume at once; game sounds play a tick so you hear the level, the night is already playing
+  let tickAt = 0;
+  for (const [id, key] of [['sfxVol', 'sfxVol'], ['ambVol', 'ambVol']]) {
+    $(id).addEventListener('input', (e) => {
+      const was = save.sound;
+      save[key] = clamp(e.target.value / 100, 0, 1); save.sound = save.sfxVol > 0 || save.ambVol > 0;
+      e.target.style.setProperty('--v', e.target.value + '%');
+      if (save.sound && !was) Sound.unlock();
+      Sound.volumes();
+      if (!save.sound) Sound.sleep();
+      if (key === 'sfxVol' && performance.now() - tickAt > 140) { tickAt = performance.now(); Sound.slot(4, 'lentil', false); }
+    });
+    $(id).addEventListener('change', persist);
+  }
   $('musicBtn').addEventListener('click', () => { save.music = !save.music; persist(); syncSound(); Room.apply(); });
   $('tuneBtn').addEventListener('click', () => { tuneFrom = 'pause'; buildTune(); $('tuneJson').hidden = true; setScreen('tune'); });
   $('nextBtn').addEventListener('click', () => {
@@ -4273,7 +4359,7 @@ const GrainSim = (() => {
     ['#boardRail', 'Boards', 'aria-label'], ['#sticksRest', 'Change chopsticks', 'aria-label'], ['#game', 'Game board', 'aria-label'],
     ['#menuBtn', 'Pause', 'aria-label'], ['#againBtn', 'Start the level again', 'aria-label'], ['#leaveBtn', 'Back to the boards', 'aria-label'],
     ['#sticks h2', 'Chopsticks'], ['#sticks .sub', 'Each pair is earned by playing well.'], ['#sticksBackBtn', 'Back'],
-    ['#pause h2', 'Paused'], ['#resumeBtn', 'Resume'], ['#restartBtn', 'Restart level'], ['#tuneBtn', 'Tune feel'], ['#pauseLevelsBtn', 'Back to the boards'],
+    ['#pause h2', 'Paused'], ['#resumeBtn', 'Resume'], ['label[for=sfxVol]', 'Game sounds'], ['label[for=ambVol]', 'Ambience'], ['#restartBtn', 'Restart level'], ['#tuneBtn', 'Tune feel'], ['#pauseLevelsBtn', 'Back to the boards'],
     ['#doneTotal span', 'Score'], ['#retryBtn', 'Retry'], ['#doneLevelsBtn', 'Back'],
     ['#tune h2', 'Tune feel'], ['#tune .sub', 'Changes apply right away and stay on this device. Row length applies from the next level. A level with its own rule keeps it.'],
     ['label.check:nth-of-type(1)', 'Show how far the sticks reach'], ['label.check:nth-of-type(2)', 'Vibrate'], ['label.check:nth-of-type(3)', 'Solid grains'],
@@ -4288,7 +4374,8 @@ const GrainSim = (() => {
       const txt = [...el.childNodes].filter((n) => n.nodeType === 3 && n.nodeValue.trim());
       if (txt.length) txt[txt.length - 1].nodeValue = (el.matches('label') ? ' ' : '') + tr(en); else el.append(tr(en));
     }
-    $('langBtn').textContent = tr('Language: English');
+    $('langBtn').lastChild.textContent = lang === 'pl' ? 'Polski' : 'English';
+    $('langBtn').setAttribute('aria-label', lang === 'pl' ? 'Język: polski. Zmień na angielski' : 'Language: English. Switch to Polish');
     syncSound(); syncControl();
   }
   $('langBtn').addEventListener('click', () => {
@@ -4308,6 +4395,7 @@ const GrainSim = (() => {
     const d = data || {};
     if ((d.screen === 'play' || d.screen === 'pause' || d.screen === 'done') && Number.isInteger(d.levelIndex) && unlocked(d.levelIndex)) startLevel(d.levelIndex, 'restore');
     else setScreen('title');
+    Sound.prepare();
     requestAnimationFrame((t) => { last = t; frame(t); });
   }
   const hot = window.claude && window.claude.hot;
