@@ -782,3 +782,30 @@ test('every board has a material of its own; the endless board changes material 
     assert.equal(GS.chapterOf(E.first + k * 10 + 3).first, E.first + k * 10);
   }
 });
+
+test('the chopsticks in hand change the feel on top of the level: reach, wrong grains, stones and pace', () => {
+  const L = GS.levelFor(14);
+  const plain = GS.create({}, L, LAYOUT, 3);
+  const jade = GS.create({ perks: { reach: 1.1 } }, L, LAYOUT, 3);
+  const ebony = GS.create({ perks: { creep: 0.8 } }, L, LAYOUT, 3);
+  const gold = GS.create({ perks: { pace: 1.2 } }, L, LAYOUT, 3);
+  assert.ok(Math.abs(jade.cfg.zoneR - plain.cfg.zoneR * 1.1) < 1e-9, 'jade reaches further');
+  assert.ok(Math.abs(ebony.cfg.creepSpeed - plain.cfg.creepSpeed * 0.8) < 1e-9, 'ebony slows wrong grains');
+  assert.ok(Math.abs(gold.cfg.paceK - plain.cfg.paceK * 1.2) < 1e-9, 'gold eases the pace');
+  assert.equal(plain.ideal, gold.ideal, 'the stars ask the same of every pair');
+  // a stone in front of open tips comes in slower with steel
+  const creep = (perks) => {
+    const sim = GS.create({ perks }, L, LAYOUT, 3);
+    for (const g of sim.grains) g.st = ST.GONE;
+    const lentil = sim.debugPut(L.types[0], 300, 700);
+    sim.target = L.types[0];
+    holdAt(sim, 300, 760, 0.25);
+    const G = sim.geom();
+    const st = sim.debugPut('stone', G.mx + G.ux * 80, G.my + G.uy * 80);
+    const x0 = st.x, y0 = st.y;
+    holdAt(sim, 300, 760, 0.3);
+    return Math.hypot(st.x - x0, st.y - y0);
+  };
+  const a = creep(null), b = creep({ stone: 0.6 });
+  assert.ok(a > 0 && b < a * 0.75, 'steel keeps stones back: ' + a.toFixed(1) + ' vs ' + b.toFixed(1));
+});
