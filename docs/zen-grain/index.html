@@ -180,38 +180,41 @@
   /* A helper given: its medallion pops up, hops, turns over to its back and round again, catches the light and falls
      away past the bottom edge. The medallion is a picture (tools/media/medals.py); the rim's bright edge and the light
      on it are the game's, so it sits with the rest of the board. */
-  #medals { position: fixed; inset: 0; z-index: 30; pointer-events: none; overflow: hidden; perspective: 900px; }
-  .medal { position: absolute; left: 50%; top: 36%; width: 150px; height: 150px; margin: -75px 0 0 -75px; opacity: 0;
-    animation: medalgo 2.9s forwards; }
-  .medal .spin { position: absolute; inset: 0; transform-style: preserve-3d; animation: medalspin 2.9s ease-in-out forwards; }
-  .medal .face { position: absolute; inset: 0; border-radius: 50%; background: center / cover no-repeat; backface-visibility: hidden;
-    -webkit-backface-visibility: hidden; overflow: hidden; box-shadow: 0 12px 26px rgba(0, 0, 0, .55); }
-  .medal .back { transform: rotateY(180deg); }
+  #medals { position: fixed; inset: 0; z-index: 30; pointer-events: none; overflow: hidden; perspective: 700px; }
+  .medal { position: absolute; left: 50%; top: 38%; width: 104px; height: 104px; margin: -52px 0 0 -52px; opacity: 0; animation: medalgo 1.7s forwards; }
+  .medal .spin { position: absolute; inset: 0; transform-style: preserve-3d; animation: medalspin 1.7s forwards; }
+  /* the coin has a body: the two faces stand a few pixels apart and the edge between them is a stack of gold rings */
+  .medal .face, .medal .edge { position: absolute; inset: 0; border-radius: 50%; }
+  .medal .face { background: center / cover no-repeat; backface-visibility: hidden; -webkit-backface-visibility: hidden; overflow: hidden; }
+  .medal .front { transform: translateZ(calc(var(--t) / 2)); }
+  .medal .back { transform: rotateY(180deg) translateZ(calc(var(--t) / 2)); }
+  .medal .edge { background: radial-gradient(circle, #8a5f1e 0 60%, #c79a46 82%, #f0d48c 92%, #9a6c22 100%); }
   .medal .face::before { content: ''; position: absolute; inset: 0; border-radius: 50%; mix-blend-mode: soft-light;
     background: radial-gradient(circle at 32% 26%, rgba(255, 246, 214, .55), rgba(255, 246, 214, 0) 48%), radial-gradient(circle, rgba(0, 0, 0, 0) 60%, rgba(60, 36, 8, .4) 100%); }
   .medal .face::after { content: ''; position: absolute; inset: 0; border-radius: 50%;
-    box-shadow: inset 0 0 0 2.5px rgba(255, 230, 160, .95), inset 0 0 0 5px rgba(120, 78, 22, .7), inset 0 0 16px rgba(255, 214, 120, .35); }
+    box-shadow: inset 0 0 0 2px rgba(255, 230, 160, .95), inset 0 0 0 4px rgba(120, 78, 22, .7), inset 0 0 12px rgba(255, 214, 120, .35); }
   .medal .shine { position: absolute; inset: -25%; mix-blend-mode: screen; transform: translateX(-90%);
-    background: linear-gradient(105deg, rgba(255, 255, 255, 0) 42%, rgba(255, 250, 225, .8) 50%, rgba(255, 255, 255, 0) 58%); animation: medalshine 2.9s forwards; }
-  .medal b { position: absolute; left: 50%; top: 100%; margin-top: 12px; transform: translateX(-50%); white-space: nowrap; font: var(--sketch-w) var(--fs-24)/1 var(--sketch);
-    color: var(--ember); text-shadow: var(--halo); opacity: 0; animation: medallabel 2.9s forwards; }
-  .medal i.sp { position: absolute; left: 50%; top: 50%; width: 7px; height: 7px; margin: -3.5px; border-radius: 50%; background: #fff3c4;
-    box-shadow: 0 0 8px 2px rgba(255, 214, 120, .9); opacity: 0; animation: medalspark .9s ease-out forwards; animation-delay: .22s; }
+    background: linear-gradient(105deg, rgba(255, 255, 255, 0) 42%, rgba(255, 250, 225, .8) 50%, rgba(255, 255, 255, 0) 58%); animation: medalshine 1.7s forwards; }
+  .medal .shadow { position: absolute; left: 12%; right: 12%; bottom: -16%; height: 14%; border-radius: 50%; background: rgba(0, 0, 0, .35); filter: blur(5px); animation: medalshadow 1.7s forwards; }
+  .medal b { position: absolute; left: 50%; top: 100%; margin-top: 14px; transform: translateX(-50%); white-space: nowrap; font: var(--sketch-w) var(--fs-17)/1 var(--sketch);
+    color: var(--ember); text-shadow: var(--halo); opacity: 0; animation: medallabel 1.7s forwards; }
+  .medal i.sp { position: absolute; left: 50%; top: 50%; width: 5px; height: 5px; margin: -2.5px; border-radius: 50%; background: #fff3c4;
+    box-shadow: 0 0 6px 2px rgba(255, 214, 120, .9); opacity: 0; animation: medalspark .6s ease-out forwards; animation-delay: .12s; }
+  /* one smooth line: up and in with a little overshoot, a small hop while it turns over and round again, then away */
   @keyframes medalgo {
-    0% { opacity: 0; transform: translateY(70px) scale(.2); animation-timing-function: cubic-bezier(.2, 1.4, .4, 1); }
-    11% { opacity: 1; transform: translateY(0) scale(1.12); }
-    17% { transform: translateY(0) scale(.95); } 22% { transform: translateY(0) scale(1); animation-timing-function: cubic-bezier(.3, 0, .5, 1); }
-    30% { transform: translateY(-48px); animation-timing-function: cubic-bezier(.5, 0, .7, .4); } 38% { transform: translateY(0); }
-    43% { transform: translateY(-14px); } 48% { transform: translateY(0); }
-    74% { opacity: 1; transform: translateY(0) rotate(0deg); animation-timing-function: cubic-bezier(.55, 0, 1, .55); }
-    100% { opacity: 1; transform: translateY(95vh) rotate(32deg); } }
-  /* over to the back, a moment there in the light, round to the front again, and a last half turn as it falls */
-  @keyframes medalspin { 0%, 24% { transform: rotateY(0deg); } 38%, 53% { transform: rotateY(180deg); } 67%, 74% { transform: rotateY(360deg); } 100% { transform: rotateY(540deg); } }
-  @keyframes medalshine { 0%, 40% { transform: translateX(-90%); } 50% { transform: translateX(90%); } 51%, 66% { transform: translateX(-90%); } 75%, 100% { transform: translateX(90%); } }
-  @keyframes medallabel { 0%, 12% { opacity: 0; } 18%, 66% { opacity: 1; } 76%, 100% { opacity: 0; } }
+    0% { opacity: 0; transform: translateY(36px) scale(.3); animation-timing-function: cubic-bezier(.2, 1.3, .4, 1); }
+    14% { opacity: 1; transform: translateY(0) scale(1); animation-timing-function: cubic-bezier(.3, 0, .4, 1); }
+    30% { transform: translateY(-22px); animation-timing-function: cubic-bezier(.5, 0, .6, 1); }
+    46% { transform: translateY(0); }
+    64% { opacity: 1; transform: translateY(0) rotate(0deg); animation-timing-function: cubic-bezier(.5, 0, .9, .5); }
+    100% { opacity: 1; transform: translateY(85vh) rotate(24deg); } }
+  @keyframes medalspin { 0%, 12% { transform: rotateY(0deg); animation-timing-function: cubic-bezier(.45, 0, .25, 1); } 60%, 64% { transform: rotateY(360deg); animation-timing-function: ease-in; } 100% { transform: rotateY(540deg); } }
+  @keyframes medalshine { 0%, 22% { transform: translateX(-90%); } 40% { transform: translateX(90%); } 41%, 52% { transform: translateX(-90%); } 66%, 100% { transform: translateX(90%); } }
+  @keyframes medalshadow { 0%, 12% { opacity: .9; transform: scaleX(1); } 30% { opacity: .5; transform: scaleX(.8); } 46%, 64% { opacity: .9; transform: scaleX(1); } 72%, 100% { opacity: 0; } }
+  @keyframes medallabel { 0%, 10% { opacity: 0; } 18%, 58% { opacity: 1; } 66%, 100% { opacity: 0; } }
   @keyframes medalspark { 0% { opacity: 1; transform: translate(0, 0) scale(1); } 100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(.3); } }
-  .medal.still, .medal.still .spin, .medal.still .shine { animation: none; opacity: 1; }
-  .medal.still { animation: medalfade 2.4s forwards; }
+  .medal.still, .medal.still .spin, .medal.still .shine, .medal.still .shadow { animation: none; opacity: 1; }
+  .medal.still { animation: medalfade 1.6s forwards; }
   .medal.still b { animation: none; opacity: 1; }
   @keyframes medalfade { 0% { opacity: 0; } 15%, 80% { opacity: 1; } 100% { opacity: 0; } }
   @keyframes catpaw { 0% { transform: translateX(110%); } 28% { transform: translateX(14%) rotate(-5deg); } 40% { transform: translateX(22%) rotate(3deg); }
@@ -5539,28 +5542,29 @@ const GrainSim = (() => {
   }
   function flushMedals() {
     const batch = medalBatch; medalBatch = []; medalFlush = 0;
-    const n = batch.length, size = n >= 3 ? 110 : n === 2 ? 132 : 150, now = performance.now(), start = Math.max(now, medalAt);
-    medalAt = start + 1300 + 220 * n;
-    batch.forEach((m, i) => setTimeout(() => showMedal(m, size, (i - (n - 1) / 2) * (size + 16)), start - now + i * 220));
+    const n = batch.length, size = n >= 3 ? 80 : n === 2 ? 92 : 104, now = performance.now(), start = Math.max(now, medalAt);
+    medalAt = start + 900 + 160 * n;
+    batch.forEach((m, i) => setTimeout(() => showMedal(m, size, (i - (n - 1) / 2) * (size + 22)), start - now + i * 160));
   }
   function showMedal(m, size, dx) {
-    const el = document.createElement('div');
+    const el = document.createElement('div'), t = Math.round(size * 0.075);
     el.className = 'medal' + (reducedMotion() ? ' still' : '');
-    el.style.cssText = 'width:' + size + 'px;height:' + size + 'px;margin:' + -size / 2 + 'px 0 0 ' + (dx - size / 2) + 'px';
-    el.innerHTML = '<div class="spin"><div class="face front" style="background-image:url(medal-' + m.k + '-front.webp)"><i class="shine"></i></div>' +
+    el.style.cssText = 'width:' + size + 'px;height:' + size + 'px;margin:' + -size / 2 + 'px 0 0 ' + (dx - size / 2) + 'px;--t:' + t + 'px';
+    let edge = '';
+    for (let z = -t / 2 + 0.5; z < t / 2; z += 1) edge += '<i class="edge" style="transform:translateZ(' + z.toFixed(1) + 'px)"></i>';
+    el.innerHTML = '<i class="shadow"></i><div class="spin">' + edge +
+      '<div class="face front" style="background-image:url(medal-' + m.k + '-front.webp)"><i class="shine"></i></div>' +
       '<div class="face back" style="background-image:url(medal-' + m.k + '-back.webp)"><i class="shine"></i></div></div><b></b>';
-    const b = el.querySelector('b');
-    b.textContent = m.label;
-    if (size < 140) b.style.fontSize = 'var(--fs-20)';
-    if (!reducedMotion()) for (let i = 0; i < 10; i++) {
-      const sp = document.createElement('i'), a = (i / 10) * Math.PI * 2 + Math.random() * 0.4, d = size * (0.6 + Math.random() * 0.4);
+    el.querySelector('b').textContent = m.label;
+    if (!reducedMotion()) for (let i = 0; i < 8; i++) {
+      const sp = document.createElement('i'), a = (i / 8) * Math.PI * 2 + Math.random() * 0.5, d = size * (0.55 + Math.random() * 0.35);
       sp.className = 'sp'; sp.style.setProperty('--dx', (Math.cos(a) * d).toFixed(0) + 'px'); sp.style.setProperty('--dy', (Math.sin(a) * d).toFixed(0) + 'px');
       el.appendChild(sp);
     }
     $('medals').appendChild(el);
     Sound.saved(); Haptics.buzz(12);
-    setTimeout(() => Sound.knock(46), 870);
-    setTimeout(() => el.remove(), 3000);
+    setTimeout(() => Sound.knock(40), 780);
+    setTimeout(() => el.remove(), 1800);
   }
   // the pictures are fetched ahead, once the game is idle, so a medallion never shows up blank
   setTimeout(() => { for (const k of Object.values(MEDAL)) for (const s of ['front', 'back']) { const im = new Image(); im.src = 'medal-' + k + '-' + s + '.webp'; } }, 4000);
