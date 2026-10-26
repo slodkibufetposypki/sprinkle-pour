@@ -1,6 +1,7 @@
 # Zen Grain — what is next
 
 ## Open
+- **The workshop (the owner's idea, for later):** at some point in the game a workshop opens, where for points you build a new pair of chopsticks by joining two pairs you already own. The new pair carries both bonuses (e.g. cherry and ebony: the flash when the kind changes and slower wrong grains), and has a look of its own made from the two. To decide when it is built: what the points are (spent from score, sorted grains, or a currency of its own), when the workshop opens, whether the two pairs used are kept, and whether a joined pair can be joined again.
 - **Mini-games now and then, to break the routine** (the owner's sister): stacking stones into a cairn with real physics (shapes, friction, balance); a pull-the-pin puzzle (beans held behind latches, released in the right order into the right bowls); a matching puzzle; copying a bean pattern in the zen sand. One at a time, the cairn first.
 - **The result layout:** a card at the top is the default; `?done=card` and `?done=sheet` show the other two. Pick one after playing.
 - **Hard levels:** mark every fourth or fifth level "hard" (a tighter clock), tuned from real players' times rather than guessed.
