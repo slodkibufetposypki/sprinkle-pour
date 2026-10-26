@@ -18,7 +18,7 @@ const { chromium } = require('playwright');
     await p.waitForTimeout(3000); console.log('after tap +3.4s', JSON.stringify(await probe()));
   }
   await p.evaluate(() => __grainLine.startLevel(0)); await p.waitForTimeout(300);
-  await p.tap('#menuBtn'); await p.waitForTimeout(300);
+  await p.tap('#menuBtn'); await p.waitForTimeout(300); await p.tap('#pauseSettingsBtn'); await p.waitForTimeout(300);
   const fillRange = async (id, v) => p.evaluate(([id, v]) => { const el = document.getElementById(id); el.value = v; el.dispatchEvent(new Event('input')); el.dispatchEvent(new Event('change')); }, [id, v]);
   await fillRange('ambVol', 30); await fillRange('sfxVol', 0); await p.waitForTimeout(400);
   console.log('volumes', JSON.stringify(await p.evaluate(() => { const S = __grainLine.Sound; return { out: +S.out.gain.value.toFixed(3), amb: +S.amb.gain.value.toFixed(3), saved: [__grainLine.save.sfxVol, __grainLine.save.ambVol, __grainLine.save.sound] }; })));
