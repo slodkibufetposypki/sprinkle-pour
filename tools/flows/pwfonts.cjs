@@ -14,7 +14,7 @@ const { chromium } = require('playwright');
     const tag = q ? 'chalk' : 'brush';
     await p.goto(base + 'local.html' + q); await p.waitForTimeout(3000);
     await p.screenshot({ path: `${out}/${tag}-room.png` });
-    await p.tap('#enterBtn'); await p.waitForTimeout(350); await p.tap('#menuLevels'); await p.waitForTimeout(2300);
+    await p.tap('#enterBtn'); await p.waitForTimeout(350); await p.tap('#menuLevels', { force: true }); await p.waitForTimeout(2300);
     await p.screenshot({ path: `${out}/${tag}-boards.png` });
     await p.evaluate(() => __grainLine.startLevel(13)); await p.waitForTimeout(400);
     await p.evaluate(() => __grainLine.autoplay(true)); await p.waitForTimeout(5200);
