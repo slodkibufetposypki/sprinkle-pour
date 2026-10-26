@@ -9,7 +9,7 @@ const { chromium } = require('playwright');
   p.on('pageerror', (e) => errs.push(e.message)); p.on('response', (r) => { if (r.status() >= 400) errs.push(r.status() + ' ' + r.url()); });
   await p.goto(url); await p.waitForTimeout(2500);
   console.log('manifest', await p.evaluate(() => !!document.querySelector('link[rel=manifest]')), '| worker', await p.evaluate(async () => { const r = await navigator.serviceWorker.getRegistration(); return !!r; }));
-  await p.tap('#enterBtn'); await p.waitForTimeout(350); await p.tap('#menuLevels'); await p.waitForTimeout(2300);
+  await p.tap('#enterBtn'); await p.waitForTimeout(350); await p.tap('#menuLevels', { force: true }); await p.waitForTimeout(2300);
   console.log('boards', await p.evaluate(() => [...document.querySelectorAll('.bhead b')].map((e) => e.textContent).join(', ')));
   await p.evaluate(() => __grainLine.startLevel(30)); await p.waitForTimeout(1200);
   await p.evaluate(() => __grainLine.autoplay(true)); await p.waitForTimeout(6000);
