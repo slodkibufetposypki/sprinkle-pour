@@ -4,7 +4,7 @@ const { chromium } = require('playwright');
 (async () => {
   const b = await chromium.launch(); const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   const p = await ctx.newPage(); await p.goto(process.argv[2] + 'local.html'); await p.waitForTimeout(1200);
-  await p.tap('#enterBtn'); await p.waitForTimeout(2300);
+  await p.tap('#enterBtn'); await p.waitForTimeout(350); await p.tap('#menuLevels'); await p.waitForTimeout(2300);
   await p.evaluate(() => { window.__swaps = []; const S = __grainLine.Sound, o = S.swap.bind(S); S.swap = () => { window.__swaps.push(document.getElementById('boardRail').scrollLeft / document.getElementById('boardRail').clientWidth); o(); }; });
   await p.evaluate(() => { document.getElementById('boardRail').style.scrollSnapType = 'none'; });   // a finger mid-drag: no snapping yet
   const at = await p.evaluate(() => document.getElementById('boardRail').scrollLeft / document.getElementById('boardRail').clientWidth);

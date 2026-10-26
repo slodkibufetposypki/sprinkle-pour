@@ -9,7 +9,7 @@ const { chromium } = require('playwright');
   p.on('pageerror', (e) => errs.push(e.message)); p.on('console', (m) => { if (m.type() === 'error' && !/fonts\.g/.test(m.text())) errs.push(m.text()); });
   await p.goto(base + page); await p.waitForTimeout(1500);
   console.log('lang', await p.evaluate(() => document.documentElement.lang), '|', await p.textContent('#enterHint'));
-  await p.tap('#enterBtn'); await p.waitForTimeout(2200);
+  await p.tap('#enterBtn'); await p.waitForTimeout(350); await p.tap('#menuLevels'); await p.waitForTimeout(2200);
   await p.screenshot({ path: `${out}/pl-boards.png` });
   console.log('boards:', await p.evaluate(() => [...document.querySelectorAll('.bhead b')].map((e) => e.textContent).join(', ')), '|', await p.textContent('#tNext'));
   await p.evaluate(() => __grainLine.startLevel(20)); await p.waitForTimeout(900);

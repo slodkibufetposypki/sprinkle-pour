@@ -14,7 +14,7 @@ const { chromium } = require('playwright');
   await p.waitForTimeout(1200); console.log(mode, '2.7s (hint shown)', JSON.stringify(await probe()), '| hint', await p.evaluate(() => !document.getElementById('enterHint').classList.contains('off')));
   for (const t of [1, 2.5, 5]) { await p.waitForTimeout(t === 1 ? 1000 : t === 2.5 ? 1500 : 2500); console.log(mode, '+' + t + 's', JSON.stringify(await probe())); }
   if (mode === 'gesture') {
-    await p.tap('#enterBtn'); await p.waitForTimeout(400); console.log('after tap', JSON.stringify(await probe()));
+    await p.tap('#enterBtn'); await p.waitForTimeout(350); await p.tap('#menuLevels'); await p.waitForTimeout(400); console.log('after tap', JSON.stringify(await probe()));
     await p.waitForTimeout(3000); console.log('after tap +3.4s', JSON.stringify(await probe()));
   }
   await p.evaluate(() => __grainLine.startLevel(0)); await p.waitForTimeout(300);
