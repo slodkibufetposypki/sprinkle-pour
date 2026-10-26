@@ -907,6 +907,17 @@ test('zen: the night goes on in stages, the kinds change and get grander, worth 
   const per = (t) => { const r = rows.filter((e) => e.grain === t && e.kind === 'full'); return r.length ? r.reduce((a, e) => a + e.points / e.n / e.mult, 0) / r.length : 0; };
   assert.ok(per('chickpea') > per('lentil') * 1.6, 'grander kinds pay more: ' + per('lentil').toFixed(1) + ' vs ' + per('chickpea').toFixed(1));
   for (const t in sim.stores) assert.ok(sim.level.types.includes(t), 'every corner belongs to a kind in play');
+  assert.ok(sim.level.types.includes(sim.target), 'the sticks are after a kind in play');
+});
+
+test('zen: when a kind is packed away before the new one has reached the board, the sticks go after the new one', () => {
+  const sim = GS.create({}, GS.ZEN, LAYOUT, 3);
+  sim.started = true; sim.target = 'lentil';
+  for (const g of sim.grains) g.st = ST.LOST;          // an empty board: nothing of any kind in play to switch to
+  sim.clock = 2 * GS.ZEN_STAGE_S - 0.01; sim.jar.next = 1e9;            // and the jar holds still
+  for (let i = 0; i < 240; i++) sim.step({ down: i > 20, x: 300, y: 500 });
+  assert.ok(sim.level.types.includes(sim.target), 'target ' + sim.target + ' in ' + sim.level.types.join());
+  assert.ok(sim.stores[sim.target], 'and it has a corner');
 });
 
 test('zen: the golden bean hops and leaps off if nobody catches it; open sticks catch it whatever they are after', () => {
