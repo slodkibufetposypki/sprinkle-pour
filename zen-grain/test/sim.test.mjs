@@ -848,7 +848,7 @@ test('a helper can carry stones off the board; they count for nothing and never 
   invariants(sim);
 });
 
-test('zen mode: the jar never stops, full piles are packed away, broken rows and a full board cost lives, the last one ends it', () => {
+test('zen mode: the jar never stops, full piles are packed away, a full board costs a life, the last one ends it', () => {
   const sim = GS.create({}, GS.ZEN, LAYOUT, 4);
   assert.equal(sim.limit, Infinity, 'no clock to beat');
   assert.equal(sim.lives, 3);
@@ -870,15 +870,18 @@ test('zen mode: the jar never stops, full piles are packed away, broken rows and
   assert.equal(lost.length, 3); assert.ok(lost.every((e) => e.why === 'full'));
   const over = ev2.find((e) => e.type === 'zen_over');
   assert.ok(over && idle.done && over.time > 30, 'over after ' + (over && over.time.toFixed(0)) + ' s');
-  // a broken row costs a life
+  // a broken row costs no life, but takes some of the Zen Zone back
   const b = GS.create({}, GS.ZEN, LAYOUT, 6);
+  b.zone = 0.5;
   const l = b.grains.find((g) => g.type === 'lentil');
   holdAt(b, l.x, l.y + 60, 0.3);
   const G = b.geom();
   b.debugPut('rice', G.mx + G.ux * 25, G.my + G.uy * 25);
   const ev3 = holdAt(b, l.x, l.y + 60, 1);
-  assert.ok(ev3.some((e) => e.type === 'life_lost' && e.why === 'break'));
-  assert.equal(b.lives, 2);
+  assert.ok(ev3.some((e) => e.type === 'break'), 'the row broke');
+  assert.ok(!ev3.some((e) => e.type === 'life_lost'));
+  assert.equal(b.lives, 3);
+  assert.ok(Math.abs(b.zone - (0.5 - GS.ZEN_ZONE.broken)) < 1e-9, 'zone ' + b.zone);
 });
 
 test('zen: the night goes on in stages, the kinds change and get grander, worth more, and the jar never stops speeding up', () => {
@@ -979,4 +982,52 @@ test('zen: every few bowls the Zen Capybara gives a life back; at the end she ca
   assert.ok(sim.revive(), 'carried on');
   assert.ok(!sim.done && sim.lives === 1 && sim.continues === 1);
   assert.equal(sim.revive(), false, 'only when the run is over');
+});
+
+test('zen: a kind hands its corner on only once none of it is left in the jar either, so no grain lies without a bowl', () => {
+  const sim = GS.create({}, GS.ZEN, LAYOUT, 12);
+  sim.started = true;
+  for (const g of sim.grains) g.st = ST.LOST;
+  // a scoop of lentils still waiting in the jar when the stage turns and lentils leave
+  const ids = [];
+  for (let i = 0; i < 8; i++) { const g = sim.debugPut('lentil', 300, 400); g.st = ST.JAR; ids.push(g.id); }
+  sim.jar.scoops = [ids]; sim.jar.pour = []; sim.jar.next = 1e9;
+  sim.clock = 2 * GS.ZEN_STAGE_S - 0.01;
+  for (let i = 0; i < 3 * 120; i++) {
+    sim.step({ down: false });
+    for (const g of sim.grains) {
+      if ((g.st === ST.REST || g.st === ST.SLIDE) && !GS.TYPES[g.type].stone && !GS.TYPES[g.type].gold) assert.ok(sim.stores[g.type], g.type + ' lies on the board without a bowl');
+    }
+  }
+  assert.ok(sim.grains.some((g) => g.type === 'lentil' && g.st === ST.REST), 'the lentils were poured');
+  assert.ok(sim.stores.lentil, 'and their corner waits for them');
+});
+
+test('zen: full rows charge the Zen Zone; in it wrong grains break nothing and rows pay double', () => {
+  const sim = GS.create({}, GS.ZEN, LAYOUT, 13);
+  const bot = GS.makeBot(sim, 9), ev = [];
+  sim.zone = 1 - GS.ZEN_ZONE.full / 2;
+  for (let i = 0; i < 60 * 120 && !ev.some((e) => e.type === 'zone'); i++) { sim.step(bot()); ev.push(...sim.drainEvents()); }
+  const on = ev.find((e) => e.type === 'zone');
+  assert.ok(on && on.on, 'the zone came on with a full row');
+  assert.ok(sim.zoneT > GS.ZEN_ZONE.secs - 1 && sim.zone === 0);
+  // a wrong grain at the tips while the zone lasts: no break
+  const l = sim.grains.find((g) => g.type === 'lentil' && g.st === ST.REST) || sim.debugPut('lentil', 300, 700);
+  holdAt(sim, l.x, l.y + 60, 0.3);
+  const G = sim.geom();
+  sim.debugPut('rice', G.mx + G.ux * 25, G.my + G.uy * 25);
+  const ev2 = holdAt(sim, l.x, l.y + 60, 1);
+  assert.ok(!ev2.some((e) => e.type === 'break'), 'nothing broke in the zone');
+  // and it runs out
+  const ev3 = release(sim, GS.ZEN_ZONE.secs + 1);
+  assert.ok(ev3.some((e) => e.type === 'zone' && !e.on) && sim.zoneT === 0, 'the zone ended');
+});
+
+test('zen: a stone sinks into the sand after a while', () => {
+  const sim = GS.create({}, GS.ZEN, LAYOUT, 14);
+  sim.started = true;
+  const st = sim.debugPut('stone', 300, 700);
+  const ev = release(sim, GS.ZEN_STONE_S + 0.5);
+  assert.equal(st.st, ST.LOST);
+  assert.ok(ev.some((e) => e.type === 'stone_sunk' && e.id === st.id));
 });
