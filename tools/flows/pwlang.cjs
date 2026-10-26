@@ -21,9 +21,12 @@ const { chromium } = require('playwright');
   await p.tap('#menuBtn'); await p.waitForTimeout(500);
   await p.screenshot({ path: `${out}/pl-pause.png` });
   console.log('pause:', await p.evaluate(() => [...document.querySelectorAll('#pause button')].filter((x) => !x.hidden).map((x) => x.textContent.trim()).join(' | ')));
+  await p.tap('#pauseSettingsBtn'); await p.waitForTimeout(400);
+  console.log('settings:', await p.evaluate(() => [...document.querySelectorAll('#settings button')].filter((x) => !x.hidden).map((x) => x.textContent.trim()).join(' | ')));
   await p.tap('#langBtn'); await p.waitForTimeout(300);
-  console.log('after switch:', await p.evaluate(() => [...document.querySelectorAll('#pause button')].filter((x) => !x.hidden).map((x) => x.textContent.trim()).join(' | ')), '| saved', await p.evaluate(() => __grainLine.save.lang));
+  console.log('after switch:', await p.evaluate(() => [...document.querySelectorAll('#settings button')].filter((x) => !x.hidden).map((x) => x.textContent.trim()).join(' | ')), '| saved', await p.evaluate(() => __grainLine.save.lang));
   await p.tap('#langBtn'); await p.waitForTimeout(200);
+  await p.tap('#settingsBackBtn'); await p.waitForTimeout(200);
   await p.tap('#resumeBtn'); await p.waitForTimeout(200);
   // finish the level by the bot, to see the result in Polish
   await p.evaluate(() => __grainLine.autoplay(true));
