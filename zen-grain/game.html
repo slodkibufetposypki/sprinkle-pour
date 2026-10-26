@@ -3940,6 +3940,7 @@ const GrainSim = (() => {
     } else if (id === 'porcelain') {
       // a celadon glaze, flat to the edges: soft mottling where it ran thicker, iron specks, a fine crackle in the glaze,
       // a painting under it (pale slip, the capybara in its own colours), one broad sheen, and seams mended with gold
+      // (the painting and the gold are pictures, see tools/media/porcelain_*.py)
       for (let i = 0; i < 46; i++) {
         const x = bx + rnd() * bw, y = rnd() * H, r = (60 + rnd() * 200) * d, g = c.createRadialGradient(x, y, 0, x, y, r);
         const col = rnd() < 0.5 ? '205,225,228' : '20,32,36', a = 0.025 + rnd() * 0.04;
@@ -3959,7 +3960,7 @@ const GrainSim = (() => {
         for (let k = 0; k < n; k++) { a += (rnd() - 0.5) * 1.2; x += Math.cos(a) * (12 + rnd() * 20) * d; y += Math.sin(a) * (12 + rnd() * 20) * d; c.lineTo(x, y); }
         c.strokeStyle = 'rgba(16,26,30,' + (0.1 + rnd() * 0.12).toFixed(2) + ')'; c.lineWidth = 0.6 * d; c.stroke();
       }
-      const P = porcelainPaint();
+      const P = porcelainLayer('paint');
       if (P && P.naturalWidth) {
         // the stream sits above the corner bowls, so the piles never cover the capybara
         const w = bw * 0.9, h = (w * P.naturalHeight) / P.naturalWidth;
@@ -3973,41 +3974,11 @@ const GrainSim = (() => {
       sh.addColorStop(0, 'rgba(235,248,250,0)'); sh.addColorStop(0.5, 'rgba(235,248,250,0.07)'); sh.addColorStop(1, 'rgba(235,248,250,0)');
       c.fillStyle = sh; c.fillRect(-bw, -90 * d, bw * 2.6, 180 * d);
       c.restore();
-      // the gold seams: a crack runs in straight-ish runs with sudden small turns, the way fired glaze breaks; one or
-      // two short branches each, and a wedge of gold where a branch leaves
-      const paths = [], pools = [];
-      const crack = (x, y, a, len, w, depth, branches) => {
-        const pts = [[x, y]];
-        let left = branches;
-        for (let sLen = 0; sLen < len;) {
-          const run = (18 + rnd() * 34) * d;
-          a += (rnd() - 0.5) * (rnd() < 0.2 ? 0.9 : 0.3);
-          x += Math.cos(a) * run; y += Math.sin(a) * run; sLen += run; pts.push([x, y]);
-          if (left > 0 && sLen > len * 0.25 && rnd() < 0.22) {
-            left--;
-            const b = a + (rnd() < 0.5 ? 1 : -1) * (0.55 + rnd() * 0.5);
-            crack(x, y, b, len * (0.18 + rnd() * 0.18), w * 0.65, depth + 1, 0);
-            pools.push([x, y, a, b, w]);
-          }
-        }
-        paths.push({ pts, w });
-      };
-      crack(bx + bw * 0.4, -10, 1.3, H * 0.5, 2.2 * d, 0, 2);
-      crack(bx - 10, H * 0.5, -0.2, bw * 1.1, 2 * d, 0, 1);
-      crack(bx + bw + 10, H * 0.2, 2.6, bw * 0.55, 1.8 * d, 0, 1);
-      for (const { pts, w } of paths) {
-        const line = (dx, dy) => { c.beginPath(); pts.forEach(([x, y], i) => (i ? c.lineTo(x + dx, y + dy) : c.moveTo(x + dx, y + dy))); c.stroke(); };
-        c.strokeStyle = 'rgba(30,18,4,0.5)'; c.lineWidth = w + 1.4 * d; line(0.8 * d, 1.2 * d);
-        const gg = c.createLinearGradient(bx, 0, bx + bw, H);
-        gg.addColorStop(0, '#b8862f'); gg.addColorStop(0.4, '#e9c06a'); gg.addColorStop(0.6, '#c99a3e'); gg.addColorStop(1, '#f1d48a');
-        c.strokeStyle = gg; c.lineWidth = w; line(0, 0);
-        c.strokeStyle = 'rgba(255,244,205,0.65)'; c.lineWidth = Math.max(0.6 * d, w * 0.3); line(-0.5 * d, -0.6 * d);
-      }
-      for (const [x, y, a, b, w] of pools) {        // gold filling the chip where the branch leaves
-        const r = w * 5.5;
-        c.fillStyle = '#dcae55'; c.beginPath(); c.moveTo(x - Math.cos(a) * w * 2, y - Math.sin(a) * w * 2);
-        c.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r); c.lineTo(x + Math.cos(b) * r, y + Math.sin(b) * r); c.closePath(); c.fill();
-        c.strokeStyle = 'rgba(255,244,205,0.6)'; c.lineWidth = 0.7 * d; c.stroke();
+      // the gold seams, from the concept painting of the tray: laid over the whole board, as gold lies on a glaze
+      const Gd = porcelainLayer('gold');
+      if (Gd && Gd.naturalWidth) {
+        const k = Math.max(bw / Gd.naturalWidth, H / Gd.naturalHeight), w = Gd.naturalWidth * k, h = Gd.naturalHeight * k;
+        c.drawImage(Gd, bx + (bw - w) / 2, (H - h) / 2, w, h);
       }
     } else if (id === 'lacquer') {
       // black lacquer worn to red at the rims, smooth, one long soft sheen from the light
@@ -4212,14 +4183,16 @@ const GrainSim = (() => {
   }
   // ?surface=porcelain shows a surface on every level, to look at one before it has a board of its own
   const SURFACE_TRY = ['porcelain'].includes(new URLSearchParams(location.search).get('surface')) ? new URLSearchParams(location.search).get('surface') : null;
-  let porcImg = null;
-  function porcelainPaint() {
-    if (!porcImg) {
-      porcImg = new Image(); porcImg.decoding = 'async';
-      porcImg.onload = () => { bgCache.delete('porcelain'); swatches.delete('porcelain'); };
-      porcImg.src = 'zen-porcelain.webp';
+  // the porcelain's painting and its gold seams are pictures: loaded the first time the board is drawn, and the board
+  // is drawn again when each arrives
+  const porcImgs = {};
+  function porcelainLayer(which) {
+    if (!porcImgs[which]) {
+      const im = porcImgs[which] = new Image(); im.decoding = 'async';
+      im.onload = () => { bgCache.delete('porcelain'); swatches.delete('porcelain'); };
+      im.src = which === 'gold' ? 'zen-porcelain-gold.webp' : 'zen-porcelain.webp';
     }
-    return porcImg;
+    return porcImgs[which];
   }
   const bgCache = new Map();
   function backgroundFor(id) {
