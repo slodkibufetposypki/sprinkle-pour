@@ -11,7 +11,8 @@
 - **Music:** waiting on the owner.
 - **A rule of Paper's own** (optional), e.g. grains slowly sliding into the fold.
 - **Original fantasy content** (in the spirit of Ghibli and Zelda, never their names, characters or designs):
-  - **The magic scroll (a board):** an unrolled scroll on wooden rollers, an ink landscape on it that glows faintly. Its own grain only works here: **moonseeds**, light and pale, that float, drifting slowly on their own and gliding far when pushed, so a gathered heap never stays put.
+  - **The magic scroll (a board):** an unrolled scroll on wooden rollers, an ink landscape on it that glows faintly. On the scroll every grain floats: they all drift slowly on their own and glide far when pushed, so a gathered heap never stays put.
+  - **Moonseeds (a grain):** light and pale, they come in with the scroll and then appear on other boards too. Off the scroll only the moonseeds float; everything else lies still as usual.
   - **Ember beans:** they glow warm and cool down as the round goes on, and are worth more while warm. Now and then one bursts on its own: it glows brighter and trembles for a moment first (time to pick it up), then pops with sparks, scattering the grains around it, and lies there as a cooled, ordinary bean.
   - Also proposed: a rune stone board (glowing lines that carry grains along them), spirit moss (soft, grains hardly roll), night glass (slippery, pushed grains slide far), acorns (roll and spin when pushed).
   - Where they go: as boards after Paper and before the endless one. That moves the endless board's levels, which saves keep by number, so the save needs a mapping when they are added.
