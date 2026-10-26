@@ -1031,3 +1031,31 @@ test('zen: a stone sinks into the sand after a while', () => {
   assert.equal(st.st, ST.LOST);
   assert.ok(ev.some((e) => e.type === 'stone_sunk' && e.id === st.id));
 });
+
+test('zen: the jar keeps a rhythm: waves with a calm after, spills, orders, never the same twice running', () => {
+  const sim = GS.create({}, GS.ZEN, LAYOUT, 15), bot = GS.makeBot(sim, 9), ev = [];
+  for (let i = 0; i < 240 * 120 && !sim.done; i++) { sim.step(bot()); ev.push(...sim.drainEvents()); if (sim.lives < 2) sim.lives = 3; }
+  const picks = ev.filter((e) => e.type === 'order' || (e.type === 'flow' && (e.kind === 'warn' || e.kind === 'spill')))
+    .map((e) => (e.type === 'order' ? 'order' : e.kind === 'warn' ? 'rush' : 'spill'));
+  assert.ok(picks.length >= 5, 'events: ' + picks.join(','));
+  for (let i = 1; i < picks.length; i++) assert.notEqual(picks[i], picks[i - 1], 'never the same twice running: ' + picks.join(','));
+  assert.ok(new Set(picks).size === 3, 'all three came: ' + picks.join(','));
+  const flow = ev.filter((e) => e.type === 'flow').map((e) => e.kind);
+  flow.forEach((k, i) => { if (k === 'warn') assert.equal(flow[i + 1] || 'rush', 'rush'); if (k === 'rush' || k === 'spill') assert.equal(flow[i + 1] || 'calm', 'calm'); });
+});
+
+test('zen: an order counts rows of its kind; filled in time it pays and charges the Zen Zone, missed it takes some back', () => {
+  const sim = GS.create({}, GS.ZEN, LAYOUT, 16), bot = GS.makeBot(sim, 9), ev = [];
+  sim.flow.next = 1e9;
+  sim.order = { type: 'lentil', need: 5, got: 0, until: 22, secs: 22 };
+  for (let i = 0; i < 25 * 120 && !ev.some((e) => e.type.startsWith('order_')); i++) { sim.step(bot()); ev.push(...sim.drainEvents()); }
+  const done = ev.find((e) => e.type === 'order_done');
+  assert.ok(done && done.bonus > 0, 'the order was filled');
+  assert.ok(sim.zone >= GS.ZEN_FLOW.orderGain || sim.zoneT > 0, 'and charged the zone');
+  assert.equal(sim.order, null);
+  sim.zone = 0.5; sim.flow.next = 1e9;
+  sim.order = { type: 'rice', need: 999, got: 0, until: sim.clock + 1, secs: 1 };
+  const ev2 = release(sim, 1.5);
+  assert.ok(ev2.some((e) => e.type === 'order_failed'));
+  assert.ok(Math.abs(sim.zone - (0.5 - GS.ZEN_FLOW.orderLoss)) < 1e-9);
+});
