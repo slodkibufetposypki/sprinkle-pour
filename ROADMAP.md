@@ -10,7 +10,12 @@
 - **Daily board:** waiting on a choice: a share button (score sent by message), or a shared score board (needs an online service).
 - **Music:** waiting on the owner.
 - **A rule of Paper's own** (optional), e.g. grains slowly sliding into the fold.
-- **Original fantasy content** (in the spirit of Ghibli and Zelda, never their names or designs): rune stone, spirit moss and night-glass boards; moonseeds (light, floating), acorns (roll and tip over), ember beans (cool down; worth more while warm).
+- **Original fantasy content** (in the spirit of Ghibli and Zelda, never their names, characters or designs):
+  - **The magic scroll (a board):** an unrolled scroll on wooden rollers, an ink landscape on it that glows faintly. Its own grain only works here: **moonseeds**, light and pale, that float, drifting slowly on their own and gliding far when pushed, so a gathered heap never stays put.
+  - **Ember beans:** they glow warm and cool down as the round goes on, and are worth more while warm. Now and then one bursts on its own: it glows brighter and trembles for a moment first (time to pick it up), then pops with sparks, scattering the grains around it, and lies there as a cooled, ordinary bean.
+  - Also proposed: a rune stone board (glowing lines that carry grains along them), spirit moss (soft, grains hardly roll), night glass (slippery, pushed grains slide far), acorns (roll and spin when pushed).
+  - Where they go: as boards after Paper and before the endless one. That moves the endless board's levels, which saves keep by number, so the save needs a mapping when they are added.
+- **Carrying rows yourself, if testers find it tedious** (the owner's worry): keep it to the parchment board only; a larger drop area; a flick toward the pile instead of carrying it there; or two rows carried at once for a bonus.
 
 ## For the App Store launch
 - **Model:** first three boards free; one purchase (about 14.99 PLN) opens the rest, every board added later, and "open this board now" for a stuck player. No ads; at most optional rewarded ones, never between levels.
