@@ -290,7 +290,10 @@ test('rice pushed by the side of a stick swings round to lie along it', () => {
 test('boards: slate holds the hand-made levels, each later board opens with more stars, and stones arrive with walnut', () => {
   const B = GS.BOARDS;
   assert.equal(B[0].first, 0); assert.equal(B[0].count, AUTHORED.length);
-  for (let k = 1; k < B.length; k++) { assert.equal(B[k].first, B[k - 1].first + B[k - 1].count); assert.ok(B[k].stars > B[k - 1].stars); }
+  for (let k = 1; k < B.length; k++) {
+    assert.equal(B[k].first, B[k - 1].first + B[k - 1].count); assert.ok(B[k].stars > B[k - 1].stars);
+    assert.equal(B[k].stars, Math.round(B[k].first * 5 * 0.7), B[k].id + ' opens with 70% of the stars before it');
+  }
   const stones = (i) => GS.levelFor(i).piles.filter((p) => p.type === 'stone').reduce((n, p) => n + p.count, 0);
   for (let i = 0; i < 10; i++) assert.equal(stones(i), 0, 'no stones on slate');
   const walnut = B.find((b) => b.adds === 'stones');
@@ -700,8 +703,16 @@ test('progression: every board opens with its own idea, the new things come one 
   const B = GS.BOARDS;
   for (const b of B) if (b.adds) assert.equal(GS.newsAt(b.first).feature, b.adds, b.id + ' opens with ' + b.adds);
   const news = [];
+  // up to the tray, something new every three or four levels; the tray's board and paper then mix what came before
+  const lastIdea = B.find((b) => b.adds === 'tilt').first;
   for (let i = AUTHORED.length; i < 60; i++) if (GS.newsAt(i)) news.push(i);
-  for (let k = 1; k < news.length; k++) assert.ok(news[k] - news[k - 1] >= 3 && news[k] - news[k - 1] <= 4, 'something new every three or four levels: ' + (news[k - 1] + 1) + ' then ' + (news[k] + 1));
+  const ideas = news.filter((i) => i <= lastIdea);
+  for (let k = 1; k < ideas.length; k++) assert.ok(ideas[k] - ideas[k - 1] >= 3 && ideas[k] - ideas[k - 1] <= 4, 'something new every three or four levels: ' + (ideas[k - 1] + 1) + ' then ' + (ideas[k] + 1));
+  const paper = B.find((b) => b.remix);
+  for (let i = paper.first + 1; i < paper.first + paper.count; i++) {
+    const L = GS.levelFor(i), on = [L.manual, L.jar, L.tilt, L.order === 'any'].filter(Boolean).length - (L.tilt ? 1 : 0);   // a tilted tray brings its jar
+    assert.ok(on >= 1 && on <= 2, 'paper pairs earlier ideas, level ' + (i + 1) + ': ' + on);
+  }
   assert.ok(news.length >= 10, news.length + ' new things before the endless board');
   // a new bean comes in with one kind you already know, and is in the next levels too
   for (const t of ['chickpea', 'sesame', 'kidney']) {
