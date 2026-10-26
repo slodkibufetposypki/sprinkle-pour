@@ -7,3 +7,5 @@ node_modules/
 zen-grain/local.html
 zen-grain/zen-*
 zen-grain/icon-*.png
+# Python bytecode from the media tools
+__pycache__/
