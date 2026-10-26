@@ -14,7 +14,7 @@
 ## For the App Store launch
 - **Model:** first three boards free; one purchase (about 14.99 PLN) opens the rest, every board added later, and "open this board now" for a stuck player. No ads; at most optional rewarded ones, never between levels.
 - **No stars for sale:** boards open at 70% of the stars before them, and selling stars would read as raising the bar to sell the way over it; consumable currency sold to children is also what stores and consumer authorities watch most.
-- **Chopsticks with abilities (in the game now, earned by playing):** cherry lacquer lights the kind to gather (free on the first board), ebony slows wrong grains by 20%, jade reaches 10% further, steel keeps stones back, gold leaf eases the pace line. Later: bought as a shortcut, off on the daily board and wherever scores are compared.
+- **Chopsticks with abilities (in the game now, earned by playing):** cherry lacquer lights the kind to gather (the only way to get that light), ebony slows wrong grains by 20%, jade reaches 10% further, steel keeps stones back, gold leaf eases the pace line. Later: bought as a shortcut, off on the daily board and wherever scores are compared.
 - **Helpers (in the game now, earned by playing):** the Zen Cat turns the clock back once a round, and is the first offer when the time is up; the Zen Hamster carries the stones off once a round. Three cats to start, a cat for a level's first five stars, two cats and two hamsters when a board opens. Later: sold in small packs, never offered to a child without the parent check.
 - **Gentle setting, free:** slower wrong grains, weaker stones, a softer clock, for children and anyone stuck; levels played with it are marked.
 - **Also for sale:** material packs (looks only), a supporter pack / tip jar.

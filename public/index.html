@@ -357,18 +357,48 @@
     padding-top: calc(env(safe-area-inset-top, 0px) + 16px); padding-bottom: 22px; animation-name: drop; box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45); }
   #zenEnd[data-v="top"] .slab::before, #fail[data-v="top"] .slab::before, #done[data-v="top"] .slab::before { top: auto; bottom: 9px; }
   /* zen mode: its way in at the top of the board screen, and its three lives, brush circles under the score */
-  /* the menu in the room, after the first tap: the levels, zen mode, and the relax sounds switch */
-  .mainmenu { position: absolute; z-index: 2; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 22px); transform: translateX(-50%);
-    width: min(calc(100% - 32px), 360px); display: flex; flex-direction: column; gap: 10px; padding: 18px 16px 14px; box-sizing: border-box;
-    border-radius: 18px 14px 18px 15px; background: rgba(15, 12, 10, 0.72); border: 1px solid rgba(255, 236, 210, 0.08);
-    -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45); animation: rise .35s cubic-bezier(.2, .8, .2, 1); }
-  .mainmenu .primary { height: 64px; flex-direction: column; gap: 2px; }
-  .mainmenu .primary small { font: 400 var(--fs-15)/1 var(--hand); color: rgba(15, 18, 21, 0.62); }
-  .mainmenu .ghost { min-height: 54px; gap: 10px; }
-  .mainmenu .ghost svg { width: 22px; height: 22px; color: var(--ember); stroke: none; }
-  .mainmenu .ghost small { margin-left: auto; font: 400 var(--fs-15)/1 var(--hand); color: var(--chalk-2); }
-  .mainmenu .ghost.locked { color: var(--chalk-2); }
-  .mainmenu .ghost.locked svg { color: var(--chalk-3); }
+  /* The menu in the room, after the first tap. Two ema, the wooden plaques hung at a shrine, on red cords from a
+     bamboo rod: the levels and zen mode, written in ink, the same wood as the level tags. Under them, in chalk on the
+     dark of the table, the quiet mode switch and the settings. They drop onto their cords and sway once. */
+  .mainmenu { position: absolute; z-index: 2; left: 0; right: 0; bottom: 0; padding: 54px 0 calc(env(safe-area-inset-bottom, 0px) + 12px);
+    background: linear-gradient(to bottom, rgba(14, 9, 5, 0), rgba(14, 9, 5, 0.72) 30%, rgba(14, 9, 5, 0.9)); }
+  .mainmenu .rod { position: relative; width: min(calc(100% - 28px), 400px); height: 11px; margin: 0 auto; border-radius: 6px;
+    background: linear-gradient(90deg, transparent 0 21%, rgba(60, 40, 10, .55) 21% 21.8%, transparent 21.8% 52%, rgba(60, 40, 10, .55) 52% 52.8%, transparent 52.8% 81%, rgba(60, 40, 10, .55) 81% 81.8%, transparent 81.8%),
+      linear-gradient(to bottom, #d8c27a, #a98f45 55%, #6f5a26); box-shadow: 0 4px 8px rgba(0, 0, 0, .5); }
+  .mainmenu .plaques { width: min(calc(100% - 40px), 380px); margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .ema { position: relative; height: 128px; margin-top: 30px; border: 0; padding: 40px 8px 12px; background: none; color: #2b1b0e;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; transform-origin: 50% -30px;
+    filter: drop-shadow(0 8px 9px rgba(10, 5, 2, .6)); animation: hang .9s cubic-bezier(.3, .7, .25, 1) backwards; }
+  .ema + .ema { animation-delay: .08s; }
+  .ema::before { content: ""; position: absolute; inset: 0; z-index: -1; clip-path: polygon(0 24%, 50% 0, 100% 24%, 100% 100%, 0 100%);
+    background:
+      radial-gradient(circle at 50% 16px, rgba(22, 12, 5, .92) 0 4px, rgba(110, 70, 34, .5) 4.5px 6px, transparent 6.5px),
+      repeating-linear-gradient(92deg, transparent 0 7px, rgba(110, 66, 26, .08) 7px 8px, transparent 8px 15px),
+      linear-gradient(100deg, transparent 0 28%, rgba(255, 238, 200, .2) 45%, transparent 62%),
+      linear-gradient(172deg, #edcc94, #d2a466 58%, #b9874d); }
+  .ema::after { content: ""; position: absolute; left: 7px; right: 7px; top: 24%; bottom: 7px; z-index: -1; border: 1px solid rgba(70, 40, 15, .22);
+    border-top: 0; pointer-events: none; }
+  .ema .cord { position: absolute; left: 50%; top: -30px; width: 80px; height: 44px; transform: translateX(-50%); overflow: visible; }
+  .ema .cord path { fill: none; stroke: #b33a28; stroke-width: 2.4; stroke-linecap: round; }
+  .ema .cord circle { fill: #8e2a1c; }
+  .ema b { position: relative; font: 400 var(--fs-28)/1.15 var(--sketch); letter-spacing: var(--sketch-ls); }
+  .ema small { position: relative; font: 400 var(--fs-15)/1.2 var(--hand); color: rgba(43, 27, 14, .68); text-align: center; }
+  .ema .mark { position: absolute; left: 50%; top: 58%; width: 92px; height: 92px; transform: translate(-50%, -50%) rotate(-12deg); color: rgba(43, 27, 14, .16); stroke: none; }
+  .ema .mark path { stroke-width: 3.4; }
+  .ema:active { transform: rotate(-1.6deg) translateY(2px); }
+  .ema.locked::before { filter: saturate(.55) brightness(.72); }
+  .ema.locked { color: #4a3826; }
+  @keyframes hang { 0% { opacity: 0; transform: translateY(-26px) rotate(-5deg); } 45% { opacity: 1; transform: translateY(3px) rotate(3deg); }
+    70% { transform: rotate(-1.4deg); } 100% { transform: none; } }
+  .menurow { width: min(calc(100% - 40px), 380px); margin: 16px auto 0; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    text-shadow: var(--halo); }
+  .menurow .toggle { font-size: var(--fs-20); }
+  .gearbtn { display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 4px; border: 0; background: none; color: var(--chalk);
+    font: 400 var(--fs-20)/1.1 var(--hand); }
+  .gearbtn svg { width: 22px; height: 22px; fill: none; stroke: var(--chalk-2); stroke-width: 1.8; stroke-linejoin: round; }
+  .ghost > svg + span { margin-left: 2px; }
+  #pauseSettingsBtn svg { fill: none; stroke: currentColor; stroke-width: 1.8; }
+  #settings .toggle { width: 100%; }
   /* a switch: its name, and a chalk track with a stone that slides across; ember when on */
   .toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 50px; padding: 0 6px 0 4px; border: 0; background: none;
     font: 400 var(--fs-20)/1.1 var(--hand); color: var(--chalk); text-align: left; }
@@ -428,7 +458,7 @@
     .slab, #done .slab, #chip.swap, .dial.up svg, #catpaw.go, #lives svg.lose, .stars.big svg.stamp, #streak.up b, #streak.lost, #streak.lost b, .tally li, .total em, #tally .nw, .lcard.next { animation: none; }
     .bpage .bopen, .bpage.laid .lcard, .bpage > canvas { transition: none; }
     .rest::before { animation: none; opacity: 0.5; }
-    .mainmenu { animation: none; } .toggle .sw, .toggle .sw::after { transition: none; }
+    .ema { animation: none; } .toggle .sw, .toggle .sw::after { transition: none; }
     #hint, #toast, #banner, #fuse, #streak b, .tableview, #enterHint, .dots i, .roomtitle { transition: none; }
     .roomtitle, .roomtitle.on { transform: translateY(-50%); }
   }
@@ -476,9 +506,15 @@
   <h1 id="roomTitle" class="roomtitle" hidden>Zen Grain</h1>
   <p id="enterHint" class="note chalk off">Tap to begin</p>
   <nav id="mainMenu" class="mainmenu" hidden aria-label="Menu">
-    <button id="menuLevels" class="primary"><span>Levels</span><small id="menuNext"></small></button>
-    <button id="menuZen" class="ghost"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.6 4.1C10.4 2.4 4.4 5.6 3.7 11.4c-.7 5.6 3.8 9.5 8.8 9.2 5-.3 8.6-4.6 7.8-9.6-.3-1.9-1.2-3.4-2.4-4.6" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/></svg><span>Zen mode</span><small id="menuZenNote"></small></button>
-    <button id="menuRelax" class="toggle" role="switch" aria-checked="false"><span>Relax sounds</span><i class="sw" aria-hidden="true"></i></button>
+    <div class="rod" aria-hidden="true"></div>
+    <div class="plaques">
+      <button id="menuLevels" class="ema"><svg class="cord" viewBox="0 0 80 44" aria-hidden="true"><path d="M40 40L14 2M40 40L66 2"/><circle cx="40" cy="40" r="3.2"/></svg><b>Levels</b><small id="menuNext"></small></button>
+      <button id="menuZen" class="ema zen"><svg class="cord" viewBox="0 0 80 44" aria-hidden="true"><path d="M40 40L14 2M40 40L66 2"/><circle cx="40" cy="40" r="3.2"/></svg><svg class="mark" viewBox="0 0 24 24" aria-hidden="true"><path d="M15.6 4.1C10.4 2.4 4.4 5.6 3.7 11.4c-.7 5.6 3.8 9.5 8.8 9.2 5-.3 8.6-4.6 7.8-9.6-.3-1.9-1.2-3.4-2.4-4.6" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/></svg><b>Zen mode</b><small id="menuZenNote"></small></button>
+    </div>
+    <div class="menurow">
+      <button id="menuQuiet" class="toggle" role="switch" aria-checked="false"><span>Quiet mode</span><i class="sw" aria-hidden="true"></i></button>
+      <button id="menuSettings" class="gearbtn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8z"/><path d="M19.4 13.5c.1-.5.1-1 .1-1.5s0-1-.1-1.5l2-1.6-2-3.4-2.4 1a7.6 7.6 0 0 0-2.6-1.5L14 2.5h-4l-.4 2.5a7.6 7.6 0 0 0-2.6 1.5l-2.4-1-2 3.4 2 1.6c-.1.5-.1 1-.1 1.5s0 1 .1 1.5l-2 1.6 2 3.4 2.4-1c.8.6 1.6 1.1 2.6 1.5l.4 2.5h4l.4-2.5c1-.4 1.8-.9 2.6-1.5l2.4 1 2-3.4z"/></svg><span>Settings</span></button>
+    </div>
   </nav>
 </section>
 
@@ -507,18 +543,28 @@
     <h2 class="chalk">Paused</h2>
     <button id="resumeBtn" class="primary">Resume</button>
     <div class="stack">
-      <button id="controlBtn" class="ghost"></button>
       <button id="restartBtn" class="ghost"><svg viewBox="0 0 22 22" aria-hidden="true"><path d="M18.6 13.4a7.8 7.8 0 1 1-1.9-8L20 8.6"/><path d="M20.3 3.6v5.2h-5.1"/></svg>Restart level</button>
-      <div class="vol"><label for="sfxVol">Game sounds</label><input type="range" id="sfxVol" min="0" max="100" step="5"></div>
-      <div class="vol"><label for="ambVol">Ambience</label><input type="range" id="ambVol" min="0" max="100" step="5"></div>
-      <button id="styleBtn" class="toggle" role="switch" aria-checked="false"><span>Relax sounds</span><i class="sw" aria-hidden="true"></i></button>
-      <div class="pair">
-        <button id="langBtn" class="ghost"><svg viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="8.2"/><path d="M2.8 11h16.4M11 2.8c-2.6 2.6-2.6 13.8 0 16.4M11 2.8c2.6 2.6 2.6 13.8 0 16.4"/></svg><span>English</span></button>
-        <button id="tuneBtn" class="ghost">Tune feel</button>
-      </div>
-      <button id="musicBtn" class="ghost" hidden>Music on</button>
+      <button id="pauseSettingsBtn" class="ghost"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8z"/><path d="M19.4 13.5c.1-.5.1-1 .1-1.5s0-1-.1-1.5l2-1.6-2-3.4-2.4 1a7.6 7.6 0 0 0-2.6-1.5L14 2.5h-4l-.4 2.5a7.6 7.6 0 0 0-2.6 1.5l-2.4-1-2 3.4 2 1.6c-.1.5-.1 1-.1 1.5s0 1 .1 1.5l-2 1.6 2 3.4 2.4-1c.8.6 1.6 1.1 2.6 1.5l.4 2.5h4l.4-2.5c1-.4 1.8-.9 2.6-1.5l2.4 1 2-3.4z"/></svg><span>Settings</span></button>
       <button id="pauseLevelsBtn" class="ghost back"><svg viewBox="0 0 22 22" aria-hidden="true"><path d="M13.6 4.4c-2.5 2.3-4.4 4.3-6.3 6.5 1.9 2.1 3.9 4.1 6.4 6.5"/></svg>Back to the boards</button>
     </div>
+  </div>
+</section>
+
+<section id="settings" class="screen dim" hidden>
+  <div class="slab">
+    <h2 class="chalk">Settings</h2>
+    <div class="vol"><label for="sfxVol">Game sounds</label><input type="range" id="sfxVol" min="0" max="100" step="5"></div>
+    <div class="vol"><label for="ambVol">Ambience</label><input type="range" id="ambVol" min="0" max="100" step="5"></div>
+    <button id="styleBtn" class="toggle" role="switch" aria-checked="false"><span>Quiet mode</span><i class="sw" aria-hidden="true"></i></button>
+    <button id="hapticsBtn" class="toggle" role="switch" aria-checked="true"><span>Vibrate</span><i class="sw" aria-hidden="true"></i></button>
+    <button id="reachBtn" class="toggle" role="switch" aria-checked="true"><span>Show how far the sticks reach</span><i class="sw" aria-hidden="true"></i></button>
+    <button id="controlBtn" class="ghost"></button>
+    <div class="pair">
+      <button id="langBtn" class="ghost"><svg viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="8.2"/><path d="M2.8 11h16.4M11 2.8c-2.6 2.6-2.6 13.8 0 16.4M11 2.8c2.6 2.6 2.6 13.8 0 16.4"/></svg><span>English</span></button>
+      <button id="tuneBtn" class="ghost">Tune feel</button>
+    </div>
+    <button id="musicBtn" class="ghost" hidden>Music on</button>
+    <button id="settingsBackBtn" class="ghost back"><svg viewBox="0 0 22 22" aria-hidden="true"><path d="M13.6 4.4c-2.5 2.3-4.4 4.3-6.3 6.5 1.9 2.1 3.9 4.1 6.4 6.5"/></svg><span>Back</span></button>
   </div>
 </section>
 
@@ -568,8 +614,6 @@
     <h2 class="chalk">Tune feel</h2>
     <p class="sub">Changes apply right away and stay on this device. Row length applies from the next level. A level with its own rule keeps it.</p>
     <div id="tuneList"></div>
-    <label class="check"><input type="checkbox" id="showReach"> Show how far the sticks reach</label>
-    <label class="check"><input type="checkbox" id="hapticsOn"> Vibrate</label>
     <label class="check"><input type="checkbox" id="solidOn"> Solid grains</label>
     <div class="pair">
       <button id="tuneResetBtn" class="ghost">Reset</button>
@@ -2286,7 +2330,8 @@ const GrainSim = (() => {
   const PL = { "Tap to sit at the table": "Dotknij, by usiąść przy stole", "Sit down at the table": "Usiądź przy stole", "Back to the room": "Wróć do pokoju", "Boards": "Plansze", "Change chopsticks": "Zmień pałeczki", "Game board": "Plansza gry", "Pause": "Pauza", "Start the level again": "Zacznij poziom od nowa", "Back to the boards": "Wróć do plansz", "Chopsticks": "Pałeczki", "Each pair is earned by playing well.": "Każdą parę zdobywasz dobrą grą.", "Back": "Wstecz", "Paused": "Pauza", "Resume": "Wznów", "Restart level": "Zacznij od nowa", "Tune feel": "Dostrój", "Score": "Wynik", "Next level": "Następny poziom", "Retry": "Powtórz", "Choose a level": "Wybierz poziom", "On to {board}": "Dalej: {board}", "Changes apply right away and stay on this device. Row length applies from the next level. A level with its own rule keeps it.": "Zmiany działają od razu i zostają na tym urządzeniu. Długość rzędu zmienia się od następnego poziomu. Poziom z własną zasadą ją zachowuje.", "Show how far the sticks reach": "Pokaż zasięg pałeczek", "Vibrate": "Wibracje", "Solid grains": "Twarde ziarna", "Reset": "Przywróć", "Copy values": "Kopiuj wartości", "Done": "Gotowe", "Game sounds": "Dźwięki gry", "Ambience": "Otoczenie", "Slate": "Łupek", "Walnut": "Orzech", "Bamboo": "Bambus", "Clay": "Glina", "Lacquer": "Laka", "Cast iron": "Żeliwo", "Walnut is open": "Orzech otwarty", "Bamboo is open": "Bambus otwarty", "Clay is open": "Glina otwarta", "Lacquer is open": "Laka otwarta", "Cast iron is open": "Żeliwo otwarte", "Tenmoku": "Tenmoku", "Damascus steel": "Stal damasceńska", "Black marble": "Czarny marmur", "Charred cedar": "Opalany cedr", "Obsidian": "Obsydian", "{board} is open": "Otwarte: {board}", "Tenmoku is open": "Tenmoku otwarte", "Damascus steel is open": "Stal damasceńska otwarta", "Black marble is open": "Czarny marmur otwarty", "Charred cedar is open": "Opalany cedr otwarty", "Obsidian is open": "Obsydian otwarty", "Paper": "Papier", "Paper is open": "Papier otwarty", "Old paper": "Stary papier", "Everything you have met so far comes back here, two at a time.": "Wszystko, co już znasz, wraca tu po dwa naraz.", "Lentils": "Soczewica", "Rice": "Ryż", "Mung beans": "Fasola mung", "Chickpeas": "Ciecierzyca", "Sesame": "Sezam", "Kidney beans": "Fasola czerwona", "Stones": "Kamyki", "First row": "Pierwszy rząd", "Two heaps": "Dwie kupki", "Touching": "Stykają się", "Strays": "Zabłąkane", "The slate": "Łupek", "Short reach": "Krótki zasięg", "Mixed heap": "Pomieszana kupka", "Restless": "Niespokojne", "Pantry spill": "Rozsypana spiżarnia", "Heaps": "Kupki", "Spill": "Rozsypka", "Edges": "Brzegi", "Stripes": "Pasy", "Clusters": "Skupiska", "Pushy rice": "Natrętny ryż", "Rice creeps in from further away. Sweep the heap apart, then gather.": "Ryż wkrada się z daleka. Rozgarnij kupkę, potem zbieraj.", "Short reach, restless": "Krótki zasięg, niespokojne", "Close reach and wandering grains, all three kinds.": "Bliski zasięg i wędrujące ziarna, wszystkie trzy rodzaje.", "Restless grains": "Niespokojne ziarna", "They wander and mix again. Sort them before they spread.": "Wędrują i znów się mieszają. Posortuj je, zanim się rozejdą.", "The sticks pull from close by. Drive the tips through the grains.": "Pałeczki ciągną z bliska. Prowadź końcówki przez ziarna.", "Narrow reach": "Wąski zasięg", "The sticks only pull from straight ahead. Come at grains from below.": "Pałeczki ciągną tylko na wprost. Podchodź do ziaren od dołu.", "Long sticks": "Długie pałeczki", "They hold a longer row: more points, and more to lose.": "Mieszczą dłuższy rząd: więcej punktów i więcej do stracenia.", "They can’t be picked, and they go for the tips. Push them aside.": "Nie da się ich zebrać, a pchają się do końcówek. Odsuwaj je.", "Carry it yourself": "Nieś sam", "Take each row to its pile and let go. The wrong pile spills back onto the board.": "Zanieś każdy rząd na jego kupkę i puść. Zła kupka rozsypie się z powrotem na planszę.", "The jar": "Słoik", "It pours more grains in as you go. Keep up with it.": "Dosypuje ziaren w trakcie gry. Nadążaj za nim.", "The tray tilts": "Taca się przechyla", "Grains slide down it. Catch them before they fall off the edge.": "Ziarna zsuwają się w dół. Złap je, zanim spadną z krawędzi.", "Round and heavy. A quick sweep sends them rolling.": "Okrągła i ciężka. Po szybkim machnięciu toczy się daleko.", "Piles move": "Kupki się przesuwają", "The piles change places from level to level. Look before you let go.": "Kupki zmieniają miejsca z poziomu na poziom. Spójrz, zanim puścisz.", "Tiny and light. Long rows, and a sweep scatters it.": "Malutki i lekki. Długie rzędy, a machnięcie go rozsypuje.", "Any order": "Dowolna kolejność", "The sticks can ask for any kind next. Watch the top of the board.": "Pałeczki mogą poprosić o dowolny rodzaj. Patrz na górę planszy.", "Long and heavy. Push one and it swings round.": "Długa i ciężka. Pchnięta obraca się.", "Touch and hold. The lentils walk into the sticks.": "Dotknij i przytrzymaj. Soczewica sama wchodzi między pałeczki.", "Fill the row to grow your multiplier.": "Wypełnij rząd, a mnożnik urośnie.", "After every row the sticks switch to the other kind.": "Po każdym rzędzie pałeczki przechodzą na drugi rodzaj.", "Rice next to the tips creeps in. Push it aside with the side of the sticks.": "Ryż przy końcówkach wkrada się do środka. Odsuń go bokiem pałeczek.", "The line under the multiplier wears away. Fill the row before it is gone.": "Kreska pod mnożnikiem się ściera. Wypełnij rząd, zanim zniknie.", "A short row keeps the multiplier but shrinks it.": "Krótki rząd zachowuje mnożnik, ale go zmniejsza.", "A third kind, with its own pile in the middle.": "Trzeci rodzaj, z własną kupką na środku.", "{n} left": "{n}", "Lightning": "Błyskawica", "Quick": "Szybko", "Steady": "Równo", "Slow": "Wolno", "Short row {m}": "Krótki rząd {m}", "{kind} cleared {m}": "Koniec: {kind} {m}", "Steady hands": "Pewne ręce", "Grain master": "Mistrz ziaren", "Zen hands": "Ręce zen", "+{b} for {n} full rows in a row": "+{b} za {n} pełnych rzędów z rzędu", "New chopsticks": "Nowe pałeczki", "Multiplier {m}, {n} full rows in a row": "Mnożnik {m}, pełne rzędy z rzędu: {n}", "A lentil got in": "Wpadła soczewica", "Rice got in": "Wpadł ryż", "A mung bean got in": "Wpadła fasola mung", "A stone got in": "Wpadł kamyk", "A chickpea got in": "Wpadła ciecierzyca", "Sesame got in": "Wpadł sezam", "A kidney bean got in": "Wpadła fasola", "A wrong grain got in": "Wpadło złe ziarno", ", back to ×1": ", z powrotem ×1", "Broken": "Przerwany", "Wrong pile": "Zła kupka", "Touch the board to pick the row up again.": "Dotknij planszy, by znów podnieść rząd.", "Tap the arrow again to leave this level.": "Dotknij strzałki jeszcze raz, by wyjść z poziomu.", "Tap again to start this level over.": "Dotknij jeszcze raz, by zacząć od nowa.", "{n} more open {board}": "{n} do otwarcia: {board}", "Every board is open": "Wszystkie plansze otwarte", "{board}, {n} stars": "{board}, gwiazdki: {n}", "{board}, opens with {n} stars": "{board}, otwiera się przy gwiazdkach: {n}", "{n} more {star} to open": "jeszcze {n} {star} do otwarcia", "{board} levels": "Poziomy: {board}", "{level}, {n} of 5 stars": "{level}, {n} z 5 gwiazdek", "{level}, locked": "{level}, zablokowany", "Clear {level} to open this one.": "Najpierw ukończ: {level}.", "{level} cleared": "Ukończono: {level}", "{n} of 5 stars": "{n} z 5 gwiazdek", "Combo prizes": "Nagrody za serie", "Time {t} of {par}": "Czas {t} z {par}", "No row broken": "Bez przerwanego rzędu", "New best": "Rekord", "Next star at {s}": "Następna gwiazdka przy {s}", "New chopsticks: <b>{names}</b>. Pick them under Chopsticks.": "Nowe pałeczki: <b>{names}</b>. Wybierzesz je w menu Pałeczki.", "Cherry lacquer": "Wiśniowa laka", "Ebony": "Hebanowe", "Jade": "Jadeitowe", "Steel": "Stalowe", "Gold leaf": "Złocone", "Reach a ×3 multiplier": "Osiągnij mnożnik ×3", "Make 7 full rows in a row": "Zrób 7 pełnych rzędów z rzędu", "Sort 1,000 grains": "Posortuj 1000 ziaren", "Collect 20 stars": "Zbierz 20 gwiazdek", "Reach a ×6 multiplier": "Osiągnij mnożnik ×6", "Your first pair": "Twoja pierwsza para", "In use": "W użyciu", "Use": "Użyj", "{req} to earn these.": "{req}, żeby je zdobyć.", "Control: drag anywhere": "Sterowanie: przeciąganie", "Control: above the finger": "Sterowanie: nad palcem", "Drag anywhere: the sticks move with your drag, your thumb can stay low.": "Przeciągaj gdziekolwiek: pałeczki idą za ruchem, kciuk może zostać nisko.", "The tips sit above your finger.": "Końcówki są nad twoim palcem.", "Sound on": "Dźwięk: tak", "Sound off": "Dźwięk: nie", "Music on": "Muzyka: tak", "Music off": "Muzyka: nie", "Back to the default feel.": "Przywrócono domyślne ustawienia.", "Select the values and copy them.": "Zaznacz wartości i skopiuj.", "Values copied.": "Skopiowano.", "Tips above the finger": "Końcówki nad palcem", "How tightly the sticks follow": "Jak ciasno pałeczki podążają", "Reach of the open sticks": "Zasięg otwartych pałeczek", "How far ahead of the tips they pull": "Jak daleko przed końcówkami ciągną", "Wrong grains creep from": "Złe ziarna wkradają się z", "Wrong grain creep speed": "Szybkość wkradania się złych ziaren", "How far a sweep flicks grains": "Jak daleko machnięcie odrzuca ziarna", "Next grain joins every (s)": "Kolejne ziarno dołącza co (s)", "Walking speed": "Szybkość marszu", "Pace (higher is more forgiving)": "Tempo (więcej = łagodniej)", "Row length": "Długość rzędu",
     "Lift your finger, then touch again.": "Podnieś palec i dotknij znowu.",
     "Next star at {s}.": "Następna gwiazdka przy {s}.", "new": "nowe", "Tap to begin": "Dotknij, by zacząć", "Open the menu": "Otwórz menu", "Menu": "Menu", "Levels": "Poziomy",
-    "Relax sounds": "Dźwięki relaks", "Next: {level}": "Dalej: {level}", "First level": "Pierwszy poziom", "Best {s}": "Rekord {s}", "after 3 levels": "po 3 poziomach", "Zen mode": "Tryb zen", "Zen": "Zen", "Lives: {n}": "Życia: {n}",
+    "Quiet mode": "Tryb cichy", "Settings": "Ustawienia", "Without end": "Bez końca",
+    "Soft clicks instead of game sounds, and a quieter room.": "Ciche kliknięcia zamiast dźwięków gry i ciszej w tle.", "Next: {level}": "Dalej: {level}", "First level": "Pierwszy poziom", "Best {s}": "Rekord {s}", "after 3 levels": "po 3 poziomach", "Zen mode": "Tryb zen", "Zen": "Zen", "Lives: {n}": "Życia: {n}",
     "The jar never stops. Three lives: a broken row or a full board costs one.": "Słoik nie przestaje sypać. Trzy życia: przerwany rząd albo pełna plansza zabiera jedno.",
     "Zen mode opens after the first three levels.": "Tryb zen otwiera się po trzech pierwszych poziomach.",
     "The board is full": "Plansza pełna", "A life gone": "minus jedno życie", "Bowl full": "Miska pełna",
@@ -2349,7 +2394,7 @@ const GrainSim = (() => {
 
   // ---------- chopsticks you can earn ----------
   // Each pair does one thing of its own, and you play with one pair at a time, so choosing is a choice. The light under
-  // the kind to gather is free on the first board, where the rule is new; after that it comes with the cherry pair.
+  // the kind to gather comes only with the cherry pair.
   const STICKS = [
     { id: 'bamboo', name: 'Bamboo', body: ['#7a522d', '#c8955a', '#eccb96', '#d4a667', '#85592f'], perk: 'Plain and steady.' },
     { id: 'cherry', name: 'Cherry lacquer', body: ['#43100d', '#8e1d1a', '#d0473d', '#a3271f', '#4d0f0d'], tip: ['#140d0b', '#3a2c26', '#140d0b'],
@@ -2505,6 +2550,8 @@ const GrainSim = (() => {
   const TYPE_PITCH = { lentil: 1, rice: 1.26, mung: 1.12, chickpea: 0.84, sesame: 1.5, kidney: 0.78 };
   const BROKE = { lentil: 'A lentil got in', rice: 'Rice got in', mung: 'A mung bean got in', stone: 'A stone got in',
     chickpea: 'A chickpea got in', sesame: 'Sesame got in', kidney: 'A kidney bean got in' };
+  // quiet mode turns the room's own sound down a little as well
+  const QUIET_AMB = () => (save.soundStyle === 'quiet' ? 0.6 : 1);
   const Sound = {
     ctx: null, out: null, noise: null, unlocked: false, lastPush: 0, lastLand: 0,
     // Game sounds go to out, the room's night to amb; each has its own volume, both meet in one compressor.
@@ -2520,7 +2567,7 @@ const GrainSim = (() => {
       soft.connect(master);
       const out = ctx.createGain(); out.gain.value = 0.8 * save.sfxVol; out.connect(soft);
       this.soft = soft;
-      const amb = ctx.createGain(); amb.gain.value = save.ambVol; amb.connect(master);
+      const amb = ctx.createGain(); amb.gain.value = save.ambVol * QUIET_AMB(); amb.connect(master);
       const len = Math.floor(ctx.sampleRate * 0.6), buf = ctx.createBuffer(1, len, ctx.sampleRate), ch = buf.getChannelData(0);
       for (let i = 0; i < len; i++) ch[i] = Math.random() * 2 - 1;
       this.ctx = ctx; this.out = out; this.amb = amb; this.noise = buf;
@@ -2559,7 +2606,7 @@ const GrainSim = (() => {
     volumes() {
       if (!this.ctx) return;
       const t = this.ctx.currentTime;
-      this.out.gain.setTargetAtTime(0.8 * save.sfxVol, t, 0.04); this.amb.gain.setTargetAtTime(save.ambVol, t, 0.04);
+      this.out.gain.setTargetAtTime(0.8 * save.sfxVol, t, 0.04); this.amb.gain.setTargetAtTime(save.ambVol * QUIET_AMB(), t, 0.3);
       this.soft.frequency.setTargetAtTime(save.soundStyle === 'quiet' ? 2600 : 20000, t, 0.05);
     },
     // Older iPhones mute Web Audio with the silent switch unless a media element is playing. A looping,
@@ -3884,15 +3931,16 @@ const GrainSim = (() => {
   }
 
   // ---------- screens ----------
-  const SCREENS = ['title', 'table', 'sticks', 'pause', 'done', 'tune', 'fail', 'zenEnd'];
-  let tuneFrom = 'pause', sticksFrom = 'table';
+  const SCREENS = ['title', 'table', 'sticks', 'pause', 'done', 'tune', 'fail', 'zenEnd', 'settings'];
+  let tuneFrom = 'settings', sticksFrom = 'table', settingsFrom = 'title';
+  const overRoom = () => screen === 'title' || ((screen === 'settings' || screen === 'tune') && settingsFrom === 'title');
   function setScreen(s) {
     // the phone's notch can be measured as nothing at the very start (an app on the home screen): look again
     { const t0 = view.safe.t, b0 = view.safe.b; readSafe(); if (view.safe.t !== t0 || view.safe.b !== b0) resize(); }
     screen = s;
-    filmPlay(s === 'title');
+    filmPlay(overRoom());
     for (const id of SCREENS) $(id).hidden = id !== s;
-    $('hud').hidden = !(s === 'play' || s === 'pause' || s === 'tune');
+    $('hud').hidden = !(s === 'play' || s === 'pause' || ((s === 'tune' || s === 'settings') && settingsFrom === 'pause'));
     if (s !== 'play') { $('hint').classList.add('off'); releaseInput(); } else showHint();
     if (s !== 'done') stopDoneAnim();
     if (s === 'title') {
@@ -3904,9 +3952,9 @@ const GrainSim = (() => {
     if (s === 'table') { cam.k = 1; cam.to = 1; renderTable(); requestAnimationFrame(() => $('table').classList.add('show')); }
     else $('table').classList.remove('show');
     if (s === 'sticks') renderSticks();
-    if (s === 'pause') syncControl();
-    Room.set(s === 'title' ? 'hut' : s === 'table' || s === 'sticks' ? 'table' : 'play');
-    const focusMap = { title: 'enterBtn', table: 'tableBack', sticks: 'sticksBackBtn', pause: 'resumeBtn', done: 'nextBtn', tune: 'tuneDoneBtn', fail: 'failRetry', zenEnd: 'zenAgain' };
+    if (s === 'settings') { syncControl(); syncSound(); }
+    Room.set(overRoom() ? 'hut' : s === 'table' || s === 'sticks' ? 'table' : 'play');
+    const focusMap = { title: 'enterBtn', table: 'tableBack', sticks: 'sticksBackBtn', pause: 'resumeBtn', done: 'nextBtn', tune: 'tuneDoneBtn', fail: 'failRetry', zenEnd: 'zenAgain', settings: 'settingsBackBtn' };
     if (focusMap[s] && document.activeElement && document.activeElement !== document.body) $(focusMap[s]).focus({ preventScroll: true });
   }
   // a chalk star, drawn a little crooked; each of the five leans its own way
@@ -4241,8 +4289,8 @@ const GrainSim = (() => {
     $('menuNext').textContent = i === 0 && !save.levels[idAt(0)] ? tr('First level') : tr('Next: {level}', { level: levelName(i) });
     const z = $('menuZen'), open = zenOpen();
     z.classList.toggle('locked', !open);
-    $('menuZenNote').textContent = !open ? tr('after 3 levels') : save.zen.best ? tr('Best {s}', { s: fmt(save.zen.best) }) : '';
-    $('menuRelax').setAttribute('aria-checked', String(save.soundStyle === 'quiet'));
+    $('menuZenNote').textContent = !open ? tr('after 3 levels') : save.zen.best ? tr('Best {s}', { s: fmt(save.zen.best) }) : tr('Without end');
+    $('menuQuiet').setAttribute('aria-checked', String(save.soundStyle === 'quiet'));
   }
   function enterTable(zen) {
     if (screen !== 'title' || cam.to === 1) return;
@@ -4255,7 +4303,8 @@ const GrainSim = (() => {
     if (!zenOpen()) { toast(tr('Zen mode opens after the first three levels.')); return; }
     enterTable(true);
   });
-  $('menuRelax').addEventListener('click', () => toggleRelax());
+  $('menuQuiet').addEventListener('click', () => toggleRelax());
+  $('menuSettings').addEventListener('click', () => openSettings('title'));
   function leaveTable() {
     cam.k = 1; cam.to = 0;
     setScreen('title');
@@ -5302,7 +5351,7 @@ const GrainSim = (() => {
   }
   function render(dt) {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    if (screen === 'title') { drawRoom(dt); return; }
+    if (overRoom()) { drawRoom(dt); return; }
     if (screen === 'table' || screen === 'sticks') { drawTableTop(dt); return; }
     ctx.drawImage(backgroundFor(levelIndex < 0 ? 'zen' : GS.surfaceOf(levelIndex)), 0, 0);
     drawCandle();
@@ -5346,8 +5395,8 @@ const GrainSim = (() => {
     // the kind the sticks are after lies in a soft light, so it is plain what to gather; brightest on the first board,
     // where the rule is new, and swelling for a moment whenever the sticks switch kind
     if (s === sim && !s.done) {
-      const B = GS.boardOf(levelIndex), first = B.first === 0 && levelIndex >= 0, lit = first || stickById(save.sticks.equipped).glow;
-      const base = first ? 0.5 : lit ? (B.first < 30 ? 0.36 : 0.3) : 0, pulse = lit ? fx.targetPulse : 0;
+      const B = GS.boardOf(levelIndex), lit = !!stickById(save.sticks.equipped).glow;
+      const base = lit ? (B.first < 30 ? 0.36 : 0.3) : 0, pulse = lit ? fx.targetPulse : 0;
       const sp2 = haloSprite(), T = TYPES[s.target];
       ctx.globalAlpha = Math.min(1, base + 0.45 * pulse);
       worldTransform(ox, oy);
@@ -5576,8 +5625,6 @@ const GrainSim = (() => {
         saveTune(); Analytics.emit('tune_change', { key: t.key, value: v });
       });
     }
-    $('showReach').checked = save.showReach;
-    $('hapticsOn').checked = save.haptics;
     $('solidOn').checked = tuneValue('solid') !== 0;
   }
   function saveTune() {
@@ -5592,8 +5639,6 @@ const GrainSim = (() => {
     o.solid = tuneValue('solid');
     return JSON.stringify(o, null, 2);
   }
-  $('showReach').addEventListener('change', (e) => { save.showReach = e.target.checked; persist(); });
-  $('hapticsOn').addEventListener('change', (e) => { save.haptics = e.target.checked; persist(); if (save.haptics) Haptics.buzz(20); });
   $('solidOn').addEventListener('change', (e) => {
     cfg.solid = e.target.checked ? 1 : 0;
     if (sim) sim.cfg.solid = cfg.solid;
@@ -5624,6 +5669,12 @@ const GrainSim = (() => {
     toast(tr(save.control === 'drag' ? 'Drag anywhere: the sticks move with your drag, your thumb can stay low.' : 'The tips sit above your finger.'));
   });
   $('sticksBackBtn').addEventListener('click', () => setScreen(sticksFrom));
+  // settings: from the room's menu or from the pause sheet, and back to where they came from
+  function openSettings(from) { settingsFrom = from; setScreen('settings'); }
+  $('pauseSettingsBtn').addEventListener('click', () => openSettings('pause'));
+  $('settingsBackBtn').addEventListener('click', () => setScreen(settingsFrom));
+  $('hapticsBtn').addEventListener('click', () => { save.haptics = !save.haptics; persist(); syncSound(); if (save.haptics) Haptics.buzz(20); });
+  $('reachBtn').addEventListener('click', () => { save.showReach = !save.showReach; persist(); syncSound(); });
   $('menuBtn').addEventListener('click', pause);
   $('resumeBtn').addEventListener('click', resume);
   $('restartBtn').addEventListener('click', () => { Analytics.emit('level_retry', { level: levelAt(levelIndex).id, from: 'pause' }); startLevel(levelIndex, 'restart'); });
@@ -5650,11 +5701,12 @@ const GrainSim = (() => {
   const syncSound = () => {
     for (const [id, key] of [['sfxVol', 'sfxVol'], ['ambVol', 'ambVol']]) { const el = $(id); el.value = Math.round(save[key] * 100); el.style.setProperty('--v', el.value + '%'); }
     $('musicBtn').textContent = tr(save.music ? 'Music on' : 'Music off');
-    for (const id of ['styleBtn', 'menuRelax']) $(id).setAttribute('aria-checked', String(save.soundStyle === 'quiet'));
+    for (const id of ['styleBtn', 'menuQuiet']) $(id).setAttribute('aria-checked', String(save.soundStyle === 'quiet'));
+    $('hapticsBtn').setAttribute('aria-checked', String(!!save.haptics)); $('reachBtn').setAttribute('aria-checked', String(!!save.showReach));
   };
   function toggleRelax() {
     save.soundStyle = save.soundStyle === 'quiet' ? 'game' : 'quiet'; persist(); syncSound(); Sound.unlock(); Sound.volumes();
-    if (screen !== 'title') toast(tr(save.soundStyle === 'quiet' ? 'Soft clicks and taps instead of game sounds.' : 'The usual game sounds.'));
+    if (screen !== 'title') toast(tr(save.soundStyle === 'quiet' ? 'Soft clicks instead of game sounds, and a quieter room.' : 'The usual game sounds.'));
     Sound.slot(4, 'lentil', true);
   }
   $('styleBtn').addEventListener('click', toggleRelax);
@@ -5673,7 +5725,7 @@ const GrainSim = (() => {
     $(id).addEventListener('change', persist);
   }
   $('musicBtn').addEventListener('click', () => { save.music = !save.music; persist(); syncSound(); Room.apply(); });
-  $('tuneBtn').addEventListener('click', () => { tuneFrom = 'pause'; buildTune(); $('tuneJson').hidden = true; setScreen('tune'); });
+  $('tuneBtn').addEventListener('click', () => { tuneFrom = 'settings'; buildTune(); $('tuneJson').hidden = true; setScreen('tune'); });
   $('nextBtn').addEventListener('click', () => {
     const NB = GS.boardOf(levelIndex + 1);
     if (unlocked(levelIndex + 1) && !(NB.first === levelIndex + 1 && !save.seen.includes(NB.id))) startLevel(levelIndex + 1, 'next');
@@ -5684,7 +5736,8 @@ const GrainSim = (() => {
   // the page's fixed texts in the chosen language: [selector, English, attribute]; an icon button keeps its icon
   const FIXED = [
     ['#enterHint', 'Tap to begin'], ['#enterBtn', 'Open the menu', 'aria-label'], ['#mainMenu', 'Menu', 'aria-label'],
-    ['#menuLevels span', 'Levels'], ['#menuZen span', 'Zen mode'], ['#menuRelax span', 'Relax sounds'], ['#styleBtn span', 'Relax sounds'], ['#tableBack', 'Back to the room', 'aria-label'],
+    ['#menuLevels b', 'Levels'], ['#menuZen b', 'Zen mode'], ['#menuQuiet span', 'Quiet mode'], ['#styleBtn span', 'Quiet mode'], ['#menuSettings span', 'Settings'],
+    ['#pauseSettingsBtn span', 'Settings'], ['#settings h2', 'Settings'], ['#hapticsBtn span', 'Vibrate'], ['#reachBtn span', 'Show how far the sticks reach'], ['#settingsBackBtn span', 'Back'], ['#tableBack', 'Back to the room', 'aria-label'],
     ['#boardRail', 'Boards', 'aria-label'], ['#sticksRest', 'Change chopsticks', 'aria-label'], ['#game', 'Game board', 'aria-label'],
     ['#menuBtn', 'Pause', 'aria-label'], ['#againBtn', 'Start the level again', 'aria-label'], ['#leaveBtn', 'Back to the boards', 'aria-label'],
     ['#sticks h2', 'Chopsticks'], ['#sticks .sub', 'Each pair is earned by playing well.'], ['#sticksBackBtn', 'Back'],
@@ -5692,7 +5745,7 @@ const GrainSim = (() => {
     ['#doneTotal span', 'Score'], ['#retryBtn', 'Retry'], ['#doneLevelsBtn', 'Back'],
     ['#failRetry span', 'Try again'], ['#failBack span', 'Back'], ['#zenAgain', 'Again'], ['#zenBack span', 'Back'], ['#zenScoreLabel', 'Score'], ['#clock', 'Time left', 'aria-label'], ['#hamBtn', 'Zen Hamster', 'aria-label'],
     ['#tune h2', 'Tune feel'], ['#tune .sub', 'Changes apply right away and stay on this device. Row length applies from the next level. A level with its own rule keeps it.'],
-    ['label.check:nth-of-type(1)', 'Show how far the sticks reach'], ['label.check:nth-of-type(2)', 'Vibrate'], ['label.check:nth-of-type(3)', 'Solid grains'],
+    ['label.check:nth-of-type(1)', 'Solid grains'],
     ['#tuneResetBtn', 'Reset'], ['#tuneCopyBtn', 'Copy values'], ['#tuneDoneBtn', 'Done'],
   ];
   function applyLang() {
