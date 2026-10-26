@@ -351,10 +351,22 @@
   .screen[data-v="top"] .primary svg { width: 24px; height: 24px; fill: currentColor; }
   .screen[data-v="top"] .primary { height: 54px; }
   .screen[data-v="top"] .ghost { min-height: 48px; }
-  #fail[data-v="top"], #done[data-v="top"] { justify-content: flex-start; background: linear-gradient(to bottom, rgba(10, 12, 15, 0.78), rgba(10, 12, 15, 0.5) 40%, rgba(10, 12, 15, 0) 62%); }
-  #fail[data-v="top"] .slab, #done[data-v="top"] .slab { border-top: 0; border-bottom: 1px solid rgba(255, 255, 255, 0.07); gap: 10px;
+  #zenEnd[data-v="top"], #fail[data-v="top"], #done[data-v="top"] { justify-content: flex-start; background: linear-gradient(to bottom, rgba(10, 12, 15, 0.78), rgba(10, 12, 15, 0.5) 40%, rgba(10, 12, 15, 0) 62%); }
+  #zenEnd[data-v="top"] .slab, #fail[data-v="top"] .slab, #done[data-v="top"] .slab { border-top: 0; border-bottom: 1px solid rgba(255, 255, 255, 0.07); gap: 10px;
     padding-top: calc(env(safe-area-inset-top, 0px) + 16px); padding-bottom: 22px; animation-name: drop; box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45); }
-  #fail[data-v="top"] .slab::before, #done[data-v="top"] .slab::before { top: auto; bottom: 9px; }
+  #zenEnd[data-v="top"] .slab::before, #fail[data-v="top"] .slab::before, #done[data-v="top"] .slab::before { top: auto; bottom: 9px; }
+  /* zen mode: its way in at the top of the board screen, and its three lives, brush circles under the score */
+  .tbar { grid-template-columns: 44px 1fr auto; }
+  .zenbtn { display: flex; align-items: center; gap: 5px; height: 38px; padding: 0 11px 0 8px; border-radius: 19px; border: 1.5px solid var(--chalk-3);
+    background: rgba(15, 18, 21, 0.45); color: var(--chalk); font: 400 var(--fs-17)/1 var(--hand); }
+  .zenbtn svg { width: 20px; height: 20px; color: var(--ember); }
+  .zenbtn.locked { color: var(--chalk-2); }
+  .zenbtn.locked svg { color: var(--chalk-3); }
+  #lives { display: flex; justify-content: flex-end; gap: 4px; margin-top: 6px; }
+  #lives svg { width: 20px; height: 20px; color: var(--ember); filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .6)); }
+  #lives svg.gone { color: var(--chalk-3); opacity: 0.5; }
+  #lives svg.lose { animation: lose .6s ease; }
+  @keyframes lose { 30% { transform: scale(1.5) rotate(-20deg); } }
   @keyframes drop { from { transform: translateY(-40px); opacity: 0; } }
   #done[data-v="card"] { justify-content: center; background: rgba(10, 12, 15, 0.32); }
   #done[data-v="card"] .slab { width: min(calc(100% - 32px), 400px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 18px 14px 18px 15px;
@@ -399,7 +411,7 @@
   #tuneJson { width: 100%; box-sizing: border-box; background: #0d0f12; color: var(--chalk); border: 1px solid var(--chalk-3); border-radius: 10px; font: 12px ui-monospace, Menlo, monospace; }
 
   @media (prefers-reduced-motion: reduce) {
-    .slab, #done .slab, #chip.swap, .dial.up svg, #catpaw.go, .stars.big svg.stamp, #streak.up b, #streak.lost, #streak.lost b, .tally li, .total em, #tally .nw, .lcard.next { animation: none; }
+    .slab, #done .slab, #chip.swap, .dial.up svg, #catpaw.go, #lives svg.lose, .stars.big svg.stamp, #streak.up b, #streak.lost, #streak.lost b, .tally li, .total em, #tally .nw, .lcard.next { animation: none; }
     .bpage .bopen, .bpage.laid .lcard, .bpage > canvas { transition: none; }
     .rest::before { animation: none; opacity: 0.5; }
     #hint, #toast, #banner, #fuse, #streak b, .tableview, #enterHint, .dots i, .roomtitle { transition: none; }
@@ -426,6 +438,7 @@
   <div class="side end">
     <button id="menuBtn" class="iconbtn big" aria-label="Pause"><svg viewBox="0 0 22 22" aria-hidden="true"><path d="M7.4 4.2c.2 4.6-.1 9.2.3 13.6M14.8 4.4c-.3 4.4.1 9 .1 13.4"/></svg></button>
     <div id="score" class="chalk"><b>0</b></div>
+    <div id="lives" hidden></div>
     <button id="clock" class="dial" aria-label="Time left"><svg viewBox="0 0 46 46" aria-hidden="true">
       <circle class="face" cx="23" cy="23" r="19"/><path class="pale" d=""/><path class="gold" d=""/>
       <path class="ticks" d="M23 5.5v3M23 37.5v3M5.5 23h3M37.5 23h3M31.75 7.84l-1 1.73M38.16 14.25l-1.73 1M38.16 31.75l-1.73-1M31.75 38.16l-1-1.73M14.25 38.16l1-1.73M7.84 31.75l1.73-1M7.84 14.25l1.73 1M14.25 7.84l1 1.73"/>
@@ -453,7 +466,7 @@
   <header class="tbar">
     <button id="tableBack" class="iconbtn" aria-label="Back to the room"><svg viewBox="0 0 22 22" aria-hidden="true"><path d="M13.6 4.4c-2.5 2.3-4.4 4.3-6.3 6.5 1.9 2.1 3.9 4.1 6.4 6.5"/></svg></button>
     <p class="purse chalk"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.4l2.8 6.3 6.8.6-5.2 4.5 1.6 6.7-6-3.6-6 3.6 1.6-6.7-5.1-4.5 6.8-.6z"/></svg><b id="tStars">0</b><span id="tNext"></span></p>
-    <span></span>
+    <button id="zenBtn" class="zenbtn" aria-label="Zen mode"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.6 4.1C10.4 2.4 4.4 5.6 3.7 11.4c-.7 5.6 3.8 9.5 8.8 9.2 5-.3 8.6-4.6 7.8-9.6-.3-1.9-1.2-3.4-2.4-4.6" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/></svg><span>Zen</span></button>
   </header>
   <div class="pages" id="boardRail" aria-label="Boards"></div>
   <div class="dots" id="boardDots" aria-hidden="true"></div>
@@ -516,6 +529,17 @@
       <button id="failRetry" class="ghost"><svg viewBox="0 0 22 22" aria-hidden="true"><path d="M18.6 13.4a7.8 7.8 0 1 1-1.9-8L20 8.6"/><path d="M20.3 3.6v5.2h-5.1"/></svg><span>Try again</span></button>
       <button id="failBack" class="ghost back"><svg viewBox="0 0 22 22" aria-hidden="true"><path d="M13.6 4.4c-2.5 2.3-4.4 4.3-6.3 6.5 1.9 2.1 3.9 4.1 6.4 6.5"/></svg><span>Back</span></button>
     </div>
+  </div>
+</section>
+
+<section id="zenEnd" class="screen" data-v="top" hidden>
+  <div class="slab">
+    <p class="kicker chalk" id="zenKicker">Zen mode</p>
+    <h2 class="chalk" id="zenTitle"></h2>
+    <p class="total chalk"><span id="zenScoreLabel">Score</span><b id="zenScore">0</b></p>
+    <p class="advice chalk" id="zenLine"></p>
+    <button id="zenAgain" class="primary">Again</button>
+    <button id="zenBack" class="ghost back"><svg viewBox="0 0 22 22" aria-hidden="true"><path d="M13.6 4.4c-2.5 2.3-4.4 4.3-6.3 6.5 1.9 2.1 3.9 4.1 6.4 6.5"/></svg><span>Back</span></button>
   </div>
 </section>
 
@@ -1048,6 +1072,18 @@ const GrainSim = (() => {
   }
   function levelFor(i) { return i < AUTHORED.length ? AUTHORED[i] : generatedLevel(i); }
 
+  // Zen mode: no levels and no clock. A jar keeps pouring, faster and faster, a third kind joins after a while and
+  // stones after that; three lives, one gone for every broken row and for a board left to fill up. Full piles are
+  // packed away as you go. How long can you keep the board in order?
+  const ZEN = {
+    id: 'zen', name: 'Zen', seed: 2026, types: ['lentil', 'rice', 'mung'], zen: true, lives: 3,
+    piles: [
+      { type: 'lentil', kind: 'blob', cx: 0.32, cy: 0.42, r: 0.1, count: 12 },
+      { type: 'rice', kind: 'blob', cx: 0.68, cy: 0.42, r: 0.1, count: 10 },
+    ],
+  };
+  const ZEN_PILE = 40, ZEN_FULL = 95;      // a pile is packed away at this many; this many loose grains is a full board
+
   // The title screen plays this board by itself, in its top half.
   const DEMO = {
     id: 'demo', name: 'Demo', seed: 5, types: ['lentil', 'rice'],
@@ -1252,7 +1288,7 @@ const GrainSim = (() => {
     return {
       id, type, x, y, rot, s, tint, st: ST.REST, vx: 0, vy: 0, w: 0, d: 0, warn: 0, cw: false, slot: -1, pt: 0,
       ca: 1, sa: 0, aw: true, px: NaN, py: NaN, prot: NaN, pk: -1, hit: -1, hx: 0, hy: 0, hd: undefined,
-      ax: 0, ay: 0, arot: 0, bx: 0, by: 0, brot: 0,
+      ax: 0, ay: 0, arot: 0, bx: 0, by: 0, brot: 0, spare: false,
     };
   }
 
@@ -1307,6 +1343,8 @@ const GrainSim = (() => {
       for (let i = n - 1; i > 0; i--) { const j = Math.floor(sr() * (i + 1)); const t = spots[i]; spots[i] = spots[j]; spots[j] = t; }
       if (level.shuffle === 'moved' && spots.every((k, i) => k === SPOTS[n][i])) spots.push(spots.shift());   // the first time, they always move
     }
+    sim.zen = !!level.zen;
+    if (sim.zen) for (const t of level.types) sim.total[t] = ZEN_PILE;
     sim.stores = storeLayout(level.types, sim.total, sim.H - sim.bottom, spots);
     sim.grains = generate(level, bounds(), sim.stores);
     sim.caps = {};
@@ -1326,9 +1364,13 @@ const GrainSim = (() => {
       sim.par += Math.round(scoops.length * 1.5);
     }
     sim.ideal = idealScore(level.types, sim.total, sim.caps, sim.par);
+    if (sim.zen) {
+      sim.lives = level.lives || 3; sim.overT = 0; sim.zenN = 0; sim.packs = [];
+      sim.jar = { scoops: [], pour: [], every: 7.5, next: 1.2, gap: 0, idle: 0, aim: 0, left: true, x: 62, y: sim.top + 50, tip: 0, reach: 1 };
+    }
     // The time the level may take: a few times par (more on the first levels, less on later boards), a little more
     // after failing it on time before (extraTime, from the host). When it runs out the level stops; time can be added.
-    sim.limit = cfg.limitK > 0 ? Math.round(sim.par * (level.clockK || 2) * cfg.limitK * (1 + ((cfgIn && cfgIn.extraTime) || 0))) : Infinity;
+    sim.limit = cfg.limitK > 0 && !sim.zen ? Math.round(sim.par * (level.clockK || 2) * cfg.limitK * (1 + ((cfgIn && cfgIn.extraTime) || 0))) : Infinity;
     sim.extend = function (sec) {
       sim.limit += sec; sim.added += sec;
       const was = sim.timeUp; sim.timeUp = false;
@@ -1337,7 +1379,7 @@ const GrainSim = (() => {
     // how quick the row being gathered is so far: below 0.75 a full row counts as Lightning, above 2 as Slow
     sim.paceRatio = () => (sim.clock - sim.lastPull) / paceFor(Math.max(1, S.need || sim.caps[sim.target]), cfg);
     sim.target = level.types.find((t) => sim.total[t] > 0);
-    sim.stats = { rows: 0, fullRows: 0, breaks: 0, penalty: 0, rowPts: 0, comboPts: 0, taken: {}, spills: 0, lost: 0, short: 0, slow: 0, saved: 0, stoneBreaks: 0 };
+    sim.stats = { rows: 0, fullRows: 0, breaks: 0, penalty: 0, rowPts: 0, comboPts: 0, taken: {}, spills: 0, lost: 0, short: 0, slow: 0, saved: 0, stoneBreaks: 0, sorted: 0 };
     const S = sim.sticks = {
       phase: 'away', pt: 0, tx: W / 2, ty: sim.H * 0.6, vx: 0, vy: 0, carry: cfg.enterDist, carryTo: 1600,
       gap: 3, row: [], trail: [], callT: 0, kind: 'short', rowType: sim.target, need: 0, cap: 0, lifted: false, drop: null, dest: null,
@@ -1518,7 +1560,8 @@ const GrainSim = (() => {
       sim.bestCombo = Math.max(sim.bestCombo, sim.combo);
       sim.bestMult = Math.max(sim.bestMult, sim.mult);
       sim.stats.rows++;
-      sim.stats.taken[type] = (sim.stats.taken[type] || 0) + n;
+      sim.stats.taken[type] = (sim.stats.taken[type] || 0) + n; sim.stats.sorted += n;
+      if (sim.zen && st.n >= ZEN_PILE) sim.packs.push({ type, at: sim.t + 0.5 });
       const hp = slotPos(st, Math.max(0, st.n - Math.ceil(n / 2)));
       const cleared = sim.remaining(type) === 0;
       emit('row_taken', {
@@ -1526,7 +1569,7 @@ const GrainSim = (() => {
         multBefore: before, mult: sim.mult, combo: sim.combo, milestone, bonus, score: sim.score, x: hp.x, y: hp.y,
       });
       S.phase = 'pour'; S.pt = 0;
-      if (sim.remaining() === 0) finish(); else switchTarget();
+      if (sim.remaining() === 0 && !sim.zen) finish(); else switchTarget();
     }
     function finish() {
       sim.done = true; sim.timeUp = false;
@@ -1544,6 +1587,63 @@ const GrainSim = (() => {
         time: sim.clock, par: sim.par, timeBonus, sorted, lost: sim.stats.lost, spills: sim.stats.spills, limit: sim.limit, added: sim.added,
       };
       emit('level_complete', sim.result);
+    }
+
+    // zen: a life gone; the last one ends the game
+    function loseLife(why) {
+      sim.lives = Math.max(0, sim.lives - 1);
+      emit('life_lost', { lives: sim.lives, why });
+      if (sim.lives > 0) return;
+      sim.done = true;
+      sim.result = { zen: true, score: sim.score, time: sim.clock, sorted: sim.stats.sorted, rows: sim.stats.rows, fullRows: sim.stats.fullRows,
+        bestCombo: sim.bestCombo, bestMult: sim.bestMult, why };
+      emit('zen_over', sim.result);
+    }
+    // zen: a grain for the jar, from those packed away if there are any, else a new one
+    function spareGrain(type) {
+      let g = null;
+      for (const q of sim.grains) if (q.spare) { g = q; break; }
+      if (!g) { g = makeGrain(sim.grains.length, type, W / 2, -100, 0, 1, 0); sim.grains.push(g); }
+      g.type = type; g.st = ST.JAR; g.spare = false; g.rot = rng() * Math.PI * 2; g.s = 0.9 + rng() * 0.2; g.tint = Math.floor(rng() * 4);
+      g.vx = g.vy = g.w = 0; g.warn = 0; g.slot = -1; g.px = NaN; g.hd = undefined;
+      return g;
+    }
+    // zen: the next scoop, a row of one kind, kinds in turn; the jar comes quicker as time goes on, a third kind joins
+    // at a minute and a half, and from two minutes a stone now and then
+    function zenScoop() {
+      const J = sim.jar, t = sim.clock, kinds = level.types.filter((k, i) => i < 2 || t >= 90 * (i - 1));
+      const type = kinds[sim.zenN % kinds.length], ids = [];
+      sim.zenN++;
+      for (let i = 0; i < sim.caps[type]; i++) ids.push(spareGrain(type).id);
+      if (t > 120 && rng() < Math.min(0.6, (t - 120) / 240)) ids.push(spareGrain('stone').id);
+      J.every = Math.max(2.6, 7.5 - t / 36);
+      J.left = rng() < 0.5; J.x = J.left ? 62 : W - 62;
+      return ids;
+    }
+    // zen: a full pile is packed away (its grains go back to the jar's store) and pays a little
+    function packPiles() {
+      for (let i = sim.packs.length - 1; i >= 0; i--) {
+        const pk = sim.packs[i];
+        if (sim.t < pk.at) continue;
+        const st = sim.stores[pk.type];
+        if (st.ids.some((id) => sim.grains[id].st === ST.POUR)) continue;
+        sim.packs.splice(i, 1);
+        const n = st.ids.length, bonus = 25 * n;
+        for (const id of st.ids) { const g = sim.grains[id]; g.st = ST.JAR; g.spare = true; g.slot = -1; }
+        st.ids = []; st.n = 0; sim.stats.taken[pk.type] = 0;
+        sim.score += bonus;
+        emit('pile_packed', { grain: pk.type, n, bonus, x: st.x, y: st.y, score: sim.score });
+      }
+    }
+    // zen: too many grains loose on the board for a few seconds costs a life, and the jar waits a moment
+    function zenCrowd(dt) {
+      let n = 0;
+      for (const g of sim.grains) if ((g.st === ST.REST || g.st === ST.SLIDE) && !TYPES[g.type].stone) n++;
+      sim.crowd = n / ZEN_FULL;
+      if (sim.overT < 0) { sim.overT = Math.min(0, sim.overT + dt); return; }      // a breather after a life lost to a full board
+      if (n < ZEN_FULL) { sim.overT = 0; return; }
+      sim.overT += dt;
+      if (sim.overT >= 3) { sim.overT = -6; sim.jar.next = sim.clock + 6; loseLife('full'); }
     }
 
     // a row let go over another kind's pile: that whole pile and the row fly back onto the board
@@ -1583,6 +1683,7 @@ const GrainSim = (() => {
       sim.combo = 0; sim.mult = 1; sim.score -= penalty; sim.lastPull = sim.clock;
       sim.stats.rows++; sim.stats.breaks++; sim.stats.penalty += penalty;
       S.phase = 'snap'; S.pt = 0; sim.waitLift = true;
+      if (sim.zen) loseLife('break');
       emit('break', { id: bad.id, wrong: bad.type, grain: S.rowType, x: bad.x, y: bad.y, lost: lost.length, inRow, comboLost, multLost, penalty, score: sim.score });
     }
 
@@ -1885,6 +1986,7 @@ const GrainSim = (() => {
       if (!J) return;
       J.tip = Math.max(0, J.tip - dt * 1.6);
       if (!sim.started || sim.done || sim.timeUp) return;
+      if (sim.zen && !J.scoops.length && !J.pour.length) J.scoops.push(zenScoop());
       if (!J.pour.length && J.scoops.length) {
         // nothing to gather on the board and nothing in the sticks: the next scoop comes after a breath
         let clear = !S.row.length && !S.trail.length;
@@ -1994,7 +2096,8 @@ const GrainSim = (() => {
       tickClocks(dt);
       if (S.phase === 'away' && !sim.done && sim.available(sim.target) === 0) switchTarget();
       // the last grains slid off the tray, or the last of the jar is gone too: nothing left to sort
-      if (!sim.done && sim.started && !S.row.length && !S.trail.length && S.phase !== 'carry' && S.phase !== 'pour' && sim.remaining() === 0) finish();
+      if (!sim.done && sim.started && !sim.zen && !S.row.length && !S.trail.length && S.phase !== 'carry' && S.phase !== 'pour' && sim.remaining() === 0) finish();
+      if (sim.zen && sim.started && !sim.done) { packPiles(); zenCrowd(dt); }
     };
 
     sim.hash = function () {
@@ -2141,7 +2244,7 @@ const GrainSim = (() => {
   }
 
   return {
-    W, ST, DEFAULTS, STICK, TYPES, AUTHORED, DEMO, SCORE, MILESTONES, TWIST, NEWS, KIND_FROM,
+    W, ST, DEFAULTS, STICK, TYPES, AUTHORED, DEMO, ZEN, ZEN_PILE, ZEN_FULL, SCORE, MILESTONES, TWIST, NEWS, KIND_FROM,
     BOARDS, CHAPTERS, boardOf, chapterOf, surfaceOf, newsAt, creepPull, mulberry32, mixOf, mixTarget, capacity, totalsFor, paceFor, speedFactor, speedLabel, multGain, rowPoints, idealScore, starsFor, parTime, difficulty,
     validateLevel, levelFor, create, makeBot,
     overlapOf(a, b) { orient(a); orient(b); return overlap(a, b, { nx: 0, ny: 0 }); },
@@ -2162,7 +2265,13 @@ const GrainSim = (() => {
   // Every text keeps its English wording as its key; tr() swaps in the Polish one and fills {names}.
   const PL = { "Tap to sit at the table": "Dotknij, by usiąść przy stole", "Sit down at the table": "Usiądź przy stole", "Back to the room": "Wróć do pokoju", "Boards": "Plansze", "Change chopsticks": "Zmień pałeczki", "Game board": "Plansza gry", "Pause": "Pauza", "Start the level again": "Zacznij poziom od nowa", "Back to the boards": "Wróć do plansz", "Chopsticks": "Pałeczki", "Each pair is earned by playing well.": "Każdą parę zdobywasz dobrą grą.", "Back": "Wstecz", "Paused": "Pauza", "Resume": "Wznów", "Restart level": "Zacznij od nowa", "Tune feel": "Dostrój", "Score": "Wynik", "Next level": "Następny poziom", "Retry": "Powtórz", "Choose a level": "Wybierz poziom", "On to {board}": "Dalej: {board}", "Changes apply right away and stay on this device. Row length applies from the next level. A level with its own rule keeps it.": "Zmiany działają od razu i zostają na tym urządzeniu. Długość rzędu zmienia się od następnego poziomu. Poziom z własną zasadą ją zachowuje.", "Show how far the sticks reach": "Pokaż zasięg pałeczek", "Vibrate": "Wibracje", "Solid grains": "Twarde ziarna", "Reset": "Przywróć", "Copy values": "Kopiuj wartości", "Done": "Gotowe", "Game sounds": "Dźwięki gry", "Ambience": "Otoczenie", "Slate": "Łupek", "Walnut": "Orzech", "Bamboo": "Bambus", "Clay": "Glina", "Lacquer": "Laka", "Cast iron": "Żeliwo", "Walnut is open": "Orzech otwarty", "Bamboo is open": "Bambus otwarty", "Clay is open": "Glina otwarta", "Lacquer is open": "Laka otwarta", "Cast iron is open": "Żeliwo otwarte", "Tenmoku": "Tenmoku", "Damascus steel": "Stal damasceńska", "Black marble": "Czarny marmur", "Charred cedar": "Opalany cedr", "Obsidian": "Obsydian", "{board} is open": "Otwarte: {board}", "Tenmoku is open": "Tenmoku otwarte", "Damascus steel is open": "Stal damasceńska otwarta", "Black marble is open": "Czarny marmur otwarty", "Charred cedar is open": "Opalany cedr otwarty", "Obsidian is open": "Obsydian otwarty", "Paper": "Papier", "Paper is open": "Papier otwarty", "Old paper": "Stary papier", "Everything you have met so far comes back here, two at a time.": "Wszystko, co już znasz, wraca tu po dwa naraz.", "Lentils": "Soczewica", "Rice": "Ryż", "Mung beans": "Fasola mung", "Chickpeas": "Ciecierzyca", "Sesame": "Sezam", "Kidney beans": "Fasola czerwona", "Stones": "Kamyki", "First row": "Pierwszy rząd", "Two heaps": "Dwie kupki", "Touching": "Stykają się", "Strays": "Zabłąkane", "The slate": "Łupek", "Short reach": "Krótki zasięg", "Mixed heap": "Pomieszana kupka", "Restless": "Niespokojne", "Pantry spill": "Rozsypana spiżarnia", "Heaps": "Kupki", "Spill": "Rozsypka", "Edges": "Brzegi", "Stripes": "Pasy", "Clusters": "Skupiska", "Pushy rice": "Natrętny ryż", "Rice creeps in from further away. Sweep the heap apart, then gather.": "Ryż wkrada się z daleka. Rozgarnij kupkę, potem zbieraj.", "Short reach, restless": "Krótki zasięg, niespokojne", "Close reach and wandering grains, all three kinds.": "Bliski zasięg i wędrujące ziarna, wszystkie trzy rodzaje.", "Restless grains": "Niespokojne ziarna", "They wander and mix again. Sort them before they spread.": "Wędrują i znów się mieszają. Posortuj je, zanim się rozejdą.", "The sticks pull from close by. Drive the tips through the grains.": "Pałeczki ciągną z bliska. Prowadź końcówki przez ziarna.", "Narrow reach": "Wąski zasięg", "The sticks only pull from straight ahead. Come at grains from below.": "Pałeczki ciągną tylko na wprost. Podchodź do ziaren od dołu.", "Long sticks": "Długie pałeczki", "They hold a longer row: more points, and more to lose.": "Mieszczą dłuższy rząd: więcej punktów i więcej do stracenia.", "They can’t be picked, and they go for the tips. Push them aside.": "Nie da się ich zebrać, a pchają się do końcówek. Odsuwaj je.", "Carry it yourself": "Nieś sam", "Take each row to its pile and let go. The wrong pile spills back onto the board.": "Zanieś każdy rząd na jego kupkę i puść. Zła kupka rozsypie się z powrotem na planszę.", "The jar": "Słoik", "It pours more grains in as you go. Keep up with it.": "Dosypuje ziaren w trakcie gry. Nadążaj za nim.", "The tray tilts": "Taca się przechyla", "Grains slide down it. Catch them before they fall off the edge.": "Ziarna zsuwają się w dół. Złap je, zanim spadną z krawędzi.", "Round and heavy. A quick sweep sends them rolling.": "Okrągła i ciężka. Po szybkim machnięciu toczy się daleko.", "Piles move": "Kupki się przesuwają", "The piles change places from level to level. Look before you let go.": "Kupki zmieniają miejsca z poziomu na poziom. Spójrz, zanim puścisz.", "Tiny and light. Long rows, and a sweep scatters it.": "Malutki i lekki. Długie rzędy, a machnięcie go rozsypuje.", "Any order": "Dowolna kolejność", "The sticks can ask for any kind next. Watch the top of the board.": "Pałeczki mogą poprosić o dowolny rodzaj. Patrz na górę planszy.", "Long and heavy. Push one and it swings round.": "Długa i ciężka. Pchnięta obraca się.", "Touch and hold. The lentils walk into the sticks.": "Dotknij i przytrzymaj. Soczewica sama wchodzi między pałeczki.", "Fill the row to grow your multiplier.": "Wypełnij rząd, a mnożnik urośnie.", "After every row the sticks switch to the other kind.": "Po każdym rzędzie pałeczki przechodzą na drugi rodzaj.", "Rice next to the tips creeps in. Push it aside with the side of the sticks.": "Ryż przy końcówkach wkrada się do środka. Odsuń go bokiem pałeczek.", "The line under the multiplier wears away. Fill the row before it is gone.": "Kreska pod mnożnikiem się ściera. Wypełnij rząd, zanim zniknie.", "A short row keeps the multiplier but shrinks it.": "Krótki rząd zachowuje mnożnik, ale go zmniejsza.", "A third kind, with its own pile in the middle.": "Trzeci rodzaj, z własną kupką na środku.", "{n} left": "{n}", "Lightning": "Błyskawica", "Quick": "Szybko", "Steady": "Równo", "Slow": "Wolno", "Short row {m}": "Krótki rząd {m}", "{kind} cleared {m}": "Koniec: {kind} {m}", "Steady hands": "Pewne ręce", "Grain master": "Mistrz ziaren", "Zen hands": "Ręce zen", "+{b} for {n} full rows in a row": "+{b} za {n} pełnych rzędów z rzędu", "New chopsticks": "Nowe pałeczki", "Multiplier {m}, {n} full rows in a row": "Mnożnik {m}, pełne rzędy z rzędu: {n}", "A lentil got in": "Wpadła soczewica", "Rice got in": "Wpadł ryż", "A mung bean got in": "Wpadła fasola mung", "A stone got in": "Wpadł kamyk", "A chickpea got in": "Wpadła ciecierzyca", "Sesame got in": "Wpadł sezam", "A kidney bean got in": "Wpadła fasola", "A wrong grain got in": "Wpadło złe ziarno", ", back to ×1": ", z powrotem ×1", "Broken": "Przerwany", "Wrong pile": "Zła kupka", "Touch the board to pick the row up again.": "Dotknij planszy, by znów podnieść rząd.", "Tap the arrow again to leave this level.": "Dotknij strzałki jeszcze raz, by wyjść z poziomu.", "Tap again to start this level over.": "Dotknij jeszcze raz, by zacząć od nowa.", "{n} more open {board}": "{n} do otwarcia: {board}", "Every board is open": "Wszystkie plansze otwarte", "{board}, {n} stars": "{board}, gwiazdki: {n}", "{board}, opens with {n} stars": "{board}, otwiera się przy gwiazdkach: {n}", "{n} more {star} to open": "jeszcze {n} {star} do otwarcia", "{board} levels": "Poziomy: {board}", "{level}, {n} of 5 stars": "{level}, {n} z 5 gwiazdek", "{level}, locked": "{level}, zablokowany", "Clear {level} to open this one.": "Najpierw ukończ: {level}.", "{level} cleared": "Ukończono: {level}", "{n} of 5 stars": "{n} z 5 gwiazdek", "Combo prizes": "Nagrody za serie", "Time {t} of {par}": "Czas {t} z {par}", "No row broken": "Bez przerwanego rzędu", "New best": "Rekord", "Next star at {s}": "Następna gwiazdka przy {s}", "New chopsticks: <b>{names}</b>. Pick them under Chopsticks.": "Nowe pałeczki: <b>{names}</b>. Wybierzesz je w menu Pałeczki.", "Cherry lacquer": "Wiśniowa laka", "Ebony": "Hebanowe", "Jade": "Jadeitowe", "Steel": "Stalowe", "Gold leaf": "Złocone", "Reach a ×3 multiplier": "Osiągnij mnożnik ×3", "Make 7 full rows in a row": "Zrób 7 pełnych rzędów z rzędu", "Sort 1,000 grains": "Posortuj 1000 ziaren", "Collect 20 stars": "Zbierz 20 gwiazdek", "Reach a ×6 multiplier": "Osiągnij mnożnik ×6", "Your first pair": "Twoja pierwsza para", "In use": "W użyciu", "Use": "Użyj", "{req} to earn these.": "{req}, żeby je zdobyć.", "Control: drag anywhere": "Sterowanie: przeciąganie", "Control: above the finger": "Sterowanie: nad palcem", "Drag anywhere: the sticks move with your drag, your thumb can stay low.": "Przeciągaj gdziekolwiek: pałeczki idą za ruchem, kciuk może zostać nisko.", "The tips sit above your finger.": "Końcówki są nad twoim palcem.", "Sound on": "Dźwięk: tak", "Sound off": "Dźwięk: nie", "Music on": "Muzyka: tak", "Music off": "Muzyka: nie", "Back to the default feel.": "Przywrócono domyślne ustawienia.", "Select the values and copy them.": "Zaznacz wartości i skopiuj.", "Values copied.": "Skopiowano.", "Tips above the finger": "Końcówki nad palcem", "How tightly the sticks follow": "Jak ciasno pałeczki podążają", "Reach of the open sticks": "Zasięg otwartych pałeczek", "How far ahead of the tips they pull": "Jak daleko przed końcówkami ciągną", "Wrong grains creep from": "Złe ziarna wkradają się z", "Wrong grain creep speed": "Szybkość wkradania się złych ziaren", "How far a sweep flicks grains": "Jak daleko machnięcie odrzuca ziarna", "Next grain joins every (s)": "Kolejne ziarno dołącza co (s)", "Walking speed": "Szybkość marszu", "Pace (higher is more forgiving)": "Tempo (więcej = łagodniej)", "Row length": "Długość rzędu",
     "Lift your finger, then touch again.": "Podnieś palec i dotknij znowu.",
-    "Next star at {s}.": "Następna gwiazdka przy {s}.", "new": "nowe",
+    "Next star at {s}.": "Następna gwiazdka przy {s}.", "new": "nowe", "Zen mode": "Tryb zen", "Zen": "Zen", "Lives: {n}": "Życia: {n}",
+    "The jar never stops. Three lives: a broken row or a full board costs one.": "Słoik nie przestaje sypać. Trzy życia: przerwany rząd albo pełna plansza zabiera jedno.",
+    "Zen mode opens after the first three levels.": "Tryb zen otwiera się po trzech pierwszych poziomach.",
+    "The board is full": "Plansza pełna", "A life gone": "minus jedno życie", "Bowl full": "Miska pełna",
+    "The board is filling up: sort faster!": "Plansza się zapełnia, sortuj szybciej!",
+    "The jar won this time": "Tym razem wygrał słoik", "Three rows broken": "Trzy przerwane rzędy",
+    "{t} at the board, {n} sorted.": "{t} przy stole, posortowane: {n}.", "Best: {s}.": "Rekord: {s}.", "Again": "Jeszcze raz",
     "Touch and hold below the lentils. The sticks come in above your finger.": "Dotknij i przytrzymaj pod soczewicą. Pałeczki pojawią się nad palcem.",
     "Press and hold just below the lentils. The tips follow the pointer.": "Wciśnij i przytrzymaj tuż pod soczewicą. Końcówki idą za kursorem.",
     "Keep holding: the sticks come back for the next row.": "Trzymaj dalej: pałeczki wrócą po następny rząd.", "Time limit (0 = none)": "Limit czasu (0 = bez limitu)",
@@ -2246,7 +2355,7 @@ const GrainSim = (() => {
     const fresh = {
       saveVersion: SAVE_VERSION, levels: {}, reached: 0, sound: true, music: true, haptics: true, showReach: true, control: 'direct',
       totals: { grains: 0, bestCombo: 0, bestMult: 1 }, sticks: { owned: ['bamboo'], equipped: 'bamboo', looked: ['bamboo'] }, seen: ['slate'], lang: null,
-      sfxVol: 1, ambVol: 1, soundStyle: 'game', helpers: { cat: 3, hamster: 0 }, fails: {},
+      sfxVol: 1, ambVol: 1, soundStyle: 'game', helpers: { cat: 3, hamster: 0 }, fails: {}, zen: { best: 0, bestTime: 0, plays: 0 },
     };
     const s = Store.get(SAVE_KEY);
     if (!s || typeof s !== 'object' || ![1, 2, 3, 4].includes(s.saveVersion)) return fresh;
@@ -2256,6 +2365,7 @@ const GrainSim = (() => {
     if (s.soundStyle === 'quiet') fresh.soundStyle = 'quiet';
     if (s.helpers && typeof s.helpers === 'object') fresh.helpers = { cat: num(s.helpers.cat) || 0, hamster: num(s.helpers.hamster) || 0 };
     else if (Array.isArray(s.seen) && s.seen.includes('walnut')) fresh.helpers.hamster = 3;   // stones already met: the hamsters that came with them
+    if (s.zen && typeof s.zen === 'object') fresh.zen = { best: num(s.zen.best) || 0, bestTime: num(s.zen.bestTime) || 0, plays: num(s.zen.plays) || 0 };
     if (s.fails && typeof s.fails === 'object') for (const k of Object.keys(s.fails)) { const v = num(s.fails[k]); if (v && k.length <= 40) fresh.fails[k] = Math.min(9, v); }
     const vol = (v, d) => (Number.isFinite(v) ? clamp(v, 0, 1) : d);
     fresh.sfxVol = vol(s.sfxVol, fresh.sound ? 1 : 0); fresh.ambVol = vol(s.ambVol, fresh.sound ? 1 : 0);
@@ -2954,7 +3064,7 @@ const GrainSim = (() => {
   // ---------- state ----------
   let screen = 'title';
   let sim = null, levelIndex = 0, autoBot = null;
-  let hintStage = -1, hintRows = 0, pendingDone = null, pendingFail = 0, levelUnlocks = [];
+  let hintStage = -1, hintRows = 0, pendingDone = null, pendingFail = 0, pendingZen = null, levelUnlocks = [];
   const input = { down: false, x: W / 2, y: 1100, id: null };
   const virt = { x: W / 2, y: 700, set: false };   // where the tips go in drag-anywhere mode
   const drag = { sx: 0, sy: 0, x0: 0, y0: 0 };
@@ -3178,12 +3288,12 @@ const GrainSim = (() => {
     const base = { slate: ['#353c44', '#262b31', '#1a1e23'], walnut: ['#3d2b1f', '#2d2017', '#1f160f'], iron: ['#323438', '#25272a', '#1b1c1f'], table: ['#9a6a41', '#83562f', '#663f20'],
       bamboo: ['#4a3720', '#342614', '#20170b'], clay: ['#231915', '#17100d', '#0e0907'], lacquer: ['#1d1517', '#130d0f', '#0b0708'],
       paper: ['#283d66', '#1c2c4c', '#111a31'], damascus: ['#3a3e45', '#2b2e33', '#1d1f23'], marble: ['#222226', '#18181b', '#0f0f11'],
-      cedar: ['#24201f', '#191615', '#0f0d0c'], obsidian: ['#18171d', '#100f14', '#09080c'] }[id];
+      cedar: ['#24201f', '#191615', '#0f0d0c'], obsidian: ['#18171d', '#100f14', '#09080c'], zen: ['#3b3833', '#2c2a26', '#1f1d1a'] }[id];
     const lg = c.createLinearGradient(bx, 0, bx + bw, H);
     lg.addColorStop(0, base[0]); lg.addColorStop(0.55, base[1]); lg.addColorStop(1, base[2]);
     c.fillStyle = lg; c.fillRect(bx, 0, bw, H);
     // the soft light pool on the left, as in the reference footage
-    const pool = { walnut: '255,214,170', table: '255,214,170', iron: '200,190,175', bamboo: '235,222,170', clay: '255,192,150', lacquer: '255,176,150', paper: '175,195,245', damascus: '210,220,235', marble: '220,220,235', cedar: '255,200,160', obsidian: '180,185,230' }[id] || '185,200,216';
+    const pool = { walnut: '255,214,170', table: '255,214,170', iron: '200,190,175', bamboo: '235,222,170', clay: '255,192,150', lacquer: '255,176,150', paper: '175,195,245', damascus: '210,220,235', marble: '220,220,235', cedar: '255,200,160', obsidian: '180,185,230', zen: '255,214,170' }[id] || '185,200,216';
     const rg = c.createRadialGradient(bx + bw * 0.1, H * 0.42, 0, bx + bw * 0.1, H * 0.42, bw * 0.95);
     rg.addColorStop(0, 'rgba(' + pool + ',' + (id === 'slate' ? 0.13 : 0.08) + ')'); rg.addColorStop(1, 'rgba(' + pool + ',0)');
     c.fillStyle = rg; c.fillRect(bx, 0, bw, H);
@@ -3330,6 +3440,42 @@ const GrainSim = (() => {
         const edge = rnd() < 0.7, x = edge ? (rnd() < 0.5 ? bx + rnd() * bw * 0.12 : bx + bw * (0.88 + rnd() * 0.12)) : bx + rnd() * bw;
         const y = rnd() * H, r = (1 + rnd() * 3.5) * d;
         c.fillStyle = `rgba(150,100,50,${0.1 + rnd() * 0.15})`; c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill();
+      }
+    } else if (id === 'zen') {
+      // a dry garden's raked gravel at dusk: fine grit, long parallel furrows, and two places where the rake went round
+      // and round, as if a stone had stood there
+      const grit = (x0, y0, w, h, n) => {
+        for (let i = 0; i < n; i++) {
+          const x = x0 + rnd() * w, y = y0 + rnd() * h, z = (0.6 + rnd() * 1.1) * d;
+          c.fillStyle = rnd() < 0.5 ? `rgba(255,248,235,${0.04 + rnd() * 0.07})` : `rgba(0,0,0,${0.08 + rnd() * 0.12})`;
+          c.fillRect(x, y, z, z);
+        }
+      };
+      grit(bx, 0, bw, H, Math.round((bw * H) / (40 * d * d)));
+      const step = 13 * d, wave = (x, y) => Math.sin(x / (bw * 0.21) + y / (H * 0.9)) * 7 * d;
+      const furrow = (pts) => {
+        for (const [dy, col, lw] of [[1.6 * d, 'rgba(0,0,0,0.22)', 2.4], [0, 'rgba(255,244,228,0.07)', 1.4]]) {
+          c.strokeStyle = col; c.lineWidth = lw * d; c.beginPath();
+          pts.forEach(([x, y], i) => (i ? c.lineTo(x, y + dy) : c.moveTo(x, y + dy))); c.stroke();
+        }
+      };
+      for (let y = -step; y < H + step; y += step) {
+        const pts = [];
+        for (let x = bx - 10; x <= bx + bw + 10; x += 12 * d) pts.push([x, y + wave(x - bx, y)]);
+        furrow(pts);
+      }
+      for (const [fx0, fy0, R] of [[0.24, 0.3, 0.2], [0.74, 0.58, 0.16]]) {
+        const cx = bx + bw * fx0, cy = H * fy0, rr = bw * R;
+        c.save(); c.beginPath(); c.arc(cx, cy, rr, 0, Math.PI * 2); c.clip();
+        c.fillStyle = lg; c.fillRect(cx - rr, cy - rr, rr * 2, rr * 2);
+        c.fillStyle = rg; c.fillRect(cx - rr, cy - rr, rr * 2, rr * 2);
+        grit(cx - rr, cy - rr, rr * 2, rr * 2, Math.round((rr * rr * 4) / (40 * d * d)));
+        for (let r = rr - step * 0.4; r > step * 1.2; r -= step) {
+          const pts = [];
+          for (let a = 0; a <= Math.PI * 2 + 0.01; a += 0.08) pts.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r * 0.97]);
+          furrow(pts);
+        }
+        c.restore();
       }
     } else if (id === 'lacquer') {
       // black lacquer worn to red at the rims, smooth, one long soft sheen from the light
@@ -3487,7 +3633,7 @@ const GrainSim = (() => {
   }
 
   function layout() { return { H: view.H, top: view.top, bottom: view.bottom }; }
-  const levelAt = (i) => GS.levelFor(i);
+  const levelAt = (i) => (i < 0 ? GS.ZEN : GS.levelFor(i));      // -1 is zen mode
   // ---------- boards and progress: a board opens with enough stars in total, its levels one after another ----------
   const idAt = (i) => (i < GS.AUTHORED.length ? GS.AUTHORED[i].id : 'gen-' + (i + 1));     // without building the level
   function indexOfId(id) {
@@ -3523,7 +3669,7 @@ const GrainSim = (() => {
     return ask ? 'Collect ' + n + ' more ' + (n === 1 ? 'star' : 'stars') + ' to open ' + B.name + '.' : n + ' more ' + (n === 1 ? 'star opens ' : 'stars open ') + B.name + '.';
   }
   // a level's name: its board and its place on it; on the endless board, its material and its place in that
-  const levelName = (i) => { const B = GS.boardOf(i), ch = GS.chapterOf(i); return ch ? tr(ch.name) + ' ' + (i - ch.first + 1) : tr(B.name) + ' ' + (i - B.first + 1); };
+  const levelName = (i) => { if (i < 0) return tr('Zen mode'); const B = GS.boardOf(i), ch = GS.chapterOf(i); return ch ? tr(ch.name) + ' ' + (i - ch.first + 1) : tr(B.name) + ' ' + (i - B.first + 1); };
   // what a board page and the table under it show: the endless board in the material of the level you play next
   const pageLevel = (B) => (B.endless ? (firstOpenOn(B) != null ? firstOpenOn(B) : B.first) : B.first);
   const surfaceFor = (B) => GS.surfaceOf(pageLevel(B));
@@ -3532,7 +3678,7 @@ const GrainSim = (() => {
   const STAR_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.4l2.8 6.3 6.8.6-5.2 4.5 1.6 6.7-6-3.6-6 3.6 1.6-6.7-5.1-4.5 6.8-.6z"/></svg>';
 
   function startLevel(i, cause) {
-    levelIndex = Math.max(0, i);
+    levelIndex = i < 0 ? -1 : i;
     const L = levelAt(levelIndex);
     const failed = save.fails[L.id] || 0;
     sim = GS.create(Object.assign({}, cfg, { perks: stickById(save.sticks.equipped).perks || null, extraTime: 0.12 * Math.min(3, failed) }), L, layout(), ((Date.now() >>> 0) ^ (levelIndex * 7919)) >>> 0);
@@ -3540,7 +3686,7 @@ const GrainSim = (() => {
     fx.pops.clear(); fx.lands.clear(); fx.sparks = []; fx.steam = []; fx.floats = []; fx.rings = []; fx.wave = null; fx.bad = null; fx.shakeT = 0; fx.falls = []; fx.targetPulse = 1;
     fx.stop = 0; fx.heat = 0; fx.quench = 0; fx.beat = 0; fx.beatT = 0; fx.shimmer = null; fx.score = 0; fx.settle.clear(); fx.prevSt = null;
     fx.slow = 0; fx.scoreRed = 0; fx.saved = false; fx.holdStuck = 0; fx.stars = []; fx.flash = null; fx.lay = null; fx.restRing = null;
-    fx.catUsed = false; fx.hamUsed = false; fx.ham = null; fx.dialFrom = null; fx.lastTick = -1; pendingFail = 0; dialKey = '';
+    fx.catUsed = false; fx.hamUsed = false; fx.ham = null; fx.dialFrom = null; fx.lastTick = -1; pendingFail = 0; pendingZen = null; dialKey = '';
     clockEl.classList.remove('up');
     scoreEl.querySelector('b').textContent = fmt(0); scoreEl.classList.remove('down');
     if (reducedMotion()) fx.spill = null;
@@ -3567,6 +3713,8 @@ const GrainSim = (() => {
     updateStreak(null);
     syncHelpers();
     if (L.rule) banner(tr(L.rule), tr(L.ruleText || ''), 2600);
+    if (L.zen) banner(tr('Zen mode'), tr('The jar never stops. Three lives: a broken row or a full board costs one.'), 3400);
+    syncLives(false);
     Analytics.emit('level_start', { level: L.id, cause: cause || 'play', grains: sim.grains.length, ideal: sim.ideal, par: sim.par });
   }
 
@@ -3583,7 +3731,8 @@ const GrainSim = (() => {
       if (animate && !reducedMotion()) { chip.classList.remove('swap'); void chip.offsetWidth; chip.classList.add('swap'); }
       chipType = t;
     }
-    chip.querySelector('.left').textContent = chip.classList.contains('long') ? String(sim.remaining(t)) : tr('{n} left', { n: sim.remaining(t) });
+    const left = sim.zen ? sim.available(t) : sim.remaining(t);
+    chip.querySelector('.left').textContent = chip.classList.contains('long') ? String(left) : tr('{n} left', { n: left });
   }
   // per frame: the score counts toward its value, the level clock, and the pace line
   function updateClocks(dt) {
@@ -3640,6 +3789,19 @@ const GrainSim = (() => {
     clockEl.classList.toggle('low', low);
     clockEl.setAttribute('aria-label', tr('Time left: {t}', { t: mmss(sim.limitLeft()) }));
     if (low && left !== fx.lastTick && left > 0) { fx.lastTick = left; Sound.tick(left <= 3); }
+  }
+  // zen mode: three brush circles under the score, one fading for every life gone
+  function syncLives(lost) {
+    const el = $('lives');
+    el.hidden = !(sim && sim.zen);
+    if (el.hidden) return;
+    if (el.children.length !== 3) el.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.6 4.1C10.4 2.4 4.4 5.6 3.7 11.4c-.7 5.6 3.8 9.5 8.8 9.2 5-.3 8.6-4.6 7.8-9.6-.3-1.9-1.2-3.4-2.4-4.6" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/></svg>'.repeat(3);
+    [...el.children].forEach((c, i) => {
+      const gone = i >= sim.lives, was = c.classList.contains('gone');
+      c.classList.toggle('gone', gone);
+      if (lost && gone && !was) restartAnim(c, 'lose');
+    });
+    el.setAttribute('aria-label', tr('Lives: {n}', { n: sim.lives }));
   }
   function syncHelpers() {
     const paw = clockEl.querySelector('.paw'), n = save.helpers.cat;
@@ -3701,7 +3863,7 @@ const GrainSim = (() => {
   }
 
   // ---------- screens ----------
-  const SCREENS = ['title', 'table', 'sticks', 'pause', 'done', 'tune', 'fail'];
+  const SCREENS = ['title', 'table', 'sticks', 'pause', 'done', 'tune', 'fail', 'zenEnd'];
   let tuneFrom = 'pause', sticksFrom = 'table';
   function setScreen(s) {
     // the phone's notch can be measured as nothing at the very start (an app on the home screen): look again
@@ -3722,7 +3884,7 @@ const GrainSim = (() => {
     if (s === 'sticks') renderSticks();
     if (s === 'pause') syncControl();
     Room.set(s === 'title' ? 'hut' : s === 'table' || s === 'sticks' ? 'table' : 'play');
-    const focusMap = { title: 'enterBtn', table: 'tableBack', sticks: 'sticksBackBtn', pause: 'resumeBtn', done: 'nextBtn', tune: 'tuneDoneBtn', fail: 'failRetry' };
+    const focusMap = { title: 'enterBtn', table: 'tableBack', sticks: 'sticksBackBtn', pause: 'resumeBtn', done: 'nextBtn', tune: 'tuneDoneBtn', fail: 'failRetry', zenEnd: 'zenAgain' };
     if (focusMap[s] && document.activeElement && document.activeElement !== document.body) $(focusMap[s]).focus({ preventScroll: true });
   }
   // a chalk star, drawn a little crooked; each of the five leans its own way
@@ -4118,6 +4280,7 @@ const GrainSim = (() => {
     });
     requestAnimationFrame(() => centerBoard(tableBoard, false));
     $('sticksImg').src = sticksPicture();
+    syncZenBtn();
     const fresh = save.sticks.owned.filter((id) => !save.sticks.looked.includes(id)).length, rest = $('sticksRest');
     let badge = rest.querySelector('.new');
     if (fresh && !badge) { badge = document.createElement('span'); badge.className = 'new'; rest.appendChild(badge); }
@@ -4372,6 +4535,7 @@ const GrainSim = (() => {
   window.addEventListener('pointerdown', (e) => { if (e.pointerType) pointerKind = e.pointerType === 'mouse' ? 'mouse' : 'touch'; }, { passive: true, capture: true });
   canvas.addEventListener('pointerdown', (e) => {
     Sound.unlock();
+    if (screen === 'play' && sim && sim.done && pendingZen) { pendingZen.at = Math.min(pendingZen.at, performance.now() + 350); return; }
     if (screen === 'play' && sim && sim.done && pendingDone) { pendingDone.at = Math.min(pendingDone.at, performance.now() + (fx.lay && fx.lay.rang ? 0 : 350)); return; }
     if (screen !== 'play' || typeof input.id === 'number' || autoBot) return;
     input.id = e.pointerId;
@@ -4480,8 +4644,26 @@ const GrainSim = (() => {
           Analytics.emit('time_up', { level: L.id, left: e.left, limit: e.limit });
           break;
         case 'time_added': pendingFail = 0; break;
+        case 'life_lost':
+          Sound.thud(); Haptics.buzz([40, 60, 40]); syncLives(true);
+          if (e.why === 'full') { if (!reducedMotion()) fx.shakeT = 0.35; note(tr('The board is full'), tr('A life gone'), '#ff7a6b', '#ff7a6b', W / 2, view.H * 0.45); }
+          Analytics.emit('life_lost', { why: e.why, lives: e.lives, time: sim.clock });
+          break;
+        case 'pile_packed':
+          Sound.chime(); note('+' + fmt(e.bonus), tr('Bowl full'), '#f6c453', '#ece8de', e.x + (e.x < W / 2 ? 110 : e.x > W / 2 ? -110 : 0), e.y - 140);
+          break;
+        case 'zen_over': {
+          Haptics.buzz([20, 30, 20, 30, 40]);
+          layDown();
+          const z = save.zen, best = e.score > z.best;
+          z.plays++; if (best) z.best = e.score; z.bestTime = Math.max(z.bestTime, Math.floor(e.time));
+          persist(); levelUnlocks.push(...checkUnlocks());
+          pendingZen = { at: performance.now() + LAY_T * 1000 + 900, res: e, best };
+          Analytics.emit('zen_over', { score: e.score, time: e.time, sorted: e.sorted, why: e.why });
+          break;
+        }
         case 'stone_taken': Sound.nibble(); if (fx.ham) fx.ham.cheeks = Math.min(1.7, fx.ham.cheeks + 0.22); break;
-        case 'jar': Sound.scatter(Math.min(12, e.n * 2)); break;
+        case 'jar': Sound.scatter(Math.min(12, e.n * 2)); if (sim.zen) syncHelpers(); break;
         case 'lost': {
           fx.falls.push({ id: e.id, t: 0 });
           if (performance.now() - fx.tickT > 90) { fx.tickT = performance.now(); Sound.knock(28); }
@@ -4743,6 +4925,26 @@ const GrainSim = (() => {
   $('catBtn').addEventListener('click', () => { setScreen('play'); useCat(true); });
   $('failRetry').addEventListener('click', () => { Analytics.emit('level_retry', { level: levelAt(levelIndex).id, from: 'fail' }); startLevel(levelIndex, 'retry'); });
   $('failBack').addEventListener('click', () => { tableBoard = GS.boardOf(levelIndex); setScreen('table'); });
+
+  // ---------- zen mode: the way in, and the end ----------
+  const zenOpen = () => !!save.levels[GS.AUTHORED[2].id];
+  function syncZenBtn() { $('zenBtn').classList.toggle('locked', !zenOpen()); }
+  $('zenBtn').addEventListener('click', () => {
+    if (!zenOpen()) { toast(tr('Zen mode opens after the first three levels.')); return; }
+    $('table').classList.remove('show'); Sound.slide();
+    setTimeout(() => startLevel(-1, 'zen'), reducedMotion() ? 0 : 280);
+  });
+  function showZenEnd(res, best) {
+    $('zenKicker').textContent = tr('Zen mode');
+    $('zenTitle').textContent = tr(res.why === 'full' ? 'The jar won this time' : 'Three rows broken');
+    $('zenScore').textContent = fmt(res.score);
+    const em = $('zenScore').parentNode.querySelector('em'); if (em) em.remove();
+    if (best && save.zen.plays > 1) { const e2 = document.createElement('em'); e2.textContent = tr('New best'); $('zenScore').parentNode.appendChild(e2); }
+    $('zenLine').textContent = tr('{t} at the board, {n} sorted.', { t: mmss(res.time), n: nn(res.sorted, 'grain') }) + (save.zen.plays > 1 && !best ? ' ' + tr('Best: {s}.', { s: fmt(save.zen.best) }) : '');
+    setScreen('zenEnd');
+  }
+  $('zenAgain').addEventListener('click', () => startLevel(-1, 'zen'));
+  $('zenBack').addEventListener('click', () => setScreen('table'));
 
   // ---------- pause / resume ----------
   function pause() { if (screen !== 'play' || !sim || sim.done) return; setScreen('pause'); Analytics.emit('pause', { level: levelAt(levelIndex).id }); }
@@ -5062,13 +5264,21 @@ const GrainSim = (() => {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     if (screen === 'title') { drawRoom(dt); return; }
     if (screen === 'table' || screen === 'sticks') { drawTableTop(dt); return; }
-    ctx.drawImage(backgroundFor(GS.surfaceOf(levelIndex)), 0, 0);
+    ctx.drawImage(backgroundFor(levelIndex < 0 ? 'zen' : GS.surfaceOf(levelIndex)), 0, 0);
     drawCandle();
     const s = sim;
     if (!s || !sprites) return;
     ctx.save();                                  // nothing draws past the board on a wide screen
     ctx.beginPath(); ctx.rect(Math.round(view.offX * view.dpr), 0, Math.round(W * view.scale * view.dpr), canvas.height); ctx.clip();
     drawWorld(s);
+    if (s.zen && s.crowd > 0.78 && !s.done) {
+      const t = performance.now() / 1000, full = s.overT > 0, k = clamp((s.crowd - 0.78) / 0.22, 0, 1) * (full ? 0.75 + 0.25 * Math.sin(t * 9) : 0.6);
+      const d = view.dpr, bx = view.offX * d, bw = W * view.scale * d, H = canvas.height;
+      const g = ctx.createRadialGradient(bx + bw / 2, H * 0.48, Math.min(bw, H) * 0.35, bx + bw / 2, H * 0.48, Math.max(bw, H) * 0.75);
+      g.addColorStop(0, 'rgba(255,90,70,0)'); g.addColorStop(1, 'rgba(255,90,70,' + (0.32 * k).toFixed(3) + ')');
+      ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = g; ctx.fillRect(bx, 0, bw, H);
+      if (full && !fx.fullSaid) { fx.fullSaid = true; toast(tr('The board is filling up: sort faster!')); }
+    } else if (s.zen && s.crowd < 0.7) fx.fullSaid = false;
     ctx.restore();
   }
   function drawWorld(s) {
@@ -5096,7 +5306,7 @@ const GrainSim = (() => {
     // the kind the sticks are after lies in a soft light, so it is plain what to gather; brightest on the first board,
     // where the rule is new, and swelling for a moment whenever the sticks switch kind
     if (s === sim && !s.done) {
-      const B = GS.boardOf(levelIndex), base = B.first === 0 ? 0.5 : stickById(save.sticks.equipped).glow ? (B.first < 30 ? 0.36 : 0.3) : 0, pulse = fx.targetPulse;
+      const B = GS.boardOf(levelIndex), base = B.first === 0 && levelIndex >= 0 ? 0.5 : stickById(save.sticks.equipped).glow ? (B.first < 30 ? 0.36 : 0.3) : 0, pulse = fx.targetPulse;
       const sp2 = haloSprite(), T = TYPES[s.target];
       ctx.globalAlpha = Math.min(1, base + 0.45 * pulse);
       worldTransform(ox, oy);
@@ -5294,6 +5504,7 @@ const GrainSim = (() => {
       updateClocks(dt);
       if (pendingDone && now >= pendingDone.at) { const p = pendingDone; pendingDone = null; showDone(p.res, p.prev, p.unlocks, p.opened); }
       if (pendingFail && now >= pendingFail && sim.timeUp && !sim.done) { pendingFail = 0; showFail(); }
+      if (pendingZen && now >= pendingZen.at) { const z = pendingZen; pendingZen = null; showZenEnd(z.res, z.best); }
       updateHamster(dt);
     } else acc = 0;
     updateFx(dt);
@@ -5375,7 +5586,7 @@ const GrainSim = (() => {
   $('menuBtn').addEventListener('click', pause);
   $('resumeBtn').addEventListener('click', resume);
   $('restartBtn').addEventListener('click', () => { Analytics.emit('level_retry', { level: levelAt(levelIndex).id, from: 'pause' }); startLevel(levelIndex, 'restart'); });
-  function leaveLevel() { Analytics.emit('level_exit', { level: levelAt(levelIndex).id }); tableBoard = GS.boardOf(levelIndex); setScreen('table'); }
+  function leaveLevel() { Analytics.emit('level_exit', { level: levelAt(levelIndex).id }); if (levelIndex >= 0 || !tableBoard) tableBoard = GS.boardOf(Math.max(0, levelIndex)); setScreen('table'); }
   $('pauseLevelsBtn').addEventListener('click', leaveLevel);
   // the corner arrows act at once until a row is in; after that the first tap asks and a second within a moment goes
   let asking = null, askT = 0;
@@ -5432,7 +5643,7 @@ const GrainSim = (() => {
     ['#sticks h2', 'Chopsticks'], ['#sticks .sub', 'Each pair is earned by playing well.'], ['#sticksBackBtn', 'Back'],
     ['#pause h2', 'Paused'], ['#resumeBtn', 'Resume'], ['label[for=sfxVol]', 'Game sounds'], ['label[for=ambVol]', 'Ambience'], ['#restartBtn', 'Restart level'], ['#tuneBtn', 'Tune feel'], ['#pauseLevelsBtn', 'Back to the boards'],
     ['#doneTotal span', 'Score'], ['#retryBtn', 'Retry'], ['#doneLevelsBtn', 'Back'],
-    ['#failRetry span', 'Try again'], ['#failBack span', 'Back'], ['#clock', 'Time left', 'aria-label'], ['#hamBtn', 'Zen Hamster', 'aria-label'],
+    ['#failRetry span', 'Try again'], ['#failBack span', 'Back'], ['#zenAgain', 'Again'], ['#zenBack span', 'Back'], ['#zenScoreLabel', 'Score'], ['#zenBtn', 'Zen mode', 'aria-label'], ['#clock', 'Time left', 'aria-label'], ['#hamBtn', 'Zen Hamster', 'aria-label'],
     ['#tune h2', 'Tune feel'], ['#tune .sub', 'Changes apply right away and stay on this device. Row length applies from the next level. A level with its own rule keeps it.'],
     ['label.check:nth-of-type(1)', 'Show how far the sticks reach'], ['label.check:nth-of-type(2)', 'Vibrate'], ['label.check:nth-of-type(3)', 'Solid grains'],
     ['#tuneResetBtn', 'Reset'], ['#tuneCopyBtn', 'Copy values'], ['#tuneDoneBtn', 'Done'],

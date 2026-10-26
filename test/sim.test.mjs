@@ -847,3 +847,36 @@ test('a helper can carry stones off the board; they count for nothing and never 
   assert.ok(stones.every((g) => g.st === ST.LOST));
   invariants(sim);
 });
+
+test('zen mode: the jar never stops, full piles are packed away, broken rows and a full board cost lives, the last one ends it', () => {
+  const sim = GS.create({}, GS.ZEN, LAYOUT, 4);
+  assert.equal(sim.limit, Infinity, 'no clock to beat');
+  assert.equal(sim.lives, 3);
+  // played by the bot for a while: grains keep coming and piles get packed
+  const bot = GS.makeBot(sim, 9);
+  const ev = [];
+  for (let i = 0; i < 240 * 120 && !sim.done; i++) { sim.step(bot()); ev.push(...sim.drainEvents()); }
+  assert.ok(ev.filter((e) => e.type === 'jar').length >= 10, 'the jar keeps pouring');
+  assert.ok(ev.some((e) => e.type === 'pile_packed'), 'full piles are packed away');
+  assert.ok(sim.stats.sorted > 120, 'sorted ' + sim.stats.sorted);
+  assert.ok(sim.grains.length < 400, 'packed grains are poured again, the board does not grow without end: ' + sim.grains.length);
+  for (const t in sim.stores) assert.ok(sim.stores[t].n <= GS.ZEN_PILE + 30);
+  // an idle board fills up: a life goes, the jar waits, and with no lives left the game is over
+  const idle = GS.create({}, GS.ZEN, LAYOUT, 5);
+  idle.started = true;
+  const ev2 = [];
+  for (let i = 0; i < 400 * 120 && !idle.done; i++) { idle.step({ down: false }); ev2.push(...idle.drainEvents()); }
+  const lost = ev2.filter((e) => e.type === 'life_lost');
+  assert.equal(lost.length, 3); assert.ok(lost.every((e) => e.why === 'full'));
+  const over = ev2.find((e) => e.type === 'zen_over');
+  assert.ok(over && idle.done && over.time > 30, 'over after ' + (over && over.time.toFixed(0)) + ' s');
+  // a broken row costs a life
+  const b = GS.create({}, GS.ZEN, LAYOUT, 6);
+  const l = b.grains.find((g) => g.type === 'lentil');
+  holdAt(b, l.x, l.y + 60, 0.3);
+  const G = b.geom();
+  b.debugPut('rice', G.mx + G.ux * 25, G.my + G.uy * 25);
+  const ev3 = holdAt(b, l.x, l.y + 60, 1);
+  assert.ok(ev3.some((e) => e.type === 'life_lost' && e.why === 'break'));
+  assert.equal(b.lives, 2);
+});
