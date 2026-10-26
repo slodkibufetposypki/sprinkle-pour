@@ -3,3 +3,6 @@ dist/
 .claude/
 .DS_Store
 node_modules/
+# zen-grain: the local test build and its copied media
+zen-grain/local.html
+zen-grain/zen-*

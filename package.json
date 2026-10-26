@@ -2,11 +2,13 @@
   "name": "sprinkle-pour",
   "version": "0.1.0",
   "private": true,
-  "description": "Sprinkle Pour — one-finger jar physics prototype (grey-box sandbox)",
+  "description": "Sprinkle Pour \u2014 one-finger jar physics prototype (grey-box sandbox)",
   "type": "module",
   "scripts": {
     "serve": "node tools/serve.mjs 5173",
     "bot": "node tools/bot.mjs",
-    "build": "node tools/build.mjs"
+    "build": "node tools/build.mjs",
+    "zen:test": "node --test zen-grain/test/sim.test.mjs",
+    "zen:build": "node zen-grain/build.mjs"
   }
 }

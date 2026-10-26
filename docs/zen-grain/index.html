@@ -59,12 +59,21 @@
     width: min(100%, var(--board-w, 100%)); transform: translateX(-50%);
     padding-top: calc(env(safe-area-inset-top, 0px) + 8px);
     padding-left: max(10px, env(safe-area-inset-left, 0px)); padding-right: max(14px, env(safe-area-inset-right, 0px));
-    display: grid; grid-template-columns: 44px 1fr 96px; align-items: start; gap: 6px;
+    display: grid; grid-template-columns: 48px 1fr 96px; align-items: start; gap: 6px;
     font-family: var(--hand); line-height: 1;
   }
   #hud > * { pointer-events: auto; }
   .iconbtn { width: 44px; height: 44px; border: 0; background: none; display: grid; place-items: center; padding: 0; }
   .iconbtn svg { width: 22px; height: 22px; fill: none; stroke: var(--chalk-2); stroke-width: 2.6; stroke-linecap: round; }
+  /* the corners of the HUD: back and again on the left, pause over the score on the right */
+  #hud .side { display: flex; flex-direction: column; align-items: flex-start; }
+  #hud .side.end { align-items: flex-end; }
+  #hud .side .iconbtn { width: 48px; height: 44px; }
+  #hud .iconbtn svg { width: 24px; height: 24px; stroke: var(--chalk); stroke-linejoin: round; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .7)); }
+  #hud .iconbtn.big { width: 52px; height: 52px; margin: -4px -6px 0 0; }
+  #hud .iconbtn.big svg { width: 30px; height: 30px; stroke-width: 3; }
+  #hud .iconbtn:active svg { transform: scale(0.9); }
+  #hud .iconbtn.ask svg { stroke: var(--ember); }
   .mid { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; padding-top: 4px; }
   #chip { display: flex; align-items: center; gap: 7px; white-space: nowrap; max-width: 100%; font-size: var(--fs-24); }
   #chip.swap { animation: swap .24s cubic-bezier(.2, .8, .2, 1); }
@@ -89,7 +98,7 @@
   #fuse[data-pace="Lightning"] { background: var(--ember); }
   #fuse[data-pace="Quick"] { background: var(--lentil); }
   #fuse[data-pace="Slow"] { background: var(--chalk-red); }
-  #score { justify-self: end; text-align: right; padding-top: 4px; }
+  #score { justify-self: end; text-align: right; margin-top: -2px; }
   #score b { display: block; font-weight: 400; font-size: var(--fs-34); line-height: 1; }
   #score span { color: var(--chalk-2); font-size: var(--fs-20); }
   #score span.low { color: var(--ember); }
@@ -139,10 +148,12 @@
   }
   .primary:active { transform: scale(0.985) rotate(-0.3deg); }
   .ghost {
-    min-height: 50px; border-radius: 9px 7px 10px 8px; border: 2px solid var(--chalk-3); background: transparent; padding: 0 16px;
-    font: 400 var(--fs-20)/1.1 var(--hand); display: flex; align-items: center; justify-content: center; gap: 8px; flex: none;
+    min-height: 52px; border-radius: 9px 7px 10px 8px; border: 2px solid var(--chalk-2); background: rgba(236, 232, 222, 0.07); padding: 0 16px;
+    font: 400 var(--fs-24)/1.1 var(--hand); color: var(--chalk); display: flex; align-items: center; justify-content: center; gap: 8px; flex: none;
   }
-  .ghost:active { background: rgba(236, 232, 222, 0.06); }
+  .ghost:active { background: rgba(236, 232, 222, 0.14); }
+  .ghost svg { width: 22px; height: 22px; flex: none; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+  .ghost.back { margin-top: 6px; }
   .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .stack { display: flex; flex-direction: column; gap: 10px; }
   .sub { margin: 0; color: var(--chalk-2); font: 400 var(--fs-15)/1.4 var(--print); }
@@ -259,21 +270,26 @@
     .roomtitle, .roomtitle.on { transform: translateY(-50%); }
   }
 </style>
-
 </head>
 <body>
 <canvas id="game" aria-label="Game board"></canvas>
 <div id="safe"></div>
 
 <div id="hud" hidden>
-  <button id="menuBtn" class="iconbtn" aria-label="Pause"><svg viewBox="0 0 22 22" aria-hidden="true"><path d="M7.6 4.2c.2 4.6-.1 9.2.3 13.6M14.6 4.4c-.3 4.4.1 9 .1 13.4"/></svg></button>
+  <div class="side">
+    <button id="leaveBtn" class="iconbtn" aria-label="Back to the boards"><svg viewBox="0 0 22 22" aria-hidden="true"><path d="M13.6 4.4c-2.5 2.3-4.4 4.3-6.3 6.5 1.9 2.1 3.9 4.1 6.4 6.5"/></svg></button>
+    <button id="againBtn" class="iconbtn" aria-label="Start the level again"><svg viewBox="0 0 22 22" aria-hidden="true"><path d="M18.6 13.4a7.8 7.8 0 1 1-1.9-8L20 8.6"/><path d="M20.3 3.6v5.2h-5.1"/></svg></button>
+  </div>
   <div class="mid">
     <div id="chip" class="chalk" aria-live="polite"><svg class="ico" viewBox="0 0 20 20" aria-hidden="true"></svg><span class="name">Lentils</span><span class="left">0</span></div>
     <div id="streak" class="chalk"><b>×1.0</b></div>
     <i id="fuse" class="chalk" aria-hidden="true"></i>
     <span id="tally" class="chalk" aria-hidden="true"></span>
   </div>
-  <div id="score" class="chalk"><b>0</b><span id="clock">0:00</span></div>
+  <div class="side end">
+    <button id="menuBtn" class="iconbtn big" aria-label="Pause"><svg viewBox="0 0 22 22" aria-hidden="true"><path d="M7.4 4.2c.2 4.6-.1 9.2.3 13.6M14.8 4.4c-.3 4.4.1 9 .1 13.4"/></svg></button>
+    <div id="score" class="chalk"><b>0</b><span id="clock">0:00</span></div>
+  </div>
 </div>
 <div id="banner" class="note chalk" role="status"><b></b><span></span></div>
 <div id="hint" class="note chalk off" aria-live="polite"></div>
@@ -310,15 +326,13 @@
     <button id="resumeBtn" class="primary">Resume</button>
     <div class="stack">
       <button id="controlBtn" class="ghost"></button>
-      <button id="restartBtn" class="ghost">Restart level</button>
-      <button id="pauseLevelsBtn" class="ghost">Levels</button>
+      <button id="restartBtn" class="ghost"><svg viewBox="0 0 22 22" aria-hidden="true"><path d="M18.6 13.4a7.8 7.8 0 1 1-1.9-8L20 8.6"/><path d="M20.3 3.6v5.2h-5.1"/></svg>Restart level</button>
       <div class="pair">
         <button id="soundBtn" class="ghost">Sound on</button>
-        <button id="musicBtn" class="ghost">Music on</button>
-      </div>
-      <div class="pair">
         <button id="tuneBtn" class="ghost">Tune feel</button>
       </div>
+      <button id="musicBtn" class="ghost" hidden>Music on</button>
+      <button id="pauseLevelsBtn" class="ghost back"><svg viewBox="0 0 22 22" aria-hidden="true"><path d="M13.6 4.4c-2.5 2.3-4.4 4.3-6.3 6.5 1.9 2.1 3.9 4.1 6.4 6.5"/></svg>Back to the boards</button>
     </div>
   </div>
 </section>
@@ -334,8 +348,8 @@
     <p class="prize chalk" id="donePrize" hidden></p>
     <button id="nextBtn" class="primary">Next level</button>
     <div class="pair">
-      <button id="retryBtn" class="ghost">Retry</button>
-      <button id="doneLevelsBtn" class="ghost">Levels</button>
+      <button id="retryBtn" class="ghost"><svg viewBox="0 0 22 22" aria-hidden="true"><path d="M18.6 13.4a7.8 7.8 0 1 1-1.9-8L20 8.6"/><path d="M20.3 3.6v5.2h-5.1"/></svg>Retry</button>
+      <button id="doneLevelsBtn" class="ghost back"><svg viewBox="0 0 22 22" aria-hidden="true"><path d="M13.6 4.4c-2.5 2.3-4.4 4.3-6.3 6.5 1.9 2.1 3.9 4.1 6.4 6.5"/></svg>Back</button>
     </div>
   </div>
 </section>
@@ -3704,8 +3718,22 @@ const GrainSim = (() => {
   $('menuBtn').addEventListener('click', pause);
   $('resumeBtn').addEventListener('click', resume);
   $('restartBtn').addEventListener('click', () => { Analytics.emit('level_retry', { level: levelAt(levelIndex).id, from: 'pause' }); startLevel(levelIndex, 'restart'); });
-  $('pauseLevelsBtn').addEventListener('click', () => { Analytics.emit('level_exit', { level: levelAt(levelIndex).id }); tableBoard = GS.boardOf(levelIndex); setScreen('table'); });
-  if (!ROOM_SOUND) { $('musicBtn').hidden = true; $('soundBtn').style.gridColumn = '1 / -1'; }
+  function leaveLevel() { Analytics.emit('level_exit', { level: levelAt(levelIndex).id }); tableBoard = GS.boardOf(levelIndex); setScreen('table'); }
+  $('pauseLevelsBtn').addEventListener('click', leaveLevel);
+  // the corner arrows act at once until a row is in; after that the first tap asks and a second within a moment goes
+  let asking = null, askT = 0;
+  function ask(btn, msg, go) {
+    const keep = () => { clearTimeout(askT); if (asking) asking.classList.remove('ask'); asking = null; };
+    if (screen !== 'play') return;
+    if (!sim || sim.done || !sim.stats.rows || asking === btn) { keep(); go(); return; }
+    keep(); asking = btn; btn.classList.add('ask'); toast(msg);
+    askT = setTimeout(keep, 2400);
+  }
+  $('leaveBtn').addEventListener('click', (e) => ask(e.currentTarget, 'Tap the arrow again to leave this level.', leaveLevel));
+  $('againBtn').addEventListener('click', (e) => ask(e.currentTarget, 'Tap again to start this level over.', () => {
+    Analytics.emit('level_retry', { level: levelAt(levelIndex).id, from: 'hud' }); startLevel(levelIndex, 'restart');
+  }));
+  $('musicBtn').hidden = !ROOM_SOUND;
   const syncSound = () => { $('soundBtn').textContent = save.sound ? 'Sound on' : 'Sound off'; $('musicBtn').textContent = save.music ? 'Music on' : 'Music off'; };
   $('soundBtn').addEventListener('click', () => { save.sound = !save.sound; persist(); syncSound(); if (save.sound) Sound.unlock(); else Sound.sleep(); Room.apply(); Night.level(); });
   $('musicBtn').addEventListener('click', () => { save.music = !save.music; persist(); syncSound(); Room.apply(); });
