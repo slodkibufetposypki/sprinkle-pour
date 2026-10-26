@@ -5920,6 +5920,45 @@ const GrainSim = (() => {
     if (f > 0) { ctx.beginPath(); ctx.arc(G.mx, G.my, r, a0, a0 + f * Math.PI * 2); ctx.stroke(); }
     ctx.lineCap = 'butt';
   }
+  // A pile's place is a ceramic bowl standing in the corner of the board, most of it beyond the edge: a pale stoneware
+  // lip with the light on it, and inside a dark glaze, so white rice reads in it as well as orange lentils. Seen from
+  // above, the wall nearest the light lies in the lip's shadow. Over a bowl with a row to let go, the lip lights up.
+  const BOWL_LIP = 15;
+  function drawBowl(cx, cy, r, am, over, t) {
+    const R = r + BOWL_LIP, L = { x: LIGHT.x, y: LIGHT.y };
+    // its shadow on the board, down and to the right
+    let g = ctx.createRadialGradient(cx + 6, cy + 9, R - 4, cx + 6, cy + 9, R + 26);
+    g.addColorStop(0, 'rgba(0,0,0,0.5)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx + 6, cy + 9, R + 26, 0, Math.PI * 2); ctx.fill();
+    // the lip: pale stoneware, rounded, the glaze thinning to brown at its very edges
+    g = ctx.createRadialGradient(cx, cy, r - 1, cx, cy, R);
+    g.addColorStop(0, '#6d5a43'); g.addColorStop(0.18, '#c9b897'); g.addColorStop(0.5, '#ece0c6'); g.addColorStop(0.82, '#d2c2a2'); g.addColorStop(1, '#7c6a52');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.arc(cx, cy, r, 0, Math.PI * 2, true); ctx.fill('evenodd');
+    // inside: a deep glaze, darker down in the well, lighter up the wall
+    g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+    g.addColorStop(0, '#1d2733'); g.addColorStop(0.7, '#253241'); g.addColorStop(0.94, '#33465a'); g.addColorStop(1, '#3d536a');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+    // the lip's shadow on the inner wall toward the light, and the light on the far wall
+    const sx = cx - L.x * r * 0.12, sy = cy - L.y * r * 0.12;
+    g = ctx.createRadialGradient(sx, sy, r * 0.82, sx, sy, r * 1.04);
+    g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.45)');
+    ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.clip();
+    ctx.fillStyle = g; ctx.fillRect(cx - r - 20, cy - r - 20, r * 2 + 40, r * 2 + 40);
+    const hx = cx - L.x * r * 0.55, hy = cy - L.y * r * 0.55, hg = ctx.createRadialGradient(hx, hy, 0, hx, hy, r * 0.6);
+    hg.addColorStop(0, 'rgba(170,200,230,0.16)'); hg.addColorStop(1, 'rgba(170,200,230,0)');
+    ctx.fillStyle = hg; ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
+    ctx.restore();
+    // a glint along the lip where it faces the light, on the part that is on the board
+    const ga = Math.atan2(L.y, L.x), a = Math.abs(((ga - am + Math.PI * 3) % (Math.PI * 2)) - Math.PI) < 1.2 ? ga : am - 0.45;
+    ctx.strokeStyle = 'rgba(255,250,236,0.6)'; ctx.lineWidth = 2.6; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.arc(cx, cy, r + BOWL_LIP * 0.48, a - 0.28, a + 0.28); ctx.stroke();
+    ctx.lineCap = 'butt';
+    if (over) {
+      const k = 0.6 + 0.4 * Math.sin(t * 8);
+      ctx.strokeStyle = 'rgba(246,196,83,' + (0.55 + 0.35 * k).toFixed(2) + ')'; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.arc(cx, cy, R + 3, 0, Math.PI * 2); ctx.stroke();
+    }
+  }
   function drawStores(s, ox, oy) {
     worldTransform(ox, oy);
     for (const t in s.stores) {
@@ -5927,14 +5966,10 @@ const GrainSim = (() => {
       const a0 = st.kind === 'bc' ? Math.PI : st.kind === 'bl' ? -Math.PI / 2 : Math.PI;
       const a1 = st.kind === 'bc' ? 2 * Math.PI : st.kind === 'bl' ? 0 : 1.5 * Math.PI;
       const over = s.sticks.drop === st && s.sticks.phase === 'hold';
-      ctx.fillStyle = over ? 'rgba(242,237,227,0.08)' : 'rgba(0,0,0,0.14)';
-      ctx.beginPath(); ctx.moveTo(st.x, st.y); ctx.arc(st.x, st.y, r, a0, a1); ctx.closePath(); ctx.fill();
-      ctx.strokeStyle = over ? 'rgba(242,237,227,0.55)' : 'rgba(242,237,227,0.1)'; ctx.lineWidth = over ? 3 : 2; ctx.setLineDash([10, 12]);
-      ctx.lineDashOffset = over ? -s.t * 40 : 0;
-      ctx.beginPath(); ctx.arc(st.x, st.y, r, a0, a1); ctx.stroke(); ctx.setLineDash([]);
-      // the kind it takes, set just outside its edge, so an empty pile still says what goes there
+      drawBowl(st.x, st.y, r, (a0 + a1) / 2, over, s.t);
+      // the kind it takes, set just outside its rim, so an empty bowl still says what goes there
       // on a small dark plate with a chalk rim, so it never reads as a loose grain
-      const am = (a0 + a1) / 2, lr = r + 26, lx = st.x + Math.cos(am) * lr, ly = st.y + Math.sin(am) * lr, pr = over ? 22 : 19;
+      const am = (a0 + a1) / 2, lr = r + BOWL_LIP + 18, lx = st.x + Math.cos(am) * lr, ly = st.y + Math.sin(am) * lr, pr = over ? 22 : 19;
       ctx.fillStyle = 'rgba(8,9,11,0.55)'; ctx.beginPath(); ctx.arc(lx, ly, pr, 0, Math.PI * 2); ctx.fill();
       ctx.strokeStyle = over ? 'rgba(242,237,227,0.7)' : 'rgba(242,237,227,0.32)'; ctx.lineWidth = 2; ctx.stroke();
       const lab = { type: t, rot: -0.5, s: (TYPES[t].rx > 14 ? 0.78 : 1) * (over ? 1.08 : 0.95), tint: 1, id: 0, x: lx, y: ly };

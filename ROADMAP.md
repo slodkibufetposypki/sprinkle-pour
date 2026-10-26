@@ -3,13 +3,13 @@
 ## Where things stand (26 Oct)
 **Decided, not built yet**, in the order proposed:
 1. **The Zen Capybara as a moment of its own:** she appears, bows, thanks you for the bowls and gives a life back (now only a line of text), and at game over offers one more life to carry on (the simulation can already do it; the offer on screen is not there).
-2. **Medallions for the Zen Cat, the Zen Capybara and the Zen Hamster:** gold enamel with the animal raised on it; when one is given, it pops up, hops, turns and shines, and falls past the bottom edge.
-3. **Ceramic bowls** in place of the dark quarter-circles where the piles go.
-4. **Zen, what you see grow:** sticks covered in runes that kindle with the multiplier, rose petals and a moment of slow motion at ×10, a glowing score.
-5. **The end of a zen run as a tower of bowls** climbing from the forest floor to the clouds.
-6. **The domain zengrains.com** (bought): waiting on the owner's choice of a separate repository (the game at the domain's root, progress carried over) or the current one.
-7. **Porcelain, more:** a rule of its own and a different plate of the service on every level (both still to decide).
-8. **Recording test sessions** (Google Sheets and Apps Script), to see how testers play.
+2. **Zen, what you see grow:** sticks covered in runes that kindle with the multiplier, rose petals and a moment of slow motion at ×10, a glowing score.
+3. **The end of a zen run as a tower of bowls** climbing from the forest floor to the clouds.
+4. **The domain zengrains.com** (bought): waiting on the owner's choice of a separate repository (the game at the domain's root, progress carried over) or the current one.
+5. **Porcelain, more:** a rule of its own and a different plate of the service on every level (both still to decide).
+6. **Recording test sessions** (Google Sheets and Apps Script), to see how testers play.
+
+**Done since:** the helpers' medallions (gold and enamel, front and back; they pop up, turn over and fall away when a helper is given), and ceramic bowls for the piles (a pale stoneware lip, a dark glaze inside so every grain reads).
 
 **Ideas to decide:** a calm, endless mode for children and anyone who just wants to sort (see below); the workshop; mini-games; the magic scroll and the other fantasy boards and grains; the room's upgrades and times of day; the daily board; music; hard levels; the result layout; Paper's own rule; carrying rows (waiting on testers); zen ranks, daily goals, a jar of the week, a share card; the App Store launch.
 
