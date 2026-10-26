@@ -86,7 +86,7 @@ test('generated levels get harder one step at a time, without end, easing off wh
     const L = GS.levelFor(i), mix = GS.mixOf(L.piles, L.seed), want = L.mix;
     if (!L.jar) assert.equal(want, GS.mixTarget(L.difficulty));
     assert.ok(Math.abs(mix - want) < Math.max(0.6, want * 0.25), 'level ' + (i + 1) + ' is as mixed as the climb asks: ' + mix.toFixed(2) + ' for ' + want.toFixed(2));
-    if (GS.newsAt(i) && i > AUTHORED.length) assert.ok(pressure(i) < pressure(i - 1), 'a level that brings something in is a breather, level ' + (i + 1));
+    if (GS.newsAt(i) && i > AUTHORED.length) assert.ok(L.difficulty < GS.levelFor(i - 1).difficulty && pressure(i) <= pressure(i - 1) + 1, 'a level that brings something in is a breather, level ' + (i + 1));
     if (!eased(i)) {
       // the climb, measured between levels that bring nothing new and do not follow one that did
       if (last >= 0) {
@@ -99,12 +99,16 @@ test('generated levels get harder one step at a time, without end, easing off wh
     if (three && !GS.newsAt(i)) assert.equal(n, 3, 'three kinds stay, level ' + (i + 1));
     three = three || n === 3;
   }
-  for (let i = AUTHORED.length + 5; i < AUTHORED.length + 100; i += 5) assert.ok(pressure(i + 5) > pressure(i) || eased(i + 5), 'and keeps rising, level ' + (i + 6));
+  for (let i = AUTHORED.length + 5; i < AUTHORED.length + 100; i += 5) assert.ok(pressure(i + 5) >= pressure(i) * 0.995 || eased(i + 5), 'and never falls back, level ' + (i + 6));
   assert.ok(three, 'three kinds arrive');
-  // level 26 of the first curve (three kinds, creep pressure 126, mixing 1.9) was the first real challenge; by
-  // level 20 the board is now more mixed than that and wrong grains already come hard
+  // wrong grains pull about as on the first board through every board with an idea of its own, and only grow hard deep
+  // into the endless one; the boards get harder through mixing instead
+  const deep = GS.BOARDS[GS.BOARDS.length - 1].first, slate = 55 * 100 / 160;
+  for (let i = AUTHORED.length; i < deep; i++) assert.ok(pressure(i) <= slate * 1.45, 'gentle pull on level ' + (i + 1) + ': ' + pressure(i).toFixed(0));
+  assert.ok(pressure(deep + 40) >= slate * 2.5, 'and strong deep in the endless board: ' + pressure(deep + 40).toFixed(0));
+  assert.ok(GS.creepPull(deep - 1) <= 0.1 && GS.creepPull(deep + 30) > 0.5);
   const L20 = GS.levelFor(19);
-  assert.ok(GS.mixOf(L20.piles, L20.seed) > 1.9 && pressure(19) >= 90, 'level 20 is past the old level 26: ' + pressure(19).toFixed(0));
+  assert.ok(GS.mixOf(L20.piles, L20.seed) > 1.9, 'level 20 is well mixed');
   assert.ok(sorted(GS.levelFor(19)) >= sorted(GS.levelFor(10)), 'more grains by the end of walnut');
   const rules = new Set();
   for (let i = AUTHORED.length; i < AUTHORED.length + 12; i++) rules.add(GS.levelFor(i).rule);
