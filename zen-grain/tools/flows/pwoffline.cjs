@@ -17,7 +17,7 @@ const { chromium } = require('playwright');
   await ctx.setOffline(true);
   await p.reload(); await p.waitForTimeout(2000);
   console.log('offline: screen', await p.evaluate(() => window.__grainLine && __grainLine.screen), '| title', await p.title());
-  await p.tap('#enterBtn'); await p.waitForTimeout(2200);
+  await p.tap('#enterBtn'); await p.waitForTimeout(350); await p.tap('#menuLevels'); await p.waitForTimeout(2200);
   await p.evaluate(() => __grainLine.startLevel(0)); await p.waitForTimeout(800);
   await p.evaluate(() => __grainLine.autoplay(true)); await p.waitForTimeout(3000);
   console.log('offline play: rows', await p.evaluate(() => __grainLine.sim.stats.rows));

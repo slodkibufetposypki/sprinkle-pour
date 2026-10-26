@@ -10,7 +10,7 @@ const { chromium } = require('playwright');
   console.log('film:', await p.evaluate(() => { const v = document.querySelector('video') || null; return null; }));
   await p.screenshot({ path: out + '/m-room.png' });
   await p.evaluate(() => { const s = __grainLine.save; [5, 5, 4, 4, 4, 4, 3, 3, 3, 3].forEach((n, i) => { s.levels[__grainLine.levelId(i)] = { stars: n, best: 900, plays: 1 }; }); });
-  await p.tap('#enterBtn'); await p.waitForTimeout(600); await p.screenshot({ path: out + '/m-move.png' });
+  await p.tap('#enterBtn'); await p.waitForTimeout(350); await p.tap('#menuLevels'); await p.waitForTimeout(600); await p.screenshot({ path: out + '/m-move.png' });
   await p.waitForTimeout(1600);
   console.log('screen', await p.evaluate(() => __grainLine.screen), '| night sound', await p.evaluate(() => typeof Night));
   const info = await p.evaluate(() => [...document.querySelectorAll('.bpage')].map((e) => e.dataset.board + ':' + e.querySelectorAll('.lcard').length + (e.classList.contains('locked') ? ' locked' : '')));
