@@ -1,7 +1,9 @@
 // Builds the standalone page from game.html (the artifact source, which has no <html>/<head>/<body>).
 //   node zen-grain/build.mjs          -> docs/zen-grain/index.html (the public page)
 //   node zen-grain/build.mjs --local  -> zen-grain/local.html, served next to the media for tests
+// The public build also writes the offline worker (docs/zen-grain/sw.js from offline-worker.js), versioned by the page.
 import { readFileSync, writeFileSync, copyFileSync, readdirSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 
 const here = new URL('./', import.meta.url);
 const src = readFileSync(new URL('game.html', here), 'utf8');
@@ -12,8 +14,13 @@ const page = head + '\n' + src.slice(0, cut).trimEnd() + '\n</head>\n<body>\n' +
 const local = process.argv.includes('--local');
 const out = local ? new URL('local.html', here) : new URL('../docs/zen-grain/index.html', here);
 writeFileSync(out, page);
+// the offline worker carries a version taken from the page, so every new build replaces what phones have kept
+if (!local) {
+  const sw = readFileSync(new URL('offline-worker.js', here), 'utf8').replace('__VERSION__', createHash('sha1').update(page).digest('hex').slice(0, 10));
+  writeFileSync(new URL('../docs/zen-grain/sw.js', here), sw);
+}
 if (local) {
   const pub = new URL('../docs/zen-grain/', here);
-  for (const f of readdirSync(pub)) if (f !== 'index.html') copyFileSync(new URL(f, pub), new URL(f, here));
+  for (const f of readdirSync(pub)) if (/\.(jpg|png|mp3|mp4|webm)$/.test(f)) copyFileSync(new URL(f, pub), new URL(f, here));
 }
 console.log('wrote', out.pathname, (page.length / 1024).toFixed(0) + ' kB');

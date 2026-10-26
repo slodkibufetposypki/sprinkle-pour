@@ -73,43 +73,51 @@ test('validator catches broken levels', () => {
   }
 });
 
-test('generated levels get harder one step at a time, without end', () => {
+test('generated levels get harder one step at a time, without end, easing off where something new comes in', () => {
   const at = (i) => Object.assign({}, GS.DEFAULTS, GS.levelFor(i).tune);
-  const grains = (i) => GS.levelFor(i).piles.reduce((n, p) => n + p.count, 0);
+  const sorted = (L) => L.piles.filter((p) => p.type !== 'stone' && p.type !== 'sesame').reduce((n, p) => n + p.count, 0);
   const pressure = (i) => { const t = at(i); return t.creepSpeed * t.creepR / t.zoneR; };   // how fast and far wrong grains come
-  let prevD = 0, three = false;
+  const eased = (i) => !!(GS.newsAt(i) || GS.newsAt(i - 1));
+  let prevD = 0, three = false, last = -1;
   for (let i = AUTHORED.length; i < AUTHORED.length + 100; i++) {
     const d = GS.difficulty(i);
     assert.ok(d > prevD && d < 1, 'difficulty keeps climbing and never reaches 1');
     prevD = d;
-    if (i > AUTHORED.length) {
-      assert.ok(pressure(i) >= pressure(i - 1) * 0.995, 'creep pressure never drops, level ' + (i + 1));   // 0.5%: rounding
-      if (i >= AUTHORED.length + 5) assert.ok(pressure(i) > pressure(i - 5), 'and keeps rising, level ' + (i + 1));
-      assert.ok(at(i).paceK <= at(i - 1).paceK, 'the pace never loosens, level ' + (i + 1));
-      const L = GS.levelFor(i), mix = GS.mixOf(L.piles, L.seed), want = GS.mixTarget(L.difficulty);
-      assert.ok(Math.abs(mix - want) < Math.max(0.6, want * 0.25), 'level ' + (i + 1) + ' is as mixed as the climb asks: ' + mix.toFixed(2) + ' for ' + want.toFixed(2));
-      assert.ok(grains(i) >= grains(i - 1) - 2, 'no fewer grains, level ' + (i + 1));
+    const L = GS.levelFor(i), mix = GS.mixOf(L.piles, L.seed), want = L.mix;
+    if (!L.jar) assert.equal(want, GS.mixTarget(L.difficulty));
+    assert.ok(Math.abs(mix - want) < Math.max(0.6, want * 0.25), 'level ' + (i + 1) + ' is as mixed as the climb asks: ' + mix.toFixed(2) + ' for ' + want.toFixed(2));
+    if (GS.newsAt(i) && i > AUTHORED.length) assert.ok(pressure(i) < pressure(i - 1), 'a level that brings something in is a breather, level ' + (i + 1));
+    if (!eased(i)) {
+      // the climb, measured between levels that bring nothing new and do not follow one that did
+      if (last >= 0) {
+        assert.ok(pressure(i) >= pressure(last) * 0.995, 'creep pressure never drops, level ' + (i + 1));   // 0.5%: rounding
+        assert.ok(at(i).paceK <= at(last).paceK + 1e-9, 'the pace never loosens, level ' + (i + 1));
+      }
+      last = i;
     }
-    const n = GS.levelFor(i).types.length;
-    if (three) assert.equal(n, 3, 'three kinds stay, level ' + (i + 1));
+    const n = L.types.length;
+    if (three && !GS.newsAt(i)) assert.equal(n, 3, 'three kinds stay, level ' + (i + 1));
     three = three || n === 3;
   }
+  for (let i = AUTHORED.length + 5; i < AUTHORED.length + 100; i += 5) assert.ok(pressure(i + 5) > pressure(i) || eased(i + 5), 'and keeps rising, level ' + (i + 6));
   assert.ok(three, 'three kinds arrive');
   // level 26 of the first curve (three kinds, creep pressure 126, mixing 1.9) was the first real challenge; by
-  // level 21 the board is now more mixed than that and wrong grains already come hard
-  const L21 = GS.levelFor(20);
-  assert.ok(GS.mixOf(L21.piles, L21.seed) > 1.9 && pressure(20) >= 100, 'level 21 is past the old level 26');
+  // level 20 the board is now more mixed than that and wrong grains already come hard
+  const L20 = GS.levelFor(19);
+  assert.ok(GS.mixOf(L20.piles, L20.seed) > 1.9 && pressure(19) >= 90, 'level 20 is past the old level 26: ' + pressure(19).toFixed(0));
+  assert.ok(sorted(GS.levelFor(19)) >= sorted(GS.levelFor(10)), 'more grains by the end of walnut');
   const rules = new Set();
   for (let i = AUTHORED.length; i < AUTHORED.length + 12; i++) rules.add(GS.levelFor(i).rule);
   for (const r of ['Restless grains', 'Short reach', 'Narrow reach']) assert.ok(rules.has(r), r + ' appears');
 });
 
 test('levels generate the same board every time, inside the board and off the sorted piles', () => {
-  for (let i = 0; i < AUTHORED.length + 12; i++) {
+  for (const i of [...Array(AUTHORED.length + 12).keys(), 23, 26, 30, 36, 40, 44, 55]) {
     const L = GS.levelFor(i);
     const a = GS.create({}, L, LAYOUT, 1), b = GS.create({}, L, LAYOUT, 2);
     assert.equal(a.hash(), b.hash(), L.id + ' layout depends only on the level seed');
     for (const g of a.grains) {
+      if (g.st === ST.JAR) { assert.ok(L.jar, 'only a level with a jar keeps grains in one'); continue; }
       const B = a.bounds();
       assert.ok(g.x >= B.x0 && g.x <= B.x1, 'x inside');
       assert.ok(g.y >= B.y0 && g.y <= B.y1, 'y inside');
@@ -158,7 +166,7 @@ test('the pace a quick row needs grows with the row and the level setting', () =
 });
 
 test('a bot clears every authored level and a spread of generated ones; every grain ends on its own pile', () => {
-  const levels = AUTHORED.map((L, i) => i).concat([10, 11, 12, 13, 14, 15, 20, 30, 45, 70]);
+  const levels = AUTHORED.map((L, i) => i).concat([10, 11, 12, 13, 14, 15, 20, 23, 26, 30, 33, 36, 40, 45, 70]);
   for (const i of levels) {
     const L = GS.levelFor(i);
     for (const seed of i < AUTHORED.length ? [1, 2, 3] : [1]) {
@@ -166,6 +174,7 @@ test('a bot clears every authored level and a spread of generated ones; every gr
       assert.ok(sim.done, `level ${i + 1} (${L.name}) seed ${seed} cleared (rows ${sim.stats.rows}, left ${sim.remaining()})`);
       for (const g of sim.grains) {
         if (TYPES[g.type].stone) { assert.notEqual(g.st, ST.GONE, 'stones stay on the board'); continue; }
+        if (g.st === ST.LOST) { assert.ok(L.tilt, 'grains only fall off a tilted tray'); continue; }
         assert.equal(g.st, ST.GONE, 'stored');
         const st = sim.stores[g.type];
         assert.ok(Math.hypot(g.x - st.x, g.y - st.y) <= st.r, `${L.id}: ${g.type} lies on its pile`);
@@ -538,4 +547,165 @@ test('the demo bot stays in its region', () => {
   }
   assert.ok(rows >= 4, 'demo takes rows: ' + rows);
   assert.ok(maxAimY < LAYOUT.H * 0.42 + 1, 'aims stay in the top part');
+});
+
+// ---------- the later beans and ways of playing ----------
+const level = (over) => Object.assign({ id: 't', name: 'T', seed: 7, types: ['lentil', 'rice'], piles: [
+  { type: 'lentil', kind: 'blob', cx: 0.3, cy: 0.3, r: 0.1, count: 14 }, { type: 'rice', kind: 'blob', cx: 0.7, cy: 0.3, r: 0.1, count: 12 }] }, over);
+const run = (sim, inp, seconds) => { const ev = []; for (let i = 0; i < seconds * sim.cfg.stepHz; i++) { sim.step(typeof inp === 'function' ? inp(i) : inp); ev.push(...sim.drainEvents()); } return ev; };
+
+test('each new bean moves its own way: chickpeas roll on, sesame is light and comes in long rows, kidney beans are long and heavy', () => {
+  // the same flick: a chickpea rolls several times as far as a lentil
+  const slide = (type) => {
+    const sim = GS.create({}, level({ types: [type], piles: [{ type, kind: 'blob', cx: 0.5, cy: 0.5, r: 0.01, count: 1 }] }), LAYOUT, 1);
+    for (const g of sim.grains) g.st = ST.GONE;
+    const g = sim.debugPut(type, 200, 600); g.st = ST.SLIDE; g.vx = 600; g.vy = 0;
+    for (let i = 0; i < 120 * 3; i++) sim.step({ down: false });
+    return g.x - 200;
+  };
+  assert.ok(slide('chickpea') > slide('lentil') * 2.5, 'chickpea ' + slide('chickpea').toFixed(0) + ' vs lentil ' + slide('lentil').toFixed(0));
+  assert.ok(slide('kidney') < slide('lentil'), 'a kidney bean stops sooner');
+  const cfg = GS.DEFAULTS;
+  assert.ok(GS.capacity('sesame', cfg) >= GS.capacity('lentil', cfg) * 1.6, 'sesame rows are long');
+  assert.ok(GS.capacity('kidney', cfg) < GS.capacity('lentil', cfg), 'kidney rows are short');
+  assert.ok(TYPES.sesame.mass < 0.5 && TYPES.kidney.mass > 2 && TYPES.chickpea.mass > 1.5);
+  // a kidney bean pushed by the side of a stick swings round to lie along it, like rice
+  const sim = pushBoard(4);
+  const k = sim.debugPut('kidney', 320, 760); k.rot = 0;
+  sweepRight(sim, 760, 260, 160);
+  const G = sim.geom(), along = Math.atan2(G.uy, G.ux);
+  let d = (k.rot - along) % Math.PI; if (d > Math.PI / 2) d -= Math.PI; if (d < -Math.PI / 2) d += Math.PI;
+  assert.ok(k.x > 320 + 15, 'the stick pushed it: x ' + k.x.toFixed(0));
+  assert.ok(Math.abs(d) < 0.35, 'lies along the stick: off by ' + d.toFixed(2) + ' rad');
+});
+
+test('carrying rows yourself: let go over its pile and it pours there; away from the piles it waits; over another pile that pile spills back', () => {
+  const L = level({ manual: true });
+  const sim = GS.create({}, L, LAYOUT, 3);
+  const lentils = sim.grains.filter((g) => g.type === 'lentil'), c = centroid(lentils);
+  // gather until the row is full: the sticks close and stay on the finger
+  let ev = run(sim, { down: true, x: c.x, y: c.y + 60 + sim.cfg.fingerOffset }, 2);
+  assert.ok(ev.some((e) => e.type === 'close'), 'the row closed');
+  assert.equal(sim.sticks.phase, 'hold', 'and stays in the hand');
+  const n = sim.sticks.row.length;
+  // let go in the middle of the board: nothing is poured, the row waits
+  ev = run(sim, { down: false, x: 300, y: 900 }, 0.5);
+  assert.equal(sim.sticks.phase, 'parked'); assert.equal(sim.sticks.row.length, n);
+  assert.ok(!ev.some((e) => e.type === 'row_taken'));
+  // touch again and carry it over the lentil pile (bottom left), then let go
+  const st = sim.stores.lentil, to = { down: true, x: st.x + 80, y: LAYOUT.H };
+  ev = run(sim, to, 1.2);
+  assert.equal(sim.sticks.phase, 'hold'); assert.equal(sim.sticks.drop, st, 'over the lentil pile');
+  ev = run(sim, { down: false, x: st.x + 80, y: LAYOUT.H }, 1.2);
+  const taken = ev.find((e) => e.type === 'row_taken');
+  assert.ok(taken && taken.n === n && taken.grain === 'lentil', 'poured onto its own pile');
+  assert.equal(st.n, n);
+  // now a rice row, let go over the lentil pile: the lentils and the rice fly back onto the board
+  const rice = centroid(sim.grains.filter((g) => g.type === 'rice' && g.st === ST.REST));
+  assert.equal(sim.target, 'rice');
+  run(sim, { down: true, x: rice.x, y: rice.y + 60 + sim.cfg.fingerOffset }, 2);
+  assert.equal(sim.sticks.phase, 'hold');
+  const scoreBefore = sim.score;
+  run(sim, to, 1.2);
+  ev = run(sim, { down: false, x: st.x + 80, y: LAYOUT.H }, 2);
+  const sp = ev.find((e) => e.type === 'spill_pile');
+  assert.ok(sp && sp.pile === 'lentil' && sp.grain === 'rice' && sp.back === n, 'the lentil pile spilled');
+  assert.equal(st.n, 0); assert.equal(st.ids.length, 0);
+  assert.equal(sim.stats.taken.lentil, 0, 'nothing counts as sorted any more');
+  assert.equal(sim.mult, 1); assert.ok(sim.score < scoreBefore, 'and it costs points');
+  const B = sim.bounds();
+  for (const g of sim.grains) if (g.type === 'lentil') { assert.notEqual(g.st, ST.GONE); assert.ok(g.y <= B.y1 + 0.01 && g.y >= B.y0 - 0.01, 'back on the board'); }
+});
+
+test('moving piles: a level can put the kinds in other corners, the same way every time', () => {
+  const L = level({ manual: true, shuffle: 'moved', types: ['lentil', 'rice', 'mung'], piles: level().piles.concat([{ type: 'mung', kind: 'blob', cx: 0.5, cy: 0.6, r: 0.1, count: 10 }]) });
+  const a = GS.create({}, L, LAYOUT, 1), b = GS.create({}, L, LAYOUT, 2), plain = GS.create({}, Object.assign({}, L, { shuffle: false }), LAYOUT, 1);
+  const spots = (s) => L.types.map((t) => s.stores[t].kind).join();
+  assert.equal(spots(a), spots(b));
+  assert.notEqual(spots(a), spots(plain), 'the first level with moving piles always moves them');
+});
+
+test('the jar: its grains are not on the board at first, pour in bursts once the clock runs, and the level waits for them', () => {
+  const L = level({ jar: { every: 3, burst: 4 }, piles: level().piles.concat([{ type: 'lentil', kind: 'scatter', x0: 0, x1: 1, y0: 0, y1: 1, count: 6, jar: true }, { type: 'rice', kind: 'scatter', x0: 0, x1: 1, y0: 0, y1: 1, count: 6, jar: true }]) });
+  assert.deepEqual(Array.from(GS.validateLevel(L)), []);
+  const sim = GS.create({}, L, LAYOUT, 4);
+  assert.equal(sim.inJar(), 12);
+  assert.equal(sim.remaining('lentil'), 20, 'what is in the jar still counts as to sort');
+  assert.equal(sim.available('lentil'), 14, 'but the sticks cannot get at it');
+  run(sim, { down: false }, 4);
+  assert.equal(sim.inJar(), 12, 'nothing pours before the first touch');
+  run(sim, { down: true, x: 300, y: LAYOUT.H }, 0.2);                       // the first touch starts the clock
+  const ev = run(sim, { down: false }, 2.6);
+  assert.ok(ev.some((e) => e.type === 'jar'), 'a burst');
+  assert.equal(sim.inJar(), 8, 'of four');
+  const B = sim.bounds();
+  run(sim, { down: false }, 2);
+  for (const g of sim.grains) if (g.st === ST.REST || g.st === ST.SLIDE) assert.ok(g.x >= B.x0 && g.x <= B.x1 && g.y >= B.y0 && g.y <= B.y1, 'poured onto the board');
+  assert.ok(sim.par >= 2 + 2 * 3 + 10, 'the clock allows for the jar: ' + sim.par);
+  const bot = GS.makeBot(sim, 5);
+  for (let i = 0; i < 120 * 400 && !sim.done; i++) { sim.step(bot()); sim.drainEvents(); }
+  assert.ok(sim.done && sim.inJar() === 0, 'done only once the jar is empty');
+});
+
+test('a tilted tray: loose grains slide down it, the ones nobody catches fall off, and the level still ends', () => {
+  const L = level({ tilt: 30 });
+  const sim = GS.create({}, L, LAYOUT, 5);
+  const g = sim.grains[0], y0 = g.y;
+  run(sim, { down: false }, 1);
+  assert.ok(g.y > y0 + 20, 'slid down: ' + (g.y - y0).toFixed(0));
+  const ev = run(sim, { down: false }, 60);
+  assert.ok(ev.some((e) => e.type === 'lost'), 'grains fell off the edge');
+  assert.ok(sim.grains.every((x) => x.st === ST.LOST), 'all of them, left alone');
+  run(sim, { down: true, x: 300, y: LAYOUT.H }, 0.1); run(sim, { down: false }, 0.5);
+  assert.ok(sim.done, 'with nothing left to sort the level ends');
+  assert.equal(sim.result.score, 0, 'and pays nothing: no time bonus for letting everything fall'); assert.equal(sim.stats.lost, 26);
+  // chickpeas run down faster than lentils
+  assert.ok(TYPES.chickpea.tiltK > 1 && !(TYPES.lentil.tiltK > 1));
+});
+
+test('any order: the sticks ask for the kinds by chance, the same way for the same level', () => {
+  const L = level({ order: 'any', types: ['lentil', 'rice', 'mung'], piles: [
+    { type: 'lentil', kind: 'blob', cx: 0.25, cy: 0.25, r: 0.1, count: 40 }, { type: 'rice', kind: 'blob', cx: 0.75, cy: 0.25, r: 0.1, count: 40 }, { type: 'mung', kind: 'blob', cx: 0.5, cy: 0.6, r: 0.1, count: 40 }] });
+  const order = (seed) => {
+    const sim = GS.create({}, L, LAYOUT, seed), bot = GS.makeBot(sim, 3), seen = [sim.target];
+    for (let i = 0; i < 120 * 120 && seen.length < 12; i++) { sim.step(bot()); for (const e of sim.drainEvents()) if (e.type === 'target') seen.push(e.grain); }
+    return seen;
+  };
+  const a = order(1);
+  assert.ok(a.length >= 8, 'rows were taken');
+  const turns = a.every((t, i) => i === 0 || L.types.indexOf(t) === (L.types.indexOf(a[i - 1]) + 1) % 3);
+  assert.ok(!turns, 'not simply in turn: ' + a.join(' '));
+});
+
+test('progression: every board opens with its own idea, the new things come one at a time, never more than one on a level', () => {
+  const B = GS.BOARDS;
+  for (const b of B) if (b.adds) assert.equal(GS.newsAt(b.first).feature, b.adds, b.id + ' opens with ' + b.adds);
+  const news = [];
+  for (let i = AUTHORED.length; i < 60; i++) if (GS.newsAt(i)) news.push(i);
+  for (let k = 1; k < news.length; k++) assert.ok(news[k] - news[k - 1] >= 3 && news[k] - news[k - 1] <= 4, 'something new every three or four levels: ' + (news[k - 1] + 1) + ' then ' + (news[k] + 1));
+  assert.ok(news.length >= 10, news.length + ' new things before the endless board');
+  // a new bean comes in with one kind you already know, and is in the next levels too
+  for (const t of ['chickpea', 'sesame', 'kidney']) {
+    const at = GS.KIND_FROM[t];
+    assert.deepEqual(Array.from(GS.levelFor(at).types).sort(), [t, GS.levelFor(at).types.find((x) => x !== t)].sort());
+    assert.equal(GS.levelFor(at).types.length, 2);
+    for (let i = at + 1; i <= at + 3; i++) assert.ok(GS.levelFor(i).types.includes(t), t + ' stays in the mix, level ' + (i + 1));
+    for (let i = 0; i < at; i++) assert.ok(!GS.levelFor(i).types.includes(t), 'no ' + t + ' before level ' + (at + 1));
+  }
+  // each way of playing: never before its board or its level, always on its own board
+  const has = (i, f) => { const L = GS.levelFor(i); return f === 'manual' ? !!L.manual : f === 'jar' ? !!L.jar : f === 'tilt' ? !!L.tilt : f === 'any' ? L.order === 'any' : !!L.shuffle; };
+  for (const [f, from] of [['manual', 20], ['shuffle', 23], ['jar', 30], ['any', 33], ['tilt', 40]]) {
+    for (let i = 0; i < from; i++) assert.ok(!has(i, f), f + ' not before level ' + (from + 1) + ' (found on ' + (i + 1) + ')');
+    assert.ok(has(from, f), f + ' on level ' + (from + 1));
+  }
+  for (let i = 20; i < 30; i++) assert.ok(has(i, 'manual'), 'bamboo: carry it yourself, level ' + (i + 1));
+  for (let i = 30; i < 40; i++) assert.ok(has(i, 'jar'), 'clay: the jar, level ' + (i + 1));
+  for (let i = 40; i < 50; i++) assert.ok(has(i, 'tilt'), 'lacquer: the tilted tray, level ' + (i + 1));
+  // on a level that brings something in, nothing else from an earlier board is switched on besides that board's own idea
+  for (const i of news) {
+    const L = GS.levelFor(i), b = GS.boardOf(i), n = GS.newsAt(i);
+    if (b.id !== 'bamboo' && n.feature !== 'manual') assert.ok(!L.manual || b.id === 'bamboo', 'no carrying on level ' + (i + 1));
+    if (n.feature !== 'any') assert.ok(L.order !== 'any', 'no any-order on level ' + (i + 1));
+    assert.ok(!L.tune.drift && !(L.tune.fieldCone < 180) && !(L.tune.zoneR < 100), 'no twist on level ' + (i + 1));
+  }
 });

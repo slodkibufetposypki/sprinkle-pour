@@ -6,3 +6,4 @@ node_modules/
 # zen-grain: the local test build and its copied media
 zen-grain/local.html
 zen-grain/zen-*
+zen-grain/icon-*.png
