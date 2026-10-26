@@ -101,6 +101,11 @@
   #fuse[data-pace="Slow"] { background: var(--chalk-red); }
   #score { justify-self: end; text-align: right; margin-top: -2px; }
   #score b { display: block; font-weight: 400; font-size: var(--fs-34); line-height: 1; }
+  /* zen: a quiet line with the best run under the multiplier, gold once this run is past it */
+  #best { display: block; margin-top: 2px; font: 400 var(--fs-13)/1.2 var(--hand); color: var(--chalk-2); white-space: nowrap; }
+  #best.new { color: var(--ember); }
+  #best.pop { animation: bestpop .6s cubic-bezier(.3, 1.6, .5, 1); }
+  @keyframes bestpop { 0% { transform: scale(.6); opacity: 0; } }
   /* the clock: a small dial, the hand going round once over the time the level may take. The gold part is the time
      that still pays a bonus, the pale part the rest; the last ten seconds turn red and are counted. The Zen Cat waits
      at its foot: tap the dial and she turns the hand back, once a round. */
@@ -429,7 +434,7 @@
   #tuneJson { width: 100%; box-sizing: border-box; background: #0d0f12; color: var(--chalk); border: 1px solid var(--chalk-3); border-radius: 10px; font: 12px ui-monospace, Menlo, monospace; }
 
   @media (prefers-reduced-motion: reduce) {
-    .slab, #done .slab, #chip.swap, .dial.up svg, #catpaw.go, #lives svg.lose, .stars.big svg.stamp, #streak.up b, #streak.lost, #streak.lost b, .tally li, .total em, #tally .nw, .lcard.next { animation: none; }
+    .slab, #done .slab, #chip.swap, .dial.up svg, #catpaw.go, #lives svg.lose, .stars.big svg.stamp, #streak.up b, #streak.lost, #streak.lost b, .tally li, .total em, #tally .nw, .lcard.next, #best.pop { animation: none; }
     .bpage .bopen, .bpage.laid .lcard, .bpage > canvas { transition: none; }
     .rest::before { animation: none; opacity: 0.5; }
     .ema { animation: none; } .toggle .sw, .toggle .sw::after { transition: none; }
@@ -452,6 +457,7 @@
     <div id="streak" class="chalk"><b>×1.0</b></div>
     <i id="fuse" class="chalk" aria-hidden="true"></i>
     <span id="tally" class="chalk" aria-hidden="true"></span>
+    <span id="best" class="chalk" hidden></span>
   </div>
   <div class="side end">
     <button id="menuBtn" class="iconbtn big" aria-label="Pause"><svg viewBox="0 0 22 22" aria-hidden="true"><path d="M7.4 4.2c.2 4.6-.1 9.2.3 13.6M14.8 4.4c-.3 4.4.1 9 .1 13.4"/></svg></button>
@@ -1720,7 +1726,11 @@ const GrainSim = (() => {
         level.types[i] = fresh;
         sim.total[fresh] = ZEN_PILE; sim.caps[fresh] = capacity(fresh, cfg);
         sim.stores[fresh] = storeLayout([fresh], sim.total, sim.H - sim.bottom, [st.kind])[fresh];
-        if (sim.target === old) switchTarget();
+        if (sim.target === old) {
+          switchTarget();
+          // nothing of the kinds in play on the board yet: the sticks go after the new one, never a packed-away kind
+          if (sim.target === old) { sim.target = level.types.find((t) => sim.available(t) > 0) || fresh; emit('target', { grain: sim.target }); }
+        }
         emit('new_kind', { grain: fresh, old, x: st.x, y: st.y });
       }
     }
@@ -2439,7 +2449,7 @@ const GrainSim = (() => {
   const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
   // ---------- language: English, or Polish on a phone set to Polish; switched in the pause menu ----------
   // Every text keeps its English wording as its key; tr() swaps in the Polish one and fills {names}.
-  const PL = { "Tap to sit at the table": "Dotknij, by usiąść przy stole", "Sit down at the table": "Usiądź przy stole", "Back to the room": "Wróć do pokoju", "Boards": "Plansze", "Change chopsticks": "Zmień pałeczki", "Game board": "Plansza gry", "Pause": "Pauza", "Start the level again": "Zacznij poziom od nowa", "Back to the boards": "Wróć do plansz", "Chopsticks": "Pałeczki", "Each pair is earned by playing well.": "Każdą parę zdobywasz dobrą grą.", "Back": "Wstecz", "Paused": "Pauza", "Resume": "Wznów", "Restart level": "Zacznij od nowa", "Tune feel": "Dostrój", "Score": "Wynik", "Next level": "Następny poziom", "Retry": "Powtórz", "Choose a level": "Wybierz poziom", "On to {board}": "Dalej: {board}", "Changes apply right away and stay on this device. Row length applies from the next level. A level with its own rule keeps it.": "Zmiany działają od razu i zostają na tym urządzeniu. Długość rzędu zmienia się od następnego poziomu. Poziom z własną zasadą ją zachowuje.", "Show how far the sticks reach": "Pokaż zasięg pałeczek", "Vibrate": "Wibracje", "Solid grains": "Twarde ziarna", "Reset": "Przywróć", "Copy values": "Kopiuj wartości", "Done": "Gotowe", "Game sounds": "Dźwięki gry", "Ambience": "Otoczenie", "Slate": "Łupek", "Walnut": "Orzech", "Bamboo": "Bambus", "Clay": "Glina", "Lacquer": "Laka", "Cast iron": "Żeliwo", "Walnut is open": "Orzech otwarty", "Bamboo is open": "Bambus otwarty", "Parchment": "Pergamin", "Parchment is open": "Pergamin otwarty", "Clay is open": "Glina otwarta", "Lacquer is open": "Laka otwarta", "Cast iron is open": "Żeliwo otwarte", "Tenmoku": "Tenmoku", "Damascus steel": "Stal damasceńska", "Black marble": "Czarny marmur", "Charred cedar": "Opalany cedr", "Obsidian": "Obsydian", "{board} is open": "Otwarte: {board}", "Tenmoku is open": "Tenmoku otwarte", "Damascus steel is open": "Stal damasceńska otwarta", "Black marble is open": "Czarny marmur otwarty", "Charred cedar is open": "Opalany cedr otwarty", "Obsidian is open": "Obsydian otwarty", "Paper": "Papier", "Paper is open": "Papier otwarty", "Old paper": "Stary papier", "Everything you have met so far comes back here, two at a time.": "Wszystko, co już znasz, wraca tu po dwa naraz.", "Lentils": "Soczewica", "Rice": "Ryż", "Mung beans": "Fasola mung", "Chickpeas": "Ciecierzyca", "Sesame": "Sezam", "Kidney beans": "Fasola czerwona", "Stones": "Kamyki", "First row": "Pierwszy rząd", "Two heaps": "Dwie kupki", "Touching": "Stykają się", "Strays": "Zabłąkane", "The slate": "Łupek", "Short reach": "Krótki zasięg", "Mixed heap": "Pomieszana kupka", "Restless": "Niespokojne", "Pantry spill": "Rozsypana spiżarnia", "Heaps": "Kupki", "Spill": "Rozsypka", "Edges": "Brzegi", "Stripes": "Pasy", "Clusters": "Skupiska", "Pushy rice": "Natrętny ryż", "Rice creeps in from further away. Sweep the heap apart, then gather.": "Ryż wkrada się z daleka. Rozgarnij kupkę, potem zbieraj.", "Short reach, restless": "Krótki zasięg, niespokojne", "Close reach and wandering grains, all three kinds.": "Bliski zasięg i wędrujące ziarna, wszystkie trzy rodzaje.", "Restless grains": "Niespokojne ziarna", "They wander and mix again. Sort them before they spread.": "Wędrują i znów się mieszają. Posortuj je, zanim się rozejdą.", "The sticks pull from close by. Drive the tips through the grains.": "Pałeczki ciągną z bliska. Prowadź końcówki przez ziarna.", "Narrow reach": "Wąski zasięg", "The sticks only pull from straight ahead. Come at grains from below.": "Pałeczki ciągną tylko na wprost. Podchodź do ziaren od dołu.", "Long sticks": "Długie pałeczki", "They hold a longer row: more points, and more to lose.": "Mieszczą dłuższy rząd: więcej punktów i więcej do stracenia.", "They can’t be picked, and they go for the tips. Push them aside.": "Nie da się ich zebrać, a pchają się do końcówek. Odsuwaj je.", "Carry it yourself": "Nieś sam", "Take each row to its pile and let go. The wrong pile spills back onto the board.": "Zanieś każdy rząd na jego kupkę i puść. Zła kupka rozsypie się z powrotem na planszę.", "The jar": "Słoik", "It pours more grains in as you go. Keep up with it.": "Dosypuje ziaren w trakcie gry. Nadążaj za nim.", "The tray tilts": "Taca się przechyla", "Grains slide down it. Catch them before they fall off the edge.": "Ziarna zsuwają się w dół. Złap je, zanim spadną z krawędzi.", "Round and heavy. A quick sweep sends them rolling.": "Okrągła i ciężka. Po szybkim machnięciu toczy się daleko.", "Piles move": "Kupki się przesuwają", "The piles change places from level to level. Look before you let go.": "Kupki zmieniają miejsca z poziomu na poziom. Spójrz, zanim puścisz.", "Tiny and light. Long rows, and a sweep scatters it.": "Malutki i lekki. Długie rzędy, a machnięcie go rozsypuje.", "Any order": "Dowolna kolejność", "The sticks can ask for any kind next. Watch the top of the board.": "Pałeczki mogą poprosić o dowolny rodzaj. Patrz na górę planszy.", "Long and heavy. Push one and it swings round.": "Długa i ciężka. Pchnięta obraca się.", "Touch and hold. The lentils walk into the sticks.": "Dotknij i przytrzymaj. Soczewica sama wchodzi między pałeczki.", "Fill the row to grow your multiplier.": "Wypełnij rząd, a mnożnik urośnie.", "After every row the sticks switch to the other kind.": "Po każdym rzędzie pałeczki przechodzą na drugi rodzaj.", "Rice next to the tips creeps in. Push it aside with the side of the sticks.": "Ryż przy końcówkach wkrada się do środka. Odsuń go bokiem pałeczek.", "The line under the multiplier wears away. Fill the row before it is gone.": "Kreska pod mnożnikiem się ściera. Wypełnij rząd, zanim zniknie.", "A short row keeps the multiplier but shrinks it.": "Krótki rząd zachowuje mnożnik, ale go zmniejsza.", "A third kind, with its own pile in the middle.": "Trzeci rodzaj, z własną kupką na środku.", "{n} left": "{n}", "Lightning": "Błyskawica", "Quick": "Szybko", "Steady": "Równo", "Slow": "Wolno", "Short row {m}": "Krótki rząd {m}", "{kind} cleared {m}": "Koniec: {kind} {m}", "Steady hands": "Pewne ręce", "Grain master": "Mistrz ziaren", "Zen hands": "Ręce zen", "+{b} for {n} full rows in a row": "+{b} za {n} pełnych rzędów z rzędu", "New chopsticks": "Nowe pałeczki", "Multiplier {m}, {n} full rows in a row": "Mnożnik {m}, pełne rzędy z rzędu: {n}", "A lentil got in": "Wpadła soczewica", "Rice got in": "Wpadł ryż", "A mung bean got in": "Wpadła fasola mung", "A stone got in": "Wpadł kamyk", "A chickpea got in": "Wpadła ciecierzyca", "Sesame got in": "Wpadł sezam", "A kidney bean got in": "Wpadła fasola", "A wrong grain got in": "Wpadło złe ziarno", ", back to ×1": ", z powrotem ×1", "Broken": "Przerwany", "Wrong pile": "Zła kupka", "Touch the board to pick the row up again.": "Dotknij planszy, by znów podnieść rząd.", "Tap the arrow again to leave this level.": "Dotknij strzałki jeszcze raz, by wyjść z poziomu.", "Tap again to start this level over.": "Dotknij jeszcze raz, by zacząć od nowa.", "{n} more open {board}": "{n} do otwarcia: {board}", "Every board is open": "Wszystkie plansze otwarte", "{board}, {n} stars": "{board}, gwiazdki: {n}", "{board}, opens with {n} stars": "{board}, otwiera się przy gwiazdkach: {n}", "{n} more {star} to open": "jeszcze {n} {star} do otwarcia", "{board} levels": "Poziomy: {board}", "{level}, {n} of 5 stars": "{level}, {n} z 5 gwiazdek", "{level}, locked": "{level}, zablokowany", "Clear {level} to open this one.": "Najpierw ukończ: {level}.", "{level} cleared": "Ukończono: {level}", "{n} of 5 stars": "{n} z 5 gwiazdek", "Combo prizes": "Nagrody za serie", "Time {t} of {par}": "Czas {t} z {par}", "No row broken": "Bez przerwanego rzędu", "New best": "Rekord", "Next star at {s}": "Następna gwiazdka przy {s}", "New chopsticks: <b>{names}</b>. Pick them under Chopsticks.": "Nowe pałeczki: <b>{names}</b>. Wybierzesz je w menu Pałeczki.", "Cherry lacquer": "Wiśniowa laka", "Ebony": "Hebanowe", "Jade": "Jadeitowe", "Steel": "Stalowe", "Gold leaf": "Złocone", "Reach a ×3 multiplier": "Osiągnij mnożnik ×3", "Make 7 full rows in a row": "Zrób 7 pełnych rzędów z rzędu", "Sort 1,000 grains": "Posortuj 1000 ziaren", "Collect 20 stars": "Zbierz 20 gwiazdek", "Reach a ×6 multiplier": "Osiągnij mnożnik ×6", "Your first pair": "Twoja pierwsza para", "In use": "W użyciu", "Use": "Użyj", "{req} to earn these.": "{req}, żeby je zdobyć.", "Control: drag anywhere": "Sterowanie: przeciąganie", "Control: above the finger": "Sterowanie: nad palcem", "Drag anywhere: the sticks move with your drag, your thumb can stay low.": "Przeciągaj gdziekolwiek: pałeczki idą za ruchem, kciuk może zostać nisko.", "The tips sit above your finger.": "Końcówki są nad twoim palcem.", "Sound on": "Dźwięk: tak", "Sound off": "Dźwięk: nie", "Music on": "Muzyka: tak", "Music off": "Muzyka: nie", "Back to the default feel.": "Przywrócono domyślne ustawienia.", "Select the values and copy them.": "Zaznacz wartości i skopiuj.", "Values copied.": "Skopiowano.", "Tips above the finger": "Końcówki nad palcem", "How tightly the sticks follow": "Jak ciasno pałeczki podążają", "Reach of the open sticks": "Zasięg otwartych pałeczek", "How far ahead of the tips they pull": "Jak daleko przed końcówkami ciągną", "Wrong grains creep from": "Złe ziarna wkradają się z", "Wrong grain creep speed": "Szybkość wkradania się złych ziaren", "How far a sweep flicks grains": "Jak daleko machnięcie odrzuca ziarna", "Next grain joins every (s)": "Kolejne ziarno dołącza co (s)", "Walking speed": "Szybkość marszu", "Pace (higher is more forgiving)": "Tempo (więcej = łagodniej)", "Row length": "Długość rzędu",
+  const PL = { "Tap to sit at the table": "Dotknij, by usiąść przy stole", "Sit down at the table": "Usiądź przy stole", "Back to the room": "Wróć do pokoju", "Boards": "Plansze", "Change chopsticks": "Zmień pałeczki", "Game board": "Plansza gry", "Pause": "Pauza", "Start the level again": "Zacznij poziom od nowa", "Back to the boards": "Wróć do plansz", "Chopsticks": "Pałeczki", "Each pair is earned by playing well.": "Każdą parę zdobywasz dobrą grą.", "Back": "Wstecz", "Paused": "Pauza", "Resume": "Wznów", "Restart level": "Zacznij od nowa", "Tune feel": "Dostrój", "Score": "Wynik", "Next level": "Następny poziom", "Retry": "Powtórz", "Choose a level": "Wybierz poziom", "On to {board}": "Dalej: {board}", "Changes apply right away and stay on this device. Row length applies from the next level. A level with its own rule keeps it.": "Zmiany działają od razu i zostają na tym urządzeniu. Długość rzędu zmienia się od następnego poziomu. Poziom z własną zasadą ją zachowuje.", "Show how far the sticks reach": "Pokaż zasięg pałeczek", "Vibrate": "Wibracje", "Solid grains": "Twarde ziarna", "Reset": "Przywróć", "Copy values": "Kopiuj wartości", "Done": "Gotowe", "Game sounds": "Dźwięki gry", "Ambience": "Otoczenie", "Slate": "Łupek", "Walnut": "Orzech", "Bamboo": "Bambus", "Clay": "Glina", "Lacquer": "Laka", "Cast iron": "Żeliwo", "Walnut is open": "Orzech otwarty", "Bamboo is open": "Bambus otwarty", "Parchment": "Pergamin", "Parchment is open": "Pergamin otwarty", "Clay is open": "Glina otwarta", "Lacquer is open": "Laka otwarta", "Cast iron is open": "Żeliwo otwarte", "Tenmoku": "Tenmoku", "Damascus steel": "Stal damasceńska", "Black marble": "Czarny marmur", "Charred cedar": "Opalany cedr", "Obsidian": "Obsydian", "{board} is open": "Otwarte: {board}", "Tenmoku is open": "Tenmoku otwarte", "Damascus steel is open": "Stal damasceńska otwarta", "Black marble is open": "Czarny marmur otwarty", "Charred cedar is open": "Opalany cedr otwarty", "Obsidian is open": "Obsydian otwarty", "Paper": "Papier", "Paper is open": "Papier otwarty", "Old paper": "Stary papier", "Everything you have met so far comes back here, two at a time.": "Wszystko, co już znasz, wraca tu po dwa naraz.", "Lentils": "Soczewica", "Rice": "Ryż", "Mung beans": "Fasola mung", "Chickpeas": "Ciecierzyca", "Sesame": "Sezam", "Kidney beans": "Fasola czerwona", "Moonseeds": "Nasiona księżycowe", "Star beans": "Fasolki gwiezdne", "Ember beans": "Fasolki żarzące", "Nebula beans": "Fasolki mgławicowe", "Neon beans": "Fasolki neonowe", "Crystal beans": "Fasolki kryształowe", "Galaxy beans": "Fasolki galaktyczne", "Golden bean": "Złota fasolka", "Dusk": "Zmierzch", "Night": "Noc", "Deep night": "Głęboka noc", "Moonrise": "Wschód księżyca", "Stars": "Gwiazdy", "Nebula": "Mgławica", "Neon": "Neon", "Galaxy": "Galaktyka", "Coming: {kinds}": "Nadchodzą: {kinds}", "The jar pours faster": "Słoik sypie szybciej", "New kind, {w} a grain": "Nowy rodzaj, {w} za ziarno", "Catch it!": "Złap ją!", "Got away": "Uciekła", "The golden bean leapt off": "Złota fasolka odskoczyła", "Bowl packed": "Miska spakowana", "Zen Capybara": "Zen Kapibara", "Thanks for the bowls: a life back": "Dziękuje za miski: życie wraca", "Thanks for the bowls: +{b}": "Dziękuje za miski: +{b}", "Stage {n}": "Etap {n}", "New best!": "Nowy rekord!", "Best {s}": "Rekord {s}", "Stones": "Kamyki", "First row": "Pierwszy rząd", "Two heaps": "Dwie kupki", "Touching": "Stykają się", "Strays": "Zabłąkane", "The slate": "Łupek", "Short reach": "Krótki zasięg", "Mixed heap": "Pomieszana kupka", "Restless": "Niespokojne", "Pantry spill": "Rozsypana spiżarnia", "Heaps": "Kupki", "Spill": "Rozsypka", "Edges": "Brzegi", "Stripes": "Pasy", "Clusters": "Skupiska", "Pushy rice": "Natrętny ryż", "Rice creeps in from further away. Sweep the heap apart, then gather.": "Ryż wkrada się z daleka. Rozgarnij kupkę, potem zbieraj.", "Short reach, restless": "Krótki zasięg, niespokojne", "Close reach and wandering grains, all three kinds.": "Bliski zasięg i wędrujące ziarna, wszystkie trzy rodzaje.", "Restless grains": "Niespokojne ziarna", "They wander and mix again. Sort them before they spread.": "Wędrują i znów się mieszają. Posortuj je, zanim się rozejdą.", "The sticks pull from close by. Drive the tips through the grains.": "Pałeczki ciągną z bliska. Prowadź końcówki przez ziarna.", "Narrow reach": "Wąski zasięg", "The sticks only pull from straight ahead. Come at grains from below.": "Pałeczki ciągną tylko na wprost. Podchodź do ziaren od dołu.", "Long sticks": "Długie pałeczki", "They hold a longer row: more points, and more to lose.": "Mieszczą dłuższy rząd: więcej punktów i więcej do stracenia.", "They can’t be picked, and they go for the tips. Push them aside.": "Nie da się ich zebrać, a pchają się do końcówek. Odsuwaj je.", "Carry it yourself": "Nieś sam", "Take each row to its pile and let go. The wrong pile spills back onto the board.": "Zanieś każdy rząd na jego kupkę i puść. Zła kupka rozsypie się z powrotem na planszę.", "The jar": "Słoik", "It pours more grains in as you go. Keep up with it.": "Dosypuje ziaren w trakcie gry. Nadążaj za nim.", "The tray tilts": "Taca się przechyla", "Grains slide down it. Catch them before they fall off the edge.": "Ziarna zsuwają się w dół. Złap je, zanim spadną z krawędzi.", "Round and heavy. A quick sweep sends them rolling.": "Okrągła i ciężka. Po szybkim machnięciu toczy się daleko.", "Piles move": "Kupki się przesuwają", "The piles change places from level to level. Look before you let go.": "Kupki zmieniają miejsca z poziomu na poziom. Spójrz, zanim puścisz.", "Tiny and light. Long rows, and a sweep scatters it.": "Malutki i lekki. Długie rzędy, a machnięcie go rozsypuje.", "Any order": "Dowolna kolejność", "The sticks can ask for any kind next. Watch the top of the board.": "Pałeczki mogą poprosić o dowolny rodzaj. Patrz na górę planszy.", "Long and heavy. Push one and it swings round.": "Długa i ciężka. Pchnięta obraca się.", "Touch and hold. The lentils walk into the sticks.": "Dotknij i przytrzymaj. Soczewica sama wchodzi między pałeczki.", "Fill the row to grow your multiplier.": "Wypełnij rząd, a mnożnik urośnie.", "After every row the sticks switch to the other kind.": "Po każdym rzędzie pałeczki przechodzą na drugi rodzaj.", "Rice next to the tips creeps in. Push it aside with the side of the sticks.": "Ryż przy końcówkach wkrada się do środka. Odsuń go bokiem pałeczek.", "The line under the multiplier wears away. Fill the row before it is gone.": "Kreska pod mnożnikiem się ściera. Wypełnij rząd, zanim zniknie.", "A short row keeps the multiplier but shrinks it.": "Krótki rząd zachowuje mnożnik, ale go zmniejsza.", "A third kind, with its own pile in the middle.": "Trzeci rodzaj, z własną kupką na środku.", "{n} left": "{n}", "Lightning": "Błyskawica", "Quick": "Szybko", "Steady": "Równo", "Slow": "Wolno", "Short row {m}": "Krótki rząd {m}", "{kind} cleared {m}": "Koniec: {kind} {m}", "Steady hands": "Pewne ręce", "Grain master": "Mistrz ziaren", "Zen hands": "Ręce zen", "+{b} for {n} full rows in a row": "+{b} za {n} pełnych rzędów z rzędu", "New chopsticks": "Nowe pałeczki", "Multiplier {m}, {n} full rows in a row": "Mnożnik {m}, pełne rzędy z rzędu: {n}", "A lentil got in": "Wpadła soczewica", "Rice got in": "Wpadł ryż", "A mung bean got in": "Wpadła fasola mung", "A stone got in": "Wpadł kamyk", "A chickpea got in": "Wpadła ciecierzyca", "Sesame got in": "Wpadł sezam", "A kidney bean got in": "Wpadła fasola", "A wrong grain got in": "Wpadło złe ziarno", ", back to ×1": ", z powrotem ×1", "Broken": "Przerwany", "Wrong pile": "Zła kupka", "Touch the board to pick the row up again.": "Dotknij planszy, by znów podnieść rząd.", "Tap the arrow again to leave this level.": "Dotknij strzałki jeszcze raz, by wyjść z poziomu.", "Tap again to start this level over.": "Dotknij jeszcze raz, by zacząć od nowa.", "{n} more open {board}": "{n} do otwarcia: {board}", "Every board is open": "Wszystkie plansze otwarte", "{board}, {n} stars": "{board}, gwiazdki: {n}", "{board}, opens with {n} stars": "{board}, otwiera się przy gwiazdkach: {n}", "{n} more {star} to open": "jeszcze {n} {star} do otwarcia", "{board} levels": "Poziomy: {board}", "{level}, {n} of 5 stars": "{level}, {n} z 5 gwiazdek", "{level}, locked": "{level}, zablokowany", "Clear {level} to open this one.": "Najpierw ukończ: {level}.", "{level} cleared": "Ukończono: {level}", "{n} of 5 stars": "{n} z 5 gwiazdek", "Combo prizes": "Nagrody za serie", "Time {t} of {par}": "Czas {t} z {par}", "No row broken": "Bez przerwanego rzędu", "New best": "Rekord", "Next star at {s}": "Następna gwiazdka przy {s}", "New chopsticks: <b>{names}</b>. Pick them under Chopsticks.": "Nowe pałeczki: <b>{names}</b>. Wybierzesz je w menu Pałeczki.", "Cherry lacquer": "Wiśniowa laka", "Ebony": "Hebanowe", "Jade": "Jadeitowe", "Steel": "Stalowe", "Gold leaf": "Złocone", "Reach a ×3 multiplier": "Osiągnij mnożnik ×3", "Make 7 full rows in a row": "Zrób 7 pełnych rzędów z rzędu", "Sort 1,000 grains": "Posortuj 1000 ziaren", "Collect 20 stars": "Zbierz 20 gwiazdek", "Reach a ×6 multiplier": "Osiągnij mnożnik ×6", "Your first pair": "Twoja pierwsza para", "In use": "W użyciu", "Use": "Użyj", "{req} to earn these.": "{req}, żeby je zdobyć.", "Control: drag anywhere": "Sterowanie: przeciąganie", "Control: above the finger": "Sterowanie: nad palcem", "Drag anywhere: the sticks move with your drag, your thumb can stay low.": "Przeciągaj gdziekolwiek: pałeczki idą za ruchem, kciuk może zostać nisko.", "The tips sit above your finger.": "Końcówki są nad twoim palcem.", "Sound on": "Dźwięk: tak", "Sound off": "Dźwięk: nie", "Music on": "Muzyka: tak", "Music off": "Muzyka: nie", "Back to the default feel.": "Przywrócono domyślne ustawienia.", "Select the values and copy them.": "Zaznacz wartości i skopiuj.", "Values copied.": "Skopiowano.", "Tips above the finger": "Końcówki nad palcem", "How tightly the sticks follow": "Jak ciasno pałeczki podążają", "Reach of the open sticks": "Zasięg otwartych pałeczek", "How far ahead of the tips they pull": "Jak daleko przed końcówkami ciągną", "Wrong grains creep from": "Złe ziarna wkradają się z", "Wrong grain creep speed": "Szybkość wkradania się złych ziaren", "How far a sweep flicks grains": "Jak daleko machnięcie odrzuca ziarna", "Next grain joins every (s)": "Kolejne ziarno dołącza co (s)", "Walking speed": "Szybkość marszu", "Pace (higher is more forgiving)": "Tempo (więcej = łagodniej)", "Row length": "Długość rzędu",
     "Lift your finger, then touch again.": "Podnieś palec i dotknij znowu.",
     "Next star at {s}.": "Następna gwiazdka przy {s}.", "new": "nowe", "Tap to begin": "Dotknij, by zacząć", "Open the menu": "Otwórz menu", "Menu": "Menu", "Levels": "Poziomy",
     "Quiet mode": "Tryb cichy", "Settings": "Ustawienia", "Without end": "Bez końca",
@@ -3258,6 +3268,7 @@ const GrainSim = (() => {
     stop: 0, heat: 0, quench: 0, beatT: 0, beat: 0, spill: null, shimmer: null, score: 0, settle: new Map(), prevSt: null,
     slow: 0, scoreRed: 0, saved: false, holdStuck: 0, stars: [], flash: null, lay: null, restRing: null,
     catUsed: false, hamUsed: false, ham: null, dialFrom: null, dialT: 0, lastTick: -1,
+    sand: 0, sandPulse: 0, sandWave: null, leaps: [],
   };
 
   function readSafe() {
@@ -3300,6 +3311,15 @@ const GrainSim = (() => {
     chickpea: ['#d6b07a', '#dcb985', '#cfa66d', '#e2c290', '#c99f63', '#d8b47f', '#e6c898', '#c2975b'],
     sesame: ['#eee2c6', '#f2e8d1', '#e8dabc', '#f5edd9', '#e4d4b2', '#eddfc3', '#f3ead5', '#dfcca8'],
     kidney: ['#96332e', '#a23a34', '#8b2d28', '#ad423b', '#842a26', '#9c3631', '#b4483f', '#7c2723'],
+    moon: ['#d6deea', '#dce3ee', '#cfd8e6', '#e1e7f1', '#cbd4e3', '#d9e0ec', '#e4e9f2', '#c6d0e0'],
+    star: ['#2f4396', '#33479c', '#2b3e8e', '#384ea3', '#283a87', '#31459a', '#3b52a8', '#253682'],
+    ember: ['#c8471e', '#d04e22', '#c0411b', '#d65626', '#b93c19', '#cc4a20', '#da5b2a', '#b03616'],
+    cinder: ['#5e5550', '#655b55', '#58504b', '#6b615a', '#544c47', '#615852', '#6f655e', '#4f4843'],   // an ember bean gone cold
+    nebula: ['#5c2e86', '#64338f', '#57297f', '#6b3896', '#522678', '#60318a', '#70409b', '#4c2371'],
+    neon: ['#1fd6f7', '#2bdcf9', '#16cff2', '#38e2fb', '#12c8ec', '#24d9f8', '#43e6fc', '#0fc1e6'],
+    crystal: ['#f1cfe2', '#f4d6e7', '#eec8dd', '#f6dcea', '#ebc2d8', '#f2d2e4', '#f8e0ed', '#e7bcd3'],
+    galaxy: ['#1a1640', '#1d1946', '#17143a', '#211c4c', '#151236', '#1b1743', '#241f52', '#131032'],
+    gold: ['#e7b232', '#ebb83a', '#e2ab2b', '#efbe44', '#dda526', '#e9b536', '#f2c44c', '#d89f22'],
   };
   function shade(hex, f, a) {             // f > 0 toward white, f < 0 toward black
     const n = parseInt(hex.slice(1), 16), m = (v) => Math.round(f >= 0 ? v + (255 - v) * f : v * (1 + f));
@@ -3333,7 +3353,7 @@ const GrainSim = (() => {
     return pts;
   }
   function bodySprite(type, v, ang, kk) {
-    const T = TYPES[type], R = T.rx * 1.12 + 3, cv = document.createElement('canvas');
+    const T = TYPES[type === 'cinder' ? 'ember' : type], R = T.rx * 1.12 + 3, cv = document.createElement('canvas');
     cv.width = cv.height = Math.max(2, Math.ceil(R * 2 * kk));
     const c = cv.getContext('2d'), base = COLORS[type][v], ca = Math.cos(ang), sa = Math.sin(ang);
     const rot = (x, y) => [x * ca - y * sa, x * sa + y * ca];
@@ -3404,6 +3424,106 @@ const GrainSim = (() => {
       c.strokeStyle = 'rgba(230,230,225,0.22)'; c.lineWidth = 0.8;
       c.beginPath(); c.moveTo(-T.rx * 0.7, -T.ry * 0.2); c.quadraticCurveTo(0, T.ry * 0.3, T.rx * 0.6, -T.ry * 0.1); c.stroke();
       c.restore();
+    } else if (type === 'moon') {
+      // a moonseed: pale and lit from within, a faint crescent of shadow away from the light, a few tiny craters
+      const g = c.createRadialGradient(lx * 0.25, ly * 0.25, 1, 0, 0, T.rx * 1.2);
+      g.addColorStop(0, shade(base, 0.6)); g.addColorStop(0.6, base); g.addColorStop(1, shade(base, -0.22));
+      c.fillStyle = g; c.fillRect(-R, -R, 2 * R, 2 * R);
+      c.beginPath(); c.rect(-R, -R, 2 * R, 2 * R); c.arc(lx * 0.3, ly * 0.3, T.rx * 1.02, 0, 6.284);
+      c.fillStyle = 'rgba(70,90,135,0.22)'; c.fill('evenodd');
+      for (let i = 0; i < 3; i++) {
+        const a = rnd() * 6.283, r = Math.sqrt(rnd()) * 0.6, [X, Y] = rot(Math.cos(a) * r * T.rx, Math.sin(a) * r * T.ry), cr = 1 + rnd() * 1.4;
+        c.fillStyle = 'rgba(90,105,140,0.18)'; c.beginPath(); c.arc(X, Y, cr, 0, 6.284); c.fill();
+        c.fillStyle = 'rgba(255,255,255,0.3)'; c.beginPath(); c.arc(X + 0.4, Y + 0.5, cr * 0.6, 0, 6.284); c.fill();
+      }
+    } else if (type === 'star') {
+      // a star bean: deep night blue and glossy, flecked with tiny stars, one of them bright
+      const g = c.createRadialGradient(lx * 0.3, ly * 0.3, 1, 0, 0, T.rx * 1.2);
+      g.addColorStop(0, shade(base, 0.35)); g.addColorStop(0.5, base); g.addColorStop(1, shade(base, -0.5));
+      c.fillStyle = g; c.fillRect(-R, -R, 2 * R, 2 * R);
+      for (let i = 0; i < 16; i++) {
+        const a = rnd() * 6.283, r = Math.sqrt(rnd()) * 0.85, [X, Y] = rot(Math.cos(a) * r * T.rx, Math.sin(a) * r * T.ry), z = 0.5 + rnd() * 0.7;
+        c.fillStyle = 'rgba(255,250,230,' + (0.45 + rnd() * 0.5).toFixed(2) + ')'; c.fillRect(X - z / 2, Y - z / 2, z, z);
+      }
+      const [SX, SY] = rot((rnd() - 0.3) * T.rx * 0.6, (rnd() - 0.5) * T.ry * 0.6);
+      c.strokeStyle = 'rgba(255,252,235,0.95)'; c.lineWidth = 0.7; c.lineCap = 'round';
+      c.beginPath(); c.moveTo(SX - 3.4, SY); c.lineTo(SX + 3.4, SY); c.moveTo(SX, SY - 3.4); c.lineTo(SX, SY + 3.4); c.stroke();
+      c.fillStyle = '#fffdf0'; c.beginPath(); c.arc(SX, SY, 1, 0, 6.284); c.fill();
+      c.fillStyle = 'rgba(255,255,255,0.5)'; c.beginPath(); c.ellipse(lx * 0.42, ly * 0.36, 2.4, 1.3, -0.6, 0, 6.284); c.fill();
+    } else if (type === 'ember' || type === 'cinder') {
+      // an ember bean: a dark crust split by glowing cracks, hot at the heart; gone cold, the same crust grey and dull
+      const hot = type === 'ember', g = c.createRadialGradient(0, 0, 0, 0, 0, T.rx * 1.15);
+      g.addColorStop(0, hot ? '#ffd58a' : shade(base, 0.15)); g.addColorStop(0.45, base); g.addColorStop(1, shade(base, -0.55));
+      c.fillStyle = g; c.fillRect(-R, -R, 2 * R, 2 * R);
+      for (let i = 0; i < 9; i++) {      // patches of crust
+        const a = rnd() * 6.283, r = 0.35 + rnd() * 0.55, [X, Y] = rot(Math.cos(a) * r * T.rx, Math.sin(a) * r * T.ry);
+        c.fillStyle = hot ? 'rgba(70,20,8,0.32)' : 'rgba(30,26,24,0.28)';
+        c.beginPath(); c.ellipse(X, Y, 2 + rnd() * 3, 1.5 + rnd() * 2, rnd() * 3, 0, 6.284); c.fill();
+      }
+      c.strokeStyle = hot ? 'rgba(255,214,120,0.9)' : 'rgba(25,22,20,0.45)'; c.lineWidth = hot ? 0.9 : 0.8; c.lineJoin = 'round';
+      for (let i = 0; i < 4; i++) {      // the cracks, from near the heart outward
+        let a = rnd() * 6.283, r = 0.1, [X, Y] = rot(Math.cos(a) * r * T.rx, Math.sin(a) * r * T.ry);
+        c.beginPath(); c.moveTo(X, Y);
+        for (let k = 0; k < 3; k++) { r += 0.25 + rnd() * 0.15; a += (rnd() - 0.5) * 0.9; [X, Y] = rot(Math.cos(a) * r * T.rx, Math.sin(a) * r * T.ry); c.lineTo(X, Y); }
+        c.stroke();
+      }
+      if (!hot) for (let i = 0; i < 3; i++) { const [X, Y] = rot((rnd() - 0.5) * T.rx, (rnd() - 0.5) * T.ry); c.fillStyle = 'rgba(255,140,70,0.28)'; c.fillRect(X, Y, 0.9, 0.9); }
+    } else if (type === 'nebula') {
+      // a nebula bean: violet, with soft clouds of rose and teal drifting in it and a few far stars
+      const g = c.createRadialGradient(lx * 0.3, ly * 0.3, 1, 0, 0, T.rx * 1.2);
+      g.addColorStop(0, shade(base, 0.25)); g.addColorStop(0.55, base); g.addColorStop(1, shade(base, -0.45));
+      c.fillStyle = g; c.fillRect(-R, -R, 2 * R, 2 * R);
+      for (let i = 0; i < 6; i++) {
+        const a = rnd() * 6.283, r = Math.sqrt(rnd()) * 0.6, [X, Y] = rot(Math.cos(a) * r * T.rx, Math.sin(a) * r * T.ry), cr = T.rx * (0.3 + rnd() * 0.3);
+        const col = ['255,120,215', '110,225,235', '180,130,255'][i % 3], cg = c.createRadialGradient(X, Y, 0, X, Y, cr);
+        cg.addColorStop(0, 'rgba(' + col + ',0.42)'); cg.addColorStop(1, 'rgba(' + col + ',0)');
+        c.fillStyle = cg; c.fillRect(X - cr, Y - cr, cr * 2, cr * 2);
+      }
+      for (let i = 0; i < 6; i++) { const [X, Y] = rot((rnd() - 0.5) * 1.6 * T.rx, (rnd() - 0.5) * 1.6 * T.ry); c.fillStyle = 'rgba(255,255,255,0.75)'; c.fillRect(X, Y, 0.7, 0.7); }
+      c.fillStyle = 'rgba(255,255,255,0.4)'; c.beginPath(); c.ellipse(lx * 0.42, ly * 0.36, 2.6, 1.4, -0.6, 0, 6.284); c.fill();
+    } else if (type === 'neon') {
+      // a neon bean: lit from inside, a white-hot heart in an electric skin
+      const g = c.createRadialGradient(0, 0, 0, 0, 0, T.rx * 1.05);
+      g.addColorStop(0, '#ffffff'); g.addColorStop(0.3, shade(base, 0.55)); g.addColorStop(0.72, base); g.addColorStop(1, shade(base, -0.3));
+      c.fillStyle = g; c.fillRect(-R, -R, 2 * R, 2 * R);
+      trace(); c.strokeStyle = 'rgba(225,255,255,0.85)'; c.lineWidth = 1.6; c.stroke();
+    } else if (type === 'crystal') {
+      // a crystal bean: clear and cut, pale rose, every facet catching the light its own way
+      c.fillStyle = shade(base, 0, 0.92); c.fillRect(-R, -R, 2 * R, 2 * R);
+      const n = 7, ph = rnd() * 6.283, cx0 = lx * 0.08, cy0 = ly * 0.08;
+      for (let i = 0; i < n; i++) {
+        const a0 = ph + (i / n) * 6.283, a1 = ph + ((i + 1) / n) * 6.283, am = (a0 + a1) / 2;
+        const lit = -(Math.cos(am) * LIGHT.x + Math.sin(am) * LIGHT.y);          // a facet turned to the light is bright
+        c.beginPath(); c.moveTo(cx0, cy0); c.lineTo(Math.cos(a0) * T.rx * 1.4, Math.sin(a0) * T.rx * 1.4); c.lineTo(Math.cos(a1) * T.rx * 1.4, Math.sin(a1) * T.rx * 1.4); c.closePath();
+        c.fillStyle = lit > 0 ? 'rgba(255,255,255,' + (0.08 + lit * 0.32).toFixed(2) + ')' : 'rgba(120,50,95,' + (0.06 - lit * 0.16).toFixed(2) + ')'; c.fill();
+        c.strokeStyle = 'rgba(255,255,255,0.4)'; c.lineWidth = 0.55; c.stroke();
+      }
+      c.fillStyle = 'rgba(255,255,255,0.3)'; c.beginPath(); c.arc(cx0, cy0, T.ry * 0.32, 0, 6.284); c.fill();
+      c.fillStyle = 'rgba(255,255,255,0.9)'; c.beginPath(); c.ellipse(lx * 0.45, ly * 0.4, 2, 1.1, -0.6, 0, 6.284); c.fill();
+    } else if (type === 'galaxy') {
+      // a galaxy bean: deep space, a spiral of tiny stars round a warm gold heart
+      const g = c.createRadialGradient(0, 0, 0, 0, 0, T.rx * 1.15);
+      g.addColorStop(0, shade(base, 0.25)); g.addColorStop(0.6, base); g.addColorStop(1, shade(base, -0.4));
+      c.fillStyle = g; c.fillRect(-R, -R, 2 * R, 2 * R);
+      const haze = c.createRadialGradient(0, 0, 0, 0, 0, T.rx * 0.8);
+      haze.addColorStop(0, 'rgba(150,120,255,0.4)'); haze.addColorStop(1, 'rgba(150,120,255,0)');
+      c.fillStyle = haze; c.fillRect(-R, -R, 2 * R, 2 * R);
+      const ph = rnd() * 6.283;
+      for (let i = 0; i < 46; i++) {
+        const k = i / 46, arm = i % 2, a = ph + arm * Math.PI + k * 4.4 + (rnd() - 0.5) * 0.35, r = (0.12 + k * 0.85) * T.rx;
+        const [X, Y] = rot(Math.cos(a) * r, Math.sin(a) * r * 0.78), z = 0.5 + rnd() * 0.8;
+        c.fillStyle = k < 0.35 ? 'rgba(255,236,200,0.9)' : rnd() < 0.5 ? 'rgba(190,175,255,0.8)' : 'rgba(150,200,255,0.75)';
+        c.fillRect(X - z / 2, Y - z / 2, z, z);
+      }
+      const core = c.createRadialGradient(0, 0, 0, 0, 0, T.rx * 0.36);
+      core.addColorStop(0, '#fff6d6'); core.addColorStop(0.45, 'rgba(255,205,120,0.75)'); core.addColorStop(1, 'rgba(255,190,100,0)');
+      c.fillStyle = core; c.fillRect(-R, -R, 2 * R, 2 * R);
+    } else if (type === 'gold') {
+      // the golden bean: polished metal, bands of light across it and one hard glint
+      const lg = c.createLinearGradient(lx, ly, -lx, -ly);
+      lg.addColorStop(0, shade(base, 0.6)); lg.addColorStop(0.3, base); lg.addColorStop(0.52, shade(base, -0.38)); lg.addColorStop(0.74, shade(base, 0.22)); lg.addColorStop(1, shade(base, -0.5));
+      c.fillStyle = lg; c.fillRect(-R, -R, 2 * R, 2 * R);
+      c.fillStyle = 'rgba(255,255,240,0.92)'; c.beginPath(); c.ellipse(lx * 0.42, ly * 0.36, 2.8, 1.5, -0.6, 0, 6.284); c.fill();
     } else if (type === 'rice') {
       // rice: pearly and a little see-through at the very edge, a chalky white heart, lit from the upper left
       c.fillStyle = shade(base, 0, 0.94); c.fillRect(-R, -R, 2 * R, 2 * R);
@@ -3448,8 +3568,8 @@ const GrainSim = (() => {
   // each pre-lit sprite is drawn the first time a grain needs it, so a resize costs nothing up front
   function buildSprites() {
     const kk = K() * 1.25, out = { kk, body: {}, shadow: {} };
-    for (const t of Object.keys(TYPES)) {
-      if (!OUTLINES[t]) OUTLINES[t] = [...Array(VARIANTS).keys()].map((v) => outline(t, v));
+    for (const t of Object.keys(TYPES).concat('cinder')) {
+      if (!OUTLINES[t]) OUTLINES[t] = t === 'cinder' ? OUTLINES.ember : [...Array(VARIANTS).keys()].map((v) => outline(t, v));
       out.body[t] = [...Array(ANGLES)].map(() => new Array(VARIANTS));
       out.shadow[t] = new Array(ANGLES);
     }
@@ -3463,6 +3583,14 @@ const GrainSim = (() => {
     if (type === 'chickpea') return '<path d="M3.2 10.4c0-4 3.2-7 7.2-7s6.6 3 6.6 6.8-2.9 6.8-6.8 6.8c-2.6 0-4.6-1.3-5.6-3.1L2.2 12.6z" fill="var(--chickpea)"/>';
     if (type === 'sesame') return '<path d="M3.6 10Q9.8 4.2 16.4 10Q9.8 15.8 3.6 10z" transform="rotate(-24 10 10)" fill="var(--sesame)"/>';
     if (type === 'kidney') return '<path d="M3.4 9.6c0-4 4.6-5.4 7.2-3.2 1.6 1.4 3.4-.4 5 1.4 1.8 2.2.4 7.4-5 7.4-4.4 0-7.2-2.2-7.2-5.6z" fill="var(--kidney)"/>';
+    if (type === 'moon') return '<ellipse cx="10" cy="10" rx="6.6" ry="5.6" fill="#dfe6f2"/><path d="M12.6 5.6a5.6 5.6 0 0 1 0 8.8a6.6 5.6 0 0 0 0-8.8z" fill="#9fb0cc"/>';
+    if (type === 'star') return '<ellipse cx="10" cy="10" rx="7" ry="6" fill="#4a60b8"/><path d="M8 6.6v3.6M6.2 8.4h3.6" stroke="#fff" stroke-width="1" stroke-linecap="round"/><circle cx="12.6" cy="12" r=".8" fill="#fff"/>';
+    if (type === 'ember') return '<ellipse cx="10" cy="10" rx="7.2" ry="5.6" fill="#d9542a"/><path d="M6.8 9.6l2.6 1.2 1.8-1.9 2.2 1.7" fill="none" stroke="#ffd27a" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>';
+    if (type === 'nebula') return '<ellipse cx="10" cy="10" rx="7.4" ry="6" fill="#7a42ad"/><circle cx="8" cy="9" r="2.6" fill="#ff8adf" opacity=".6"/><circle cx="12.4" cy="11.4" r="2.2" fill="#7fe6ee" opacity=".55"/>';
+    if (type === 'neon') return '<ellipse cx="10" cy="10" rx="7" ry="5.4" fill="#2fe0fb"/><ellipse cx="10" cy="10" rx="3.4" ry="2.4" fill="#fff"/>';
+    if (type === 'crystal') return '<path d="M10 3.6l6 3.6v5.6l-6 3.6-6-3.6V7.2z" fill="#f5d6e8"/><path d="M10 3.6v12.8M4 7.2l12 5.6M16 7.2L4 12.8" stroke="#fff" stroke-width=".7" opacity=".8"/>';
+    if (type === 'galaxy') return '<ellipse cx="10" cy="10" rx="7.4" ry="6.6" fill="#2a2462"/><path d="M5.6 11.4c1.6 2.6 6.4 2.4 7.4-.6M14.4 8.6c-1.6-2.6-6.4-2.4-7.4.6" fill="none" stroke="#b9acff" stroke-width="1" stroke-linecap="round"/><circle cx="10" cy="10" r="1.8" fill="#ffe2a0"/>';
+    if (type === 'gold') return '<ellipse cx="10" cy="10" rx="7" ry="6" fill="#efbe44"/><ellipse cx="7.8" cy="7.8" rx="2" ry="1.1" fill="#fffbe8" transform="rotate(-30 7.8 7.8)"/>';
     return '<ellipse cx="10" cy="10" rx="7.4" ry="6.6" fill="var(--lentil)"/>';
   }
 
@@ -3641,29 +3769,21 @@ const GrainSim = (() => {
         }
       };
       grit(bx, 0, bw, H, Math.round((bw * H) / (40 * d * d)));
-      const step = 13 * d, wave = (x, y) => Math.sin(x / (bw * 0.21) + y / (H * 0.9)) * 7 * d;
       const furrow = (pts) => {
         for (const [dy, col, lw] of [[1.6 * d, 'rgba(0,0,0,0.22)', 2.4], [0, 'rgba(255,244,228,0.07)', 1.4]]) {
           c.strokeStyle = col; c.lineWidth = lw * d; c.beginPath();
           pts.forEach(([x, y], i) => (i ? c.lineTo(x, y + dy) : c.moveTo(x, y + dy))); c.stroke();
         }
       };
-      for (let y = -step; y < H + step; y += step) {
-        const pts = [];
-        for (let x = bx - 10; x <= bx + bw + 10; x += 12 * d) pts.push([x, y + wave(x - bx, y)]);
-        furrow(pts);
-      }
-      for (const [fx0, fy0, R] of [[0.24, 0.3, 0.2], [0.74, 0.58, 0.16]]) {
-        const cx = bx + bw * fx0, cy = H * fy0, rr = bw * R;
+      const rake = zenRake(bx, bw, H, d);
+      rake.lines.forEach(furrow);
+      for (const o of rake.rounds) {
+        const { cx, cy, rr } = o;
         c.save(); c.beginPath(); c.arc(cx, cy, rr, 0, Math.PI * 2); c.clip();
         c.fillStyle = lg; c.fillRect(cx - rr, cy - rr, rr * 2, rr * 2);
         c.fillStyle = rg; c.fillRect(cx - rr, cy - rr, rr * 2, rr * 2);
         grit(cx - rr, cy - rr, rr * 2, rr * 2, Math.round((rr * rr * 4) / (40 * d * d)));
-        for (let r = rr - step * 0.4; r > step * 1.2; r -= step) {
-          const pts = [];
-          for (let a = 0; a <= Math.PI * 2 + 0.01; a += 0.08) pts.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r * 0.97]);
-          furrow(pts);
-        }
+        o.rings.forEach(furrow);
         c.restore();
       }
     } else if (id === 'lacquer') {
@@ -3797,6 +3917,75 @@ const GrainSim = (() => {
     vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,' + (id === 'iron' ? 0.6 : 0.5) + ')');
     c.fillStyle = vg; c.fillRect(bx, 0, bw, H);
   }
+  // the zen sand's furrows: long waves across the board, and rings round two places where a stone stood
+  function zenRake(bx, bw, H, d) {
+    const step = 13 * d, wave = (x, y) => Math.sin(x / (bw * 0.21) + y / (H * 0.9)) * 7 * d, lines = [], rounds = [];
+    for (let y = -step; y < H + step; y += step) {
+      const pts = [];
+      for (let x = bx - 10; x <= bx + bw + 10; x += 12 * d) pts.push([x, y + wave(x - bx, y)]);
+      lines.push(pts);
+    }
+    for (const [fx0, fy0, R] of [[0.24, 0.3, 0.2], [0.74, 0.58, 0.16]]) {
+      const cx = bx + bw * fx0, cy = H * fy0, rr = bw * R, rings = [];
+      for (let r = rr - step * 0.4; r > step * 1.2; r -= step) {
+        const pts = [];
+        for (let a = 0; a <= Math.PI * 2 + 0.01; a += 0.08) pts.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r * 0.97]);
+        rings.push(pts);
+      }
+      rounds.push({ cx, cy, rr, rings });
+    }
+    return { lines, rounds };
+  }
+  // The same furrows as thin lines of light with a soft halo, drawn once; the night lights them a little more at
+  // every stage (see drawSandGlow).
+  function sandGlowLayer() {
+    if (bgCache.has('zen-glow')) return bgCache.get('zen-glow');
+    const cv = document.createElement('canvas');
+    cv.width = canvas.width; cv.height = canvas.height;
+    const c = cv.getContext('2d'), d = view.dpr, H = cv.height;
+    const bx = Math.round(view.offX * d), bw = Math.round(W * view.scale * d), rake = zenRake(bx, bw, H, d);
+    const line = (pts) => { c.beginPath(); pts.forEach(([x, y], i) => (i ? c.lineTo(x, y) : c.moveTo(x, y))); c.stroke(); };
+    const lightAll = (paths) => {
+      c.save(); c.lineCap = 'round';
+      c.shadowColor = 'rgba(160,195,255,0.95)'; c.shadowBlur = 9 * d; c.strokeStyle = 'rgba(190,215,255,0.5)'; c.lineWidth = 2.2 * d;
+      paths.forEach(line);
+      c.shadowBlur = 0; c.strokeStyle = 'rgba(245,250,255,0.95)'; c.lineWidth = 0.9 * d;
+      paths.forEach(line);
+      c.restore();
+    };
+    c.save(); c.beginPath(); c.rect(bx, 0, bw, H);
+    for (const o of rake.rounds) { c.moveTo(o.cx + o.rr, o.cy); c.arc(o.cx, o.cy, o.rr, 0, Math.PI * 2); }
+    c.clip('evenodd');
+    lightAll(rake.lines);
+    c.restore();
+    for (const o of rake.rounds) { c.save(); c.beginPath(); c.arc(o.cx, o.cy, o.rr, 0, Math.PI * 2); c.clip(); lightAll(o.rings); c.restore(); }
+    bgCache.set('zen-glow', cv);
+    return cv;
+  }
+  const SAND_GLOW = [0, 0.07, 0.1, 0.14, 0.18, 0.22, 0.26, 0.3];
+  function drawSandGlow(s, dt) {
+    const want = s.done ? 0 : SAND_GLOW[Math.min(SAND_GLOW.length - 1, s.stage || 0)];
+    fx.sand += (want - fx.sand) * Math.min(1, dt / 4);
+    const t = performance.now() / 1000, still = reducedMotion();
+    const a = fx.sand * (still ? 1 : 0.8 + 0.2 * Math.sin(t * 0.9)) + 0.3 * fx.sandPulse;
+    const wave = fx.sandWave;
+    if (a < 0.004 && !wave) return;
+    const layer = sandGlowLayer(), H = canvas.height;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalCompositeOperation = 'lighter';
+    if (a >= 0.004) { ctx.globalAlpha = Math.min(1, a); ctx.drawImage(layer, 0, 0); }
+    if (wave) {
+      // a new stage: a band of light runs up through the furrows, from the near edge to the far one
+      const k = wave.t / 2.4, y = H * (1.15 - 1.5 * k), band = H * 0.2;
+      for (let i = -3; i <= 3; i++) {
+        const y0 = y + (i * band) / 7, al = 0.6 * (1 - Math.abs(i) / 4) * (1 - k * 0.6);
+        if (al <= 0) continue;
+        ctx.save(); ctx.beginPath(); ctx.rect(0, y0, canvas.width, band / 7 + 1); ctx.clip();
+        ctx.globalAlpha = Math.min(1, al); ctx.drawImage(layer, 0, 0); ctx.restore();
+      }
+    }
+    ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+  }
   const bgCache = new Map();
   function backgroundFor(id) {
     if (bgCache.has(id)) return bgCache.get(id);
@@ -3873,6 +4062,7 @@ const GrainSim = (() => {
     sim = GS.create(Object.assign({}, cfg, { perks: stickById(save.sticks.equipped).perks || null, extraTime: 0.12 * Math.min(3, failed) }), L, layout(), ((Date.now() >>> 0) ^ (levelIndex * 7919)) >>> 0);
     autoBot = null; pendingDone = null; levelUnlocks = [];
     fx.pops.clear(); fx.lands.clear(); fx.sparks = []; fx.steam = []; fx.floats = []; fx.rings = []; fx.wave = null; fx.bad = null; fx.shakeT = 0; fx.falls = []; fx.targetPulse = 1;
+    fx.sand = 0; fx.sandPulse = 0; fx.sandWave = null; fx.leaps = []; fx.bestSaid = false;
     fx.stop = 0; fx.heat = 0; fx.quench = 0; fx.beat = 0; fx.beatT = 0; fx.shimmer = null; fx.score = 0; fx.settle.clear(); fx.prevSt = null;
     fx.slow = 0; fx.scoreRed = 0; fx.saved = false; fx.holdStuck = 0; fx.stars = []; fx.flash = null; fx.lay = null; fx.restRing = null;
     fx.catUsed = false; fx.hamUsed = false; fx.ham = null; fx.dialFrom = null; fx.lastTick = -1; pendingFail = 0; pendingZen = null; dialKey = '';
@@ -3910,13 +4100,16 @@ const GrainSim = (() => {
   // ---------- HUD ----------
   const chip = $('chip'), streakEl = $('streak'), scoreEl = $('score'), clockEl = $('clock'), fuseEl = $('fuse');
   let chipType = null;
+  // zen's grander beans have long Polish names; the chip at the top says them short
+  const CHIP_PL = { moon: 'Księżycowe', star: 'Gwiezdne', ember: 'Żarzące', nebula: 'Mgławicowe', neon: 'Neonowe', crystal: 'Kryształowe', galaxy: 'Galaktyczne' };
   function updateHud(animate) {
     if (!sim) return;
     const t = sim.target;
     if (t !== chipType) {
       chip.querySelector('.ico').innerHTML = chipIcon(t);
-      chip.querySelector('.name').textContent = tr(TYPES[t].label);
-      chip.classList.toggle('long', tr(TYPES[t].label).length > 8);        // Mung beans, Ciecierzyca: one size down and the bare count, so it fits
+      const name = lang === 'pl' && CHIP_PL[t] ? CHIP_PL[t] : tr(TYPES[t].label);
+      chip.querySelector('.name').textContent = name;
+      chip.classList.toggle('long', name.length > 8);        // Mung beans, Ciecierzyca: one size down and the bare count, so it fits
       if (animate && !reducedMotion()) { chip.classList.remove('swap'); void chip.offsetWidth; chip.classList.add('swap'); }
       chipType = t;
     }
@@ -3935,6 +4128,14 @@ const GrainSim = (() => {
     }
     fx.scoreRed = Math.max(0, fx.scoreRed - dt);
     scoreEl.classList.toggle('down', fx.scoreRed > 0);
+    {
+      const el = $('best'), z = save.zen, beat = sim.zen && z.best > 0 && fx.score > z.best;
+      const txt = !sim.zen || !z.best ? '' : beat ? tr('New best!') : tr('Best {s}', { s: fmt(z.best) });
+      if (el.textContent !== txt) {
+        el.textContent = txt; el.hidden = !txt; el.classList.toggle('new', beat);
+        if (beat && !fx.bestSaid) { fx.bestSaid = true; Sound.fanfare(); Haptics.buzz([10, 30, 10]); restartAnim(el, 'pop'); }
+      }
+    }
     drawDial(dt);
     // the pace line: whole right after a pull, gone once a full row would only count as Slow
     const r = sim.started && !sim.done ? sim.paceRatio() : 0, pace = GS.speedLabel(r);
@@ -4818,6 +5019,7 @@ const GrainSim = (() => {
             fx.rings.push({ x: G.mx, y: G.my, t: 0, life: 0.45 });
             fx.wave = { ids: sim.sticks.row.slice(), t: 0 };
             sparkRow();
+            if (sim.zen && sim.stage > 0 && !reducedMotion()) fx.sandPulse = Math.max(fx.sandPulse, 0.15 + fx.sand * 0.6);
           }
           break;
         }
@@ -4867,8 +5069,58 @@ const GrainSim = (() => {
           Analytics.emit('life_lost', { why: e.why, lives: e.lives, time: sim.clock });
           break;
         case 'pile_packed':
-          Sound.chime(); note('+' + fmt(e.bonus), tr('Bowl full'), '#f6c453', '#ece8de', e.x + (e.x < W / 2 ? 110 : e.x > W / 2 ? -110 : 0), e.y - 140);
+          Sound.chime(); note('+' + fmt(e.bonus), tr(e.why === 'kind' ? 'Bowl packed' : 'Bowl full'), '#f6c453', '#ece8de', e.x + (e.x < W / 2 ? 110 : e.x > W / 2 ? -110 : 0), e.y - 140);
           break;
+        case 'stage': {
+          // a new stage of the night: its name, what is coming, and a band of light running up the sand
+          const fresh = GS.ZEN_STAGES[e.stage].kinds.filter((k) => !sim.level.types.includes(k)).map((k) => tr(TYPES[k].label));
+          banner(tr(e.name), fresh.length ? tr('Coming: {kinds}', { kinds: fresh.join(', ') }) : tr('The jar pours faster'), 2600);
+          Sound.gong(); Haptics.buzz([10, 40, 10]);
+          if (!reducedMotion()) { fx.sandWave = { t: 0 }; fx.sandPulse = 1; }
+          Analytics.emit('zen_stage', { stage: e.stage, time: sim.clock, score: sim.score });
+          break;
+        }
+        case 'new_kind': {
+          const w = GS.ZEN_WORTH[e.grain] || 1;
+          Sound.saved(); updateHud(true);
+          note(tr(TYPES[e.grain].label), tr('New kind, {w} a grain', { w: '×' + w }), '#ece8de', '#f6c453', e.x + (e.x < W / 2 ? 120 : e.x > W / 2 ? -120 : 0), e.y - 150);
+          break;
+        }
+        case 'gold':
+          Sound.saved(); Haptics.buzz(8);
+          note(tr('Golden bean'), tr('Catch it!'), '#f6c453', '#ece8de', e.x, e.y);
+          break;
+        case 'gold_caught': {
+          Sound.fanfare(); Haptics.buzz([12, 30, 12, 30, 24]);
+          note('+' + fmt(e.bonus), tr('Golden bean'), '#f6c453', '#f6c453', e.x, e.y);
+          fx.rings.push({ x: e.x, y: e.y, t: 0, life: 0.6 });
+          if (!reducedMotion()) {
+            fx.flash = { x: e.x, y: e.y, t: 0 };
+            for (let i = 0; i < 26; i++) { const a = Math.random() * Math.PI * 2, v = 80 + Math.random() * 220; fx.sparks.push({ x: e.x, y: e.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0, life: 0.5 + Math.random() * 0.35 }); }
+          }
+          updateHud(false);
+          break;
+        }
+        case 'gold_escaped':
+          Sound.swish();
+          if (!reducedMotion()) fx.leaps.push({ x: e.x, y: e.y, dx: (e.x < W / 2 ? -1 : 1) * 160, t: 0 });
+          note(tr('Got away'), tr('The golden bean leapt off'), '#9aa0a8', '#9aa0a8', e.x, e.y);
+          break;
+        case 'ember_warn': Haptics.buzz(6); break;
+        case 'ember_burst':
+          Sound.thud(); Sound.scatter(10); Haptics.buzz([25, 30, 25]);
+          if (!reducedMotion()) {
+            fx.shakeT = Math.max(fx.shakeT, 0.18);
+            for (let i = 0; i < 22; i++) { const a = Math.random() * Math.PI * 2, v = 90 + Math.random() * 200; fx.sparks.push({ x: e.x, y: e.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0, life: 0.45 + Math.random() * 0.35, warm: true }); }
+            fx.rings.push({ x: e.x, y: e.y, t: 0, life: 0.4 });
+          }
+          break;
+        case 'capybara':
+          Sound.fanfare(); Haptics.buzz([15, 40, 15]); syncLives(false);
+          banner(tr('Zen Capybara'), e.gave === 'life' ? tr('Thanks for the bowls: a life back') : tr('Thanks for the bowls: +{b}', { b: fmt(e.points) }), 2600);
+          updateHud(false);
+          break;
+        case 'revived': syncLives(false); break;
         case 'zen_over': {
           Haptics.buzz([20, 30, 20, 30, 40]);
           layDown();
@@ -5175,7 +5427,7 @@ const GrainSim = (() => {
     return { b: b % ANGLES, rest: ((f - b) * Math.PI) / ANGLES };
   }
   function drawGrain(g, scaleMul, jx, jy, ox, oy, extraRot) {
-    const a = turnOf(g.rot + (extraRot || 0)), sp = bodyOf(g.type, a.b, variantOf(g));
+    const a = turnOf(g.rot + (extraRot || 0)), sp = bodyOf(g.cool ? 'cinder' : g.type, a.b, variantOf(g));
     const s = g.s * (scaleMul || 1) * K(), c = Math.cos(a.rest) * s, n = Math.sin(a.rest) * s;
     ctx.setTransform(c, n, -n, c, view.dpr * (view.offX + ox + (g.x + (jx || 0)) * view.scale), view.dpr * (oy + (g.y + (jy || 0)) * view.scale));
     ctx.drawImage(sp.cv, -sp.R, -sp.R, sp.R * 2, sp.R * 2);
@@ -5400,6 +5652,51 @@ const GrainSim = (() => {
     c.fillStyle = g; c.fillRect(0, 0, 128, 128);
     return (haloCanvas = cv);
   }
+  // zen's grander beans give off a light of their own (an ember brighter as it is about to burst)
+  const OWN_LIGHT = { moon: ['200,222,255', 0.3, 2.2], star: ['150,175,255', 0.14, 2], ember: ['255,140,60', 0.4, 2.4], nebula: ['225,120,235', 0.2, 2.3],
+    neon: ['70,230,255', 0.5, 2.6], crystal: ['255,215,240', 0.18, 2], galaxy: ['165,135,255', 0.24, 2.4], gold: ['255,205,90', 0.7, 2.9] };
+  const glowSprites = new Map();
+  function glowSprite(rgb) {
+    if (glowSprites.has(rgb)) return glowSprites.get(rgb);
+    const cv = document.createElement('canvas'); cv.width = cv.height = 64;
+    const c = cv.getContext('2d'), g = c.createRadialGradient(32, 32, 0, 32, 32, 32);
+    g.addColorStop(0, 'rgba(' + rgb + ',0.9)'); g.addColorStop(0.4, 'rgba(' + rgb + ',0.32)'); g.addColorStop(1, 'rgba(' + rgb + ',0)');
+    c.fillStyle = g; c.fillRect(0, 0, 64, 64);
+    glowSprites.set(rgb, cv);
+    return cv;
+  }
+  function drawOwnLight(s, ox, oy) {
+    const t = performance.now() / 1000;
+    worldTransform(ox, oy); ctx.globalCompositeOperation = 'lighter';
+    for (const g of s.grains) {
+      const L = OWN_LIGHT[g.type];
+      if (!L || g.cool || (g.st !== ST.REST && g.st !== ST.SLIDE)) continue;
+      let a = L[1], r = TYPES[g.type].rx * L[2] * g.s;
+      if (g.type === 'ember') { a *= 0.8 + 0.2 * Math.sin(t * 3 + g.id); if (g.burst > 0) { const k = 1 - g.burst / 1.5; a += k * 0.6; r *= 1 + k; } }
+      else if (g.type === 'gold' || g.type === 'neon') a *= 0.85 + 0.15 * Math.sin(t * 5 + g.id);
+      ctx.globalAlpha = Math.min(1, a);
+      ctx.drawImage(glowSprite(L[0]), g.x - r, g.y - r, r * 2, r * 2);
+    }
+    ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+  }
+  // the golden bean: a thin ring round it running down with the seconds it has left; when it leaps off, an arc away
+  function drawGoldBits(s, ox, oy) {
+    worldTransform(ox, oy);
+    const t = performance.now() / 1000;
+    for (const g of s.grains) {
+      if (g.type !== 'gold' || (g.st !== ST.REST && g.st !== ST.SLIDE)) continue;
+      const k = clamp(g.life / 7, 0, 1), blink = g.life < 2 ? 0.55 + 0.45 * Math.sin(t * 14) : 1;
+      ctx.strokeStyle = 'rgba(246,196,83,' + (0.85 * blink).toFixed(3) + ')'; ctx.lineWidth = 2.4; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.arc(g.x, g.y, 25, -Math.PI / 2, -Math.PI / 2 + k * Math.PI * 2); ctx.stroke();
+      ctx.lineCap = 'butt';
+    }
+    for (const l of fx.leaps) {
+      const k = l.t / 0.9, x = l.x + l.dx * k, y = l.y - 260 * k + 120 * k * k;
+      ctx.globalAlpha = 1 - k;
+      drawGrain({ type: 'gold', x, y, rot: l.t * 9, s: 1 - 0.4 * k, tint: 0, id: 0 }, 1, 0, 0, ox, oy);
+      ctx.globalAlpha = 1; worldTransform(ox, oy);
+    }
+  }
   function drawWarnRing(g, a, ox, oy) {
     worldTransform(ox, oy);
     ctx.strokeStyle = 'rgba(255,107,94,' + a + ')'; ctx.lineWidth = 3;
@@ -5476,6 +5773,7 @@ const GrainSim = (() => {
     if (overRoom()) { drawRoom(dt); return; }
     if (screen === 'table' || screen === 'sticks') { drawTableTop(dt); return; }
     ctx.drawImage(backgroundFor(levelIndex < 0 ? 'zen' : GS.surfaceOf(levelIndex)), 0, 0);
+    if (sim && sim.zen) drawSandGlow(sim, dt);
     drawCandle();
     const s = sim;
     if (!s || !sprites) return;
@@ -5531,6 +5829,7 @@ const GrainSim = (() => {
       }
       ctx.globalAlpha = 1;
     }
+    if (s.zen) drawOwnLight(s, ox, oy);
     for (const g of gs) {
       if (g.st !== ST.REST && g.st !== ST.SLIDE) continue;
       let jx = 0, jy = 0, sc = 1, wob = 0;
@@ -5547,6 +5846,10 @@ const GrainSim = (() => {
         jx = Math.sin(t * 57 + g.id * 1.7) * g.warn * 2.4; jy = Math.cos(t * 49 + g.id) * g.warn * 2.4;
       }
       if (g.id === badId) drawWarnRing(g, Math.min(1, fx.bad.t), ox, oy);
+      if (g.burst > 0 && !reducedMotion()) {          // an ember about to burst trembles and swells
+        const k = 1 - g.burst / 1.5;
+        jx += Math.sin(t * 61 + g.id) * k * 2.2; jy += Math.cos(t * 53 + g.id) * k * 2.2; sc *= 1 + 0.12 * k;
+      }
       drawGrain(g, sc, jx, jy, ox, oy, wob);
       ctx.globalAlpha = 1;
     }
@@ -5570,6 +5873,7 @@ const GrainSim = (() => {
       drawGrain(g, 1 + 0.35 * Math.sin(Math.PI * k), 0, 0, ox, oy);
     }
     if (s !== sim) return;
+    if (s.zen) drawGoldBits(s, ox, oy);
     drawHamster(ox, oy);
     drawLesson(ox, oy);
     drawGhost(ox, oy);
@@ -5669,6 +5973,18 @@ const GrainSim = (() => {
     fx.sparks = fx.sparks.filter((p) => p.t < p.life);
     for (const r of fx.rings) r.t += dt;
     fx.rings = fx.rings.filter((r) => r.t < r.life);
+    fx.sandPulse = Math.max(0, fx.sandPulse - dt / 1.6);
+    if (fx.sandWave) { fx.sandWave.t += dt; if (fx.sandWave.t > 2.4) fx.sandWave = null; }
+    for (const l of fx.leaps) l.t += dt;
+    fx.leaps = fx.leaps.filter((l) => l.t < 0.9);
+    // the golden bean sheds a few sparks as it lies there
+    if (sim && sim.zen && screen === 'play' && !reducedMotion()) {
+      for (const g of sim.grains) {
+        if (g.type !== 'gold' || (g.st !== ST.REST && g.st !== ST.SLIDE) || Math.random() > 9 * dt) continue;
+        const a = Math.random() * Math.PI * 2;
+        fx.sparks.push({ x: g.x + Math.cos(a) * 10, y: g.y + Math.sin(a) * 8, vx: Math.cos(a) * 40, vy: Math.sin(a) * 40 - 30, t: 0, life: 0.45 + Math.random() * 0.3 });
+      }
+    }
     fx.targetPulse = Math.max(0, fx.targetPulse - dt / 1.1);
     for (const f of fx.falls) f.t += dt;
     fx.falls = fx.falls.filter((f) => f.t < 0.45);
