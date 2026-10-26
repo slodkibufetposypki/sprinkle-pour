@@ -129,10 +129,15 @@
   #zone.up { animation: zoneup .5s cubic-bezier(.3, 1.6, .5, 1); }
   @keyframes zoneup { 40% { transform: scale(1.12); } }
   #capy { display: flex; align-items: center; gap: 5px; margin-top: 3px; }
-  #capy .cap { width: 21px; height: 19px; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .6)); }
-  #capy .pips { display: flex; gap: 3px; }
-  #capy .pips i { width: 8px; height: 8px; border-radius: 50%; border: 1.2px solid var(--chalk-3); box-sizing: border-box; }
-  #capy .pips i.on { background: #c8925a; border-color: #e0b07a; }
+  /* the capybara's medallion (the drawn face under it in case the picture is missing), then the five bowls toward her */
+  #capy .cap { position: relative; display: block; width: 24px; height: 24px; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .6)); }
+  #capy .cap svg { position: absolute; left: 1px; top: 3px; width: 22px; height: 20px; }
+  #capy .cap img { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #capy .pips { display: flex; gap: 4px; align-items: flex-end; }
+  #capy .pips i { width: 12px; height: 7px; box-sizing: border-box; border: 1.3px solid var(--chalk-3); border-radius: 1px 1px 7px 7px / 1px 1px 7px 7px; }
+  #capy .pips i.on { background: linear-gradient(#f0cf9e, #c8925a); border-color: #f0cf9e; }
+  #capy .pips i.pop { animation: pippop .45s cubic-bezier(.3, 1.6, .5, 1); }
+  @keyframes pippop { 40% { transform: scale(1.5); box-shadow: 0 0 9px 2px rgba(246, 196, 83, 0.8); } }
   #capy.bless { animation: zoneup .7s cubic-bezier(.3, 1.6, .5, 1) 2; }
   #best { display: block; margin-top: 2px; font: 400 var(--fs-13)/1.2 var(--hand); color: var(--chalk-2); white-space: nowrap; }
   #best.new { color: var(--ember); }
@@ -535,7 +540,7 @@
     <i id="fuse" class="chalk" aria-hidden="true"></i>
     <span id="tally" class="chalk" aria-hidden="true"></span>
     <div id="zone" class="chalk" hidden><span class="lbl">Zen Zone</span><i class="bar"><b></b></i></div>
-    <div id="capy" class="chalk" hidden><svg class="cap" viewBox="0 0 24 22" aria-hidden="true"><circle cx="6.2" cy="6.6" r="2" fill="#8c5c35"/><circle cx="17.8" cy="6.6" r="2" fill="#8c5c35"/><path d="M4 11.6c0-4 3.6-6.6 8-6.6s8 2.6 8 6.6v2.8c0 3.2-2.8 5.4-8 5.4s-8-2.2-8-5.4z" fill="#b07a4a"/><path d="M8 11.6h2.3M13.7 11.6H16" stroke="#3a2414" stroke-width="1.2" stroke-linecap="round"/><ellipse cx="12" cy="15.6" rx="3.3" ry="2.1" fill="#7a4d2c"/><circle cx="12" cy="3.2" r="2.3" fill="#f2c94c"/></svg><span class="pips"><i></i><i></i><i></i><i></i><i></i></span></div>
+    <div id="capy" class="chalk" hidden><span class="cap"><svg viewBox="0 0 24 22" aria-hidden="true"><circle cx="6.2" cy="6.6" r="2" fill="#8c5c35"/><circle cx="17.8" cy="6.6" r="2" fill="#8c5c35"/><path d="M4 11.6c0-4 3.6-6.6 8-6.6s8 2.6 8 6.6v2.8c0 3.2-2.8 5.4-8 5.4s-8-2.2-8-5.4z" fill="#b07a4a"/><path d="M8 11.6h2.3M13.7 11.6H16" stroke="#3a2414" stroke-width="1.2" stroke-linecap="round"/><ellipse cx="12" cy="15.6" rx="3.3" ry="2.1" fill="#7a4d2c"/><circle cx="12" cy="3.2" r="2.3" fill="#f2c94c"/></svg><img src="medal-capy-front.webp" alt="" onerror="this.remove()"></span><span class="pips"><i></i><i></i><i></i><i></i><i></i></span></div>
     <span id="best" class="chalk" hidden></span>
   </div>
   <div class="side end">
@@ -1862,12 +1867,14 @@ const GrainSim = (() => {
       const st = sim.stores[type];
       if (!st) return;
       const n = st.ids.length;
+      // what the bowl held, as it lay, so the host can carry the full bowl away
+      const held = st.ids.map((id) => { const g = sim.grains[id]; return { id, type: g.type, x: g.x, y: g.y, rot: g.rot, s: g.s, tint: g.tint }; });
       for (const id of st.ids) { const g = sim.grains[id]; g.st = ST.JAR; g.spare = true; g.slot = -1; }
       st.ids = []; st.n = 0; sim.stats.taken[type] = 0;
       if (!n) return;
       const bonus = Math.round(25 * n * (ZEN_WORTH[type] || 1));
       sim.score += bonus; sim.bowls++;
-      emit('pile_packed', { grain: type, n, bonus, x: st.x, y: st.y, score: sim.score, bowls: sim.bowls, why });
+      emit('pile_packed', { grain: type, n, bonus, x: st.x, y: st.y, r: st.r, corner: st.kind, held, score: sim.score, bowls: sim.bowls, why });
       if (sim.bowls % ZEN_THANKS === 0) {
         if (sim.lives < 3) { sim.lives++; emit('capybara', { gave: 'life', lives: sim.lives, bowls: sim.bowls }); }
         else { const b = Math.round(250 * (ZEN_WORTH[type] || 1) * sim.mult); sim.score += b; emit('capybara', { gave: 'points', points: b, bowls: sim.bowls }); }
@@ -3158,6 +3165,20 @@ const GrainSim = (() => {
     squeak() { if (this.ready()) { const t = this.ctx.currentTime; this.tone(t, 'sine', 2300, 2900, 0.07, 0.09, 0.05); this.tone(t + 0.11, 'sine', 2600, 3300, 0.05, 0.08, 0.05); } },
     nibble() { if (this.ready()) { const t = this.ctx.currentTime; this.noiseBurst(t, 'bandpass', 1400, 3, 0.18, 0.03); this.tone(t, 'sine', 700, 1100, 0.06, 0.06, 0.04); } },
     patter() { if (this.ready()) this.noiseBurst(this.ctx.currentTime, 'bandpass', 2600 + Math.random() * 1500, 5, 0.04, 0.012); },
+    // a full bowl rushing off the board: air going past, falling in pitch as it goes
+    whoosh() {
+      if (!this.ready()) return;
+      const t = this.ctx.currentTime;
+      this.sweep(t + 0.04, 3400, 520, 0.26, 0.4, 0.8);
+      this.sweep(t + 0.06, 1200, 240, 0.12, 0.36, 1.6);
+    },
+    // and the empty one set down in its place: a small ceramic knock
+    setDown() {
+      if (!this.ready()) return;
+      const t = this.ctx.currentTime;
+      this.noiseBurst(t, 'lowpass', 700, 1, 0.16, 0.05);
+      this.tone(t, 'sine', 392, 360, 0.07, 0.12); this.tone(t, 'sine', 1568, 1568, 0.02, 0.3);
+    },
     // a star stamped on the end screen, each one a step up the chord
     stamp(i) {
       if (!this.ready()) return;
@@ -3204,6 +3225,8 @@ const GrainSim = (() => {
     swap() { if (this.ready()) this.noiseBurst(this.ctx.currentTime, 'bandpass', 2200, 4, 0.08, 0.02); },
     tick() { if (this.ready()) this.noiseBurst(this.ctx.currentTime, 'bandpass', 2400, 5, 0.05, 0.015); },
     saved() { if (this.ready()) this.tone(this.ctx.currentTime, 'sine', 1046.5, 1046.5, 0.04, 0.4); },
+    whoosh() { if (this.ready()) this.sweep(this.ctx.currentTime + 0.04, 1900, 420, 0.12, 0.42, 0.7); },
+    setDown() { if (this.ready()) { const t = this.ctx.currentTime; this.noiseBurst(t, 'lowpass', 500, 1, 0.1, 0.05); this.tone(t, 'sine', 330, 300, 0.04, 0.1); } },
     stamp(i) {
       if (!this.ready()) return;
       const t = this.ctx.currentTime;
@@ -3477,7 +3500,7 @@ const GrainSim = (() => {
     stop: 0, heat: 0, quench: 0, beatT: 0, beat: 0, spill: null, shimmer: null, score: 0, settle: new Map(), prevSt: null,
     slow: 0, scoreRed: 0, saved: false, holdStuck: 0, stars: [], flash: null, lay: null, restRing: null,
     catUsed: false, hamUsed: false, ham: null, dialFrom: null, dialT: 0, lastTick: -1,
-    sand: 0, sandPulse: 0, sandWave: null, zoneSeen: 0, zoneHold: 0, leaps: [],
+    sand: 0, sandPulse: 0, sandWave: null, zoneSeen: 0, zoneHold: 0, swaps: new Map(), capySeen: 0, capyHold: 0, capyFive: 0, leaps: [],
   };
 
   function readSafe() {
@@ -4329,7 +4352,7 @@ const GrainSim = (() => {
     sim = GS.create(Object.assign({}, cfg, { perks: stickById(save.sticks.equipped).perks || null, extraTime: 0.12 * Math.min(3, failed) }), L, layout(), ((Date.now() >>> 0) ^ (levelIndex * 7919)) >>> 0);
     autoBot = null; pendingDone = null; levelUnlocks = [];
     fx.pops.clear(); fx.lands.clear(); fx.sparks = []; fx.steam = []; fx.floats = []; fx.rings = []; fx.wave = null; fx.bad = null; fx.shakeT = 0; fx.falls = []; fx.targetPulse = 1;
-    fx.sand = 0; fx.sandPulse = 0; fx.sandWave = null; fx.zoneSeen = 0; fx.zoneHold = 0; fx.leaps = []; fx.bestSaid = false;
+    fx.sand = 0; fx.sandPulse = 0; fx.sandWave = null; fx.zoneSeen = 0; fx.zoneHold = 0; fx.swaps.clear(); fx.capySeen = 0; fx.capyHold = 0; fx.capyFive = 0; fx.leaps = []; fx.bestSaid = false;
     fx.stop = 0; fx.heat = 0; fx.quench = 0; fx.beat = 0; fx.beatT = 0; fx.shimmer = null; fx.score = 0; fx.settle.clear(); fx.prevSt = null;
     fx.slow = 0; fx.scoreRed = 0; fx.saved = false; fx.holdStuck = 0; fx.stars = []; fx.flash = null; fx.lay = null; fx.restRing = null;
     fx.catUsed = false; fx.hamUsed = false; fx.ham = null; fx.dialFrom = null; fx.lastTick = -1; pendingFail = 0; pendingZen = null; dialKey = '';
@@ -4412,9 +4435,16 @@ const GrainSim = (() => {
       zEl.querySelector('.bar b').style.width = (100 * clamp(k, 0, 1)).toFixed(1) + '%';
       const lbl = on ? tr('Zen Zone ×{p}', { p: GS.ZEN_ZONE.pay }) : tr('Zen Zone');
       if (zEl.querySelector('.lbl').textContent !== lbl) zEl.querySelector('.lbl').textContent = lbl;
-      const cEl = $('capy'), n = sim.bowls % GS.ZEN_THANKS;
+      const cEl = $('capy'), now = performance.now(), pips = cEl.querySelectorAll('.pips i');
+      if (now >= fx.capyHold && fx.capySeen !== sim.bowls) {
+        const up = sim.bowls > fx.capySeen;
+        if (up && sim.bowls % GS.ZEN_THANKS === 0) fx.capyFive = now + 900;
+        fx.capySeen = sim.bowls;
+        if (up) restartAnim(pips[(sim.bowls - 1) % GS.ZEN_THANKS], 'pop');
+      }
+      const n = now < fx.capyFive ? GS.ZEN_THANKS : fx.capySeen % GS.ZEN_THANKS;
       cEl.hidden = false;
-      [...cEl.querySelectorAll('.pips i')].forEach((p, i) => p.classList.toggle('on', i < n));
+      pips.forEach((p, i) => p.classList.toggle('on', i < n));
       cEl.setAttribute('aria-label', tr('{n} of {m} bowls to the Zen Capybara', { n, m: GS.ZEN_THANKS }));
     } else { $('zone').hidden = true; $('capy').hidden = true; }
     {
@@ -5362,12 +5392,25 @@ const GrainSim = (() => {
           if (e.why === 'full') { if (!reducedMotion()) fx.shakeT = 0.35; zenSay(tr('The board is full: a life gone'), 3, 'red'); }
           Analytics.emit('life_lost', { why: e.why, lives: e.lives, time: sim.clock });
           break;
-        case 'pile_packed':
-          // a soft knock, not a bell: it happens every few rows; the bowls toward the capybara show why
-          Sound.knock(34);
+        case 'pile_packed': {
+          // the full bowl rushes off the board with what it holds, and an empty one slides in; a mote from it fills
+          // one of the five little bowls by the capybara
+          Sound.whoosh(); Haptics.buzz(8);
+          if (!reducedMotion()) {
+            const dir = e.corner === 'bl' ? { x: -0.5, y: 1 } : e.corner === 'br' ? { x: 0.5, y: 1 } : { x: 0, y: 1 }, d = Math.hypot(dir.x, dir.y);
+            fx.swaps.set(e.corner, { t: 0, x: e.x, y: e.y, r: e.r, corner: e.corner, type: e.grain, dir: { x: dir.x / d, y: dir.y / d },
+              held: e.held.map((g) => ({ ...g, st: ST.GONE })) });
+          }
+          const pip = $('capy').querySelectorAll('.pips i')[(e.bowls - 1) % GS.ZEN_THANKS];
+          if (pip && pip.offsetWidth && !reducedMotion()) {
+            const r = pip.getBoundingClientRect(), at = { x: e.x + (W / 2 - e.x) * 0.2, y: e.y - e.r * 0.45 };
+            mote(at, r.left + r.width / 2, r.top + r.height / 2, false);
+            fx.capyHold = performance.now() + 540;
+          }
           note('+' + fmt(e.bonus), tr(e.why === 'kind' ? 'Bowl packed' : 'Bowl full') + ' · ' + tr('{n} of {m} to the Capybara', { n: e.bowls % GS.ZEN_THANKS || GS.ZEN_THANKS, m: GS.ZEN_THANKS }), '#f6c453', '#ece8de', e.x + (e.x < W / 2 ? 110 : e.x > W / 2 ? -110 : 0), e.y - 140);
           zenTip('bowl', 'Five full bowls bring the Zen Capybara, who gives a life back.');
           break;
+        }
         case 'zone':
           if (e.on) {
             Sound.finale(); Haptics.buzz([15, 30, 15, 30, 15]);
@@ -5667,9 +5710,14 @@ const GrainSim = (() => {
   function zoneMote(at, full) {
     const bar = $('zone').querySelector('.bar');
     if (reducedMotion() || !bar.offsetWidth) return;
-    const r = bar.getBoundingClientRect(), x0 = view.offX + at.x * view.scale, y0 = at.y * view.scale;
-    const dx = r.left + r.width * clamp(fx.zoneSeen, 0.03, 1) - x0, dy = r.top + r.height / 2 - y0;
-    const m = document.createElement('i'); m.className = 'zmote' + (full ? '' : ' small');
+    const r = bar.getBoundingClientRect();
+    mote(at, r.left + r.width * clamp(fx.zoneSeen, 0.03, 1), r.top + r.height / 2, !full);
+    fx.zoneHold = performance.now() + 540;
+  }
+  // a gold mote from a point on the board (world units) to a point on the screen (CSS pixels)
+  function mote(at, x1, y1, small) {
+    const x0 = view.offX + at.x * view.scale, y0 = at.y * view.scale, dx = x1 - x0, dy = y1 - y0;
+    const m = document.createElement('i'); m.className = 'zmote' + (small ? ' small' : '');
     m.style.left = x0 + 'px'; m.style.top = y0 + 'px';
     document.body.appendChild(m);
     const a = m.animate([
@@ -5678,7 +5726,6 @@ const GrainSim = (() => {
       { transform: 'translate(' + dx + 'px, ' + dy + 'px) scale(0.6)', opacity: 1 },
     ], { duration: 560, easing: 'cubic-bezier(.5, 0, .7, .4)' });
     a.onfinish = a.oncancel = () => m.remove();
-    fx.zoneHold = performance.now() + 540;
   }
   $('zone').addEventListener('animationend', (e) => { if (e.target.classList.contains('bar')) $('zone').classList.remove('tick', 'drain'); });
   function sparkRow() {
@@ -6019,41 +6066,92 @@ const GrainSim = (() => {
       ctx.beginPath(); ctx.arc(cx, cy, R + 3, 0, Math.PI * 2); ctx.stroke();
     }
   }
-  function drawStores(s, ox, oy) {
+  const bowlArc = (kind) => kind === 'bc' ? [Math.PI, 2 * Math.PI] : kind === 'bl' ? [-Math.PI / 2, 0] : [Math.PI, 1.5 * Math.PI];
+  // one bowl: its body, the kind it takes on a plate by its rim, and the grains in it. Live is the bowl in the game;
+  // otherwise it is a full bowl on its way off the board
+  function drawStore(s, t, st, grains, ox, oy, live) {
     worldTransform(ox, oy);
-    for (const t in s.stores) {
-      const st = s.stores[t], r = st.r - 10;
-      const a0 = st.kind === 'bc' ? Math.PI : st.kind === 'bl' ? -Math.PI / 2 : Math.PI;
-      const a1 = st.kind === 'bc' ? 2 * Math.PI : st.kind === 'bl' ? 0 : 1.5 * Math.PI;
-      const over = s.sticks.drop === st && s.sticks.phase === 'hold';
-      drawBowl(st.x, st.y, r, (a0 + a1) / 2, over, s.t);
-      // the kind it takes, set just outside its rim, so an empty bowl still says what goes there
-      // on a small dark plate with a chalk rim, so it never reads as a loose grain
-      const am = (a0 + a1) / 2, lr = r + BOWL_LIP + 18, lx = st.x + Math.cos(am) * lr, ly = st.y + Math.sin(am) * lr, pr = over ? 22 : 19;
-      ctx.fillStyle = 'rgba(8,9,11,0.55)'; ctx.beginPath(); ctx.arc(lx, ly, pr, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = over ? 'rgba(242,237,227,0.7)' : 'rgba(242,237,227,0.32)'; ctx.lineWidth = 2; ctx.stroke();
-      const lab = { type: t, rot: -0.5, s: (TYPES[t].rx > 14 ? 0.78 : 1) * (over ? 1.08 : 0.95), tint: 1, id: 0, x: lx, y: ly };
-      drawGrain(lab, 1, 0, 0, ox, oy);
-      worldTransform(ox, oy);
-      if (s === sim && s.order && s.order.type === t) drawOrder(s.order, lx, ly, pr);
-      for (const id of st.ids) { const g = s.grains[id]; if (g.st === ST.GONE) drawShadow(g, 1, 0, 0.9, ox, oy); }
-      for (const id of st.ids) {
-        const g = s.grains[id];
-        if (g.st !== ST.GONE) continue;
-        const p = s === sim ? fx.lands.get(id) || 0 : 0;
-        drawGrain(g, 1 + 0.45 * p * p, 0, 0, ox, oy);
+    const r = st.r - 10, [a0, a1] = bowlArc(st.kind);
+    const over = live && s.sticks.drop === st && s.sticks.phase === 'hold';
+    drawBowl(st.x, st.y, r, (a0 + a1) / 2, over, s.t);
+    // the kind it takes, set just outside its rim, so an empty bowl still says what goes there
+    // on a small dark plate with a chalk rim, so it never reads as a loose grain
+    const am = (a0 + a1) / 2, lr = r + BOWL_LIP + 18, lx = st.x + Math.cos(am) * lr, ly = st.y + Math.sin(am) * lr, pr = over ? 22 : 19;
+    ctx.fillStyle = 'rgba(8,9,11,0.55)'; ctx.beginPath(); ctx.arc(lx, ly, pr, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = over ? 'rgba(242,237,227,0.7)' : 'rgba(242,237,227,0.32)'; ctx.lineWidth = 2; ctx.stroke();
+    const lab = { type: t, rot: -0.5, s: (TYPES[t].rx > 14 ? 0.78 : 1) * (over ? 1.08 : 0.95), tint: 1, id: 0, x: lx, y: ly };
+    drawGrain(lab, 1, 0, 0, ox, oy);
+    worldTransform(ox, oy);
+    if (live && s === sim && s.order && s.order.type === t) drawOrder(s.order, lx, ly, pr);
+    for (const g of grains) if (g.st === ST.GONE) drawShadow(g, 1, 0, 0.9, ox, oy);
+    for (const g of grains) {
+      if (g.st !== ST.GONE) continue;
+      const p = live && s === sim ? fx.lands.get(g.id) || 0 : 0;
+      drawGrain(g, 1 + 0.45 * p * p, 0, 0, ox, oy);
+    }
+    if (live && s === sim && fx.shimmer) {    // a light runs across the finished piles
+      ctx.globalCompositeOperation = 'lighter';
+      for (const g of grains) {
+        const k = fx.shimmer.t * 1.5 - (g.x / W) * 0.7 - ((view.H - g.y) / view.H) * 0.4;
+        if (g.st !== ST.GONE || k <= 0 || k >= 0.3) continue;
+        ctx.globalAlpha = 0.7 * Math.sin((k / 0.3) * Math.PI);
+        drawGrain(g, 1.04, 0, 0, ox, oy);
       }
-      if (s === sim && fx.shimmer) {    // a light runs across the finished piles
-        ctx.globalCompositeOperation = 'lighter';
-        for (const id of st.ids) {
-          const g = s.grains[id], k = fx.shimmer.t * 1.5 - (g.x / W) * 0.7 - ((view.H - g.y) / view.H) * 0.4;
-          if (g.st !== ST.GONE || k <= 0 || k >= 0.3) continue;
-          ctx.globalAlpha = 0.7 * Math.sin((k / 0.3) * Math.PI);
-          drawGrain(g, 1.04, 0, 0, ox, oy);
+      ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+    }
+    worldTransform(ox, oy);
+  }
+  // zen: a full bowl rushes off the board, a beat back and then away, faster and faster, with streaks of air behind
+  // it; then an empty one slides into its corner, a touch past its place and back
+  const SWAP = { out: 0.4, gap: 0.1, in: 0.42 };
+  const swapReach = (w) => (view.H - w.y + w.r + BOWL_LIP + 60) / Math.max(0.5, w.dir.y);
+  function swapAway(w, t) {
+    const p = clamp(t / SWAP.out, 0, 1);
+    return p < 0.16 ? -7 * Math.sin((p / 0.16) * Math.PI) : Math.pow((p - 0.16) / 0.84, 2.3) * swapReach(w);
+  }
+  function swapBack(w, t) {
+    const q = clamp((t - SWAP.out - SWAP.gap) / SWAP.in, 0, 1), c = 1.9;
+    return (1 - (1 + (c + 1) * Math.pow(q - 1, 3) + c * Math.pow(q - 1, 2))) * swapReach(w);
+  }
+  // streaks of air from the bowl's trailing rim, as long as it is fast; v is its speed along w.dir (units a second)
+  function drawAir(w, d, v, ox, oy) {
+    const R = w.r - 10 + BOWL_LIP, sg = Math.sign(v), ux = w.dir.x * sg, uy = w.dir.y * sg, nx = -uy, ny = ux;
+    const cx = w.x + w.dir.x * d, cy = w.y + w.dir.y * d, len = Math.min(380, Math.abs(v) * 0.13);
+    worldTransform(ox, oy);
+    ctx.lineCap = 'round';
+    for (let i = 0; i < 9; i++) {
+      const o = (i / 8 - 0.5) * 1.75 * R, back = Math.sqrt(Math.max(0, R * R - o * o)) * 0.92;
+      const x0 = cx + nx * o - ux * back, y0 = cy + ny * o - uy * back, l = len * (0.5 + 0.5 * (((i * 37) % 10) / 10));
+      const g = ctx.createLinearGradient(x0, y0, x0 - ux * l, y0 - uy * l);
+      g.addColorStop(0, 'rgba(242,238,228,0.7)'); g.addColorStop(0.6, 'rgba(242,238,228,0.22)'); g.addColorStop(1, 'rgba(242,238,228,0)');
+      ctx.strokeStyle = g; ctx.lineWidth = i % 2 ? 2.4 : 4.2;
+      ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x0 - ux * l, y0 - uy * l); ctx.stroke();
+    }
+    ctx.lineCap = 'butt';
+  }
+  function drawStores(s, ox, oy) {
+    const k = view.scale;
+    if (s === sim) for (const w of fx.swaps.values()) {
+      if (w.t >= SWAP.out) continue;
+      const d = swapAway(w, w.t), v = (d - swapAway(w, w.t - 1 / 60)) * 60;
+      const bx = ox + w.dir.x * d * k, by = oy + w.dir.y * d * k, [a0, a1] = bowlArc(w.corner);
+      if (v > 300) {
+        drawAir(w, d, v, ox, oy);
+        // two faint copies behind it, smeared along its way
+        for (const [lag, al] of [[0.05, 0.12], [0.025, 0.24]]) {
+          ctx.globalAlpha = al; worldTransform(bx - w.dir.x * v * lag * k, by - w.dir.y * v * lag * k);
+          drawBowl(w.x, w.y, w.r - 10, (a0 + a1) / 2, false, s.t);
         }
-        ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+        ctx.globalAlpha = 1;
       }
-      worldTransform(ox, oy);
+      drawStore(s, w.type, { x: w.x, y: w.y, r: w.r, kind: w.corner }, w.held, bx, by, false);
+    }
+    for (const t in s.stores) {
+      const st = s.stores[t], w = s === sim ? fx.swaps.get(st.kind) : null;
+      if (w && w.t < SWAP.out + SWAP.gap) continue;          // the empty bowl waits off the board
+      const d = w ? swapBack(w, w.t) : 0, v = w ? (d - swapBack(w, w.t - 1 / 60)) * 60 : 0;
+      if (w && v < -300) drawAir(w, d, v, ox, oy);
+      drawStore(s, t, st, st.ids.map((id) => s.grains[id]), ox + (w ? w.dir.x * d * k : 0), oy + (w ? w.dir.y * d * k : 0), true);
     }
   }
   // zen: an open order on a bowl: gold for what is in, a thin chalk ring for the time left, and the count above
@@ -6456,6 +6554,11 @@ const GrainSim = (() => {
     for (const r of fx.rings) r.t += dt;
     fx.rings = fx.rings.filter((r) => r.t < r.life);
     fx.sandPulse = Math.max(0, fx.sandPulse - dt / 1.6);
+    for (const [k, w] of fx.swaps) {
+      w.t += dt;
+      if (!w.down && w.t > SWAP.out + SWAP.gap + SWAP.in * 0.62) { w.down = true; Sound.setDown(); }
+      if (w.t > SWAP.out + SWAP.gap + SWAP.in) fx.swaps.delete(k);
+    }
     if (fx.sandWave) { fx.sandWave.t += dt; if (fx.sandWave.t > 2.4) fx.sandWave = null; }
     for (const l of fx.leaps) l.t += dt;
     fx.leaps = fx.leaps.filter((l) => l.t < 0.9);
@@ -6711,7 +6814,7 @@ const GrainSim = (() => {
 
   // console handle for tuning and checks
   window.__grainLine = {
-    get sim() { return sim; }, get screen() { return screen; }, cfg, save, Analytics, Sound, Room, Night, cam, get film() { return film; },
+    get sim() { return sim; }, get screen() { return screen; }, fx, cfg, save, Analytics, Sound, Room, Night, cam, get film() { return film; },
     startLevel, levelId: idAt, giveMedal, autoplay(on) { autoBot = on && sim ? GS.makeBot(sim, 99) : null; releaseInput(); },
   };
 })();
