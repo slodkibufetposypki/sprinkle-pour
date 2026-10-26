@@ -809,3 +809,41 @@ test('the chopsticks in hand change the feel on top of the level: reach, wrong g
   const a = creep(null), b = creep({ stone: 0.6 });
   assert.ok(a > 0 && b < a * 0.75, 'steel keeps stones back: ' + a.toFixed(1) + ' vs ' + b.toFixed(1));
 });
+
+test('the time limit: a few times par, more on the first levels; when it runs out the level stops until time is added', () => {
+  for (let i = 0; i < 3; i++) { const s = GS.create({}, GS.levelFor(i), LAYOUT, 1); assert.equal(s.limit, Math.round(s.par * 3)); }
+  for (const i of [5, 15, 25, 45, 75]) { const s = GS.create({}, GS.levelFor(i), LAYOUT, 1); assert.ok(s.limit >= s.par * 1.7 - 1 && s.limit <= s.par * 2.2 + 1, 'level ' + i); }
+  assert.equal(GS.create({ limitK: 0 }, GS.levelFor(5), LAYOUT, 1).limit, Infinity, 'no limit when switched off');
+  const more = GS.create({ extraTime: 0.24 }, GS.levelFor(5), LAYOUT, 1), base = GS.create({}, GS.levelFor(5), LAYOUT, 1);
+  assert.ok(more.limit > base.limit * 1.2, 'a level failed on time before gives a little more');
+  const sim = GS.create({}, GS.levelFor(5), LAYOUT, 1);
+  const lentil = sim.grains.find((g) => g.type === sim.target);
+  holdAt(sim, lentil.x, lentil.y + 60, 0.2);
+  sim.clock = sim.limit - 0.05;
+  const ev = holdAt(sim, lentil.x, lentil.y + 60, 0.5);
+  assert.ok(ev.some((e) => e.type === 'time_up') && sim.timeUp, 'time is up');
+  assert.equal(sim.clock, sim.limit, 'the clock stops at the limit');
+  assert.ok(!sim.done);
+  release(sim, 1.5);
+  const before = sim.grains.map((g) => g.st).join();
+  holdAt(sim, lentil.x, lentil.y + 60, 0.5);
+  assert.equal(sim.sticks.phase === 'away' || sim.sticks.phase === 'retract', true, 'touching does nothing while time is up');
+  sim.extend(15);
+  assert.ok(!sim.timeUp && sim.limit > sim.clock + 14);
+  const ev2 = holdAt(sim, sim.grains.find((g) => g.type === sim.target && g.st === ST.REST).x, 700, 0.5);
+  assert.ok(ev2.some((e) => e.type === 'sticks_in'), 'with time added, play goes on');
+  assert.ok(before.length > 0);
+});
+
+test('a helper can carry stones off the board; they count for nothing and never come back', () => {
+  const L = GS.levelFor(15), sim = GS.create({}, L, LAYOUT, 2);
+  const stones = sim.grains.filter((g) => TYPES[g.type].stone);
+  assert.ok(stones.length >= 2);
+  const left = sim.remaining();
+  for (const g of stones) assert.ok(sim.takeStone(g.id));
+  assert.equal(sim.takeStone(stones[0].id), false, 'once only');
+  assert.equal(sim.remaining(), left, 'nothing to sort changed');
+  release(sim, 0.5);
+  assert.ok(stones.every((g) => g.st === ST.LOST));
+  invariants(sim);
+});

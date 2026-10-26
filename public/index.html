@@ -118,9 +118,39 @@
   #fuse[data-pace="Slow"] { background: var(--chalk-red); }
   #score { justify-self: end; text-align: right; margin-top: -2px; }
   #score b { display: block; font-weight: 400; font-size: var(--fs-34); line-height: 1; }
-  #score span { color: var(--chalk-2); font-size: var(--fs-20); }
-  #score span.low { color: var(--ember); }
-  #score span.over { color: var(--chalk-red); }
+  /* the clock: a small dial, the hand going round once over the time the level may take. The gold part is the time
+     that still pays a bonus, the pale part the rest; the last ten seconds turn red and are counted. The Zen Cat waits
+     at its foot: tap the dial and she turns the hand back, once a round. */
+  .dial { position: relative; display: block; width: 50px; height: 50px; padding: 0; border: 0; background: none; margin: 3px -3px 0 auto; }
+  .dial svg { width: 50px; height: 50px; overflow: visible; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .6)); }
+  .dial .face { fill: rgba(15, 18, 21, 0.5); stroke: var(--chalk-2); stroke-width: 1.6; }
+  .dial .gold { fill: rgba(246, 196, 83, 0.88); }
+  .dial .pale { fill: rgba(236, 232, 222, 0.34); }
+  .dial.low .pale { fill: rgba(255, 122, 107, 0.8); }
+  .dial .ticks { stroke: rgba(236, 232, 222, 0.42); stroke-width: 1.3; stroke-linecap: round; }
+  .dial .hand { stroke: var(--chalk); stroke-width: 2.4; stroke-linecap: round; }
+  .dial .pin { fill: var(--chalk); }
+  .dial .secs { font: 400 15px var(--hand); fill: var(--chalk); text-anchor: middle; paint-order: stroke; stroke: rgba(15, 18, 21, .9); stroke-width: 3px; }
+  .dial.up svg { animation: dialup .5s ease 3; }
+  @keyframes dialup { 50% { transform: scale(1.14) rotate(-6deg); } }
+  .dial .paw { position: absolute; left: -12px; bottom: -3px; display: flex; align-items: center; gap: 1px; padding: 2px 5px 1px 3px; border-radius: 9px;
+    background: rgba(15, 18, 21, 0.82); color: #f2b06c; font: 400 var(--fs-13)/1 var(--hand); }
+  .dial .paw svg { width: 12px; height: 12px; filter: none; }
+  .dial .paw i { font-style: normal; color: var(--chalk); }
+  .dial .paw.none { color: var(--chalk-3); }
+  .dial.used .paw { opacity: 0.35; }
+  /* the hamster, under the back and again arrows on a level with stones */
+  .helper { position: relative; width: 48px; height: 46px; border: 0; padding: 0; background: none; display: grid; place-items: center; margin-top: 4px; }
+  .helper svg { width: 32px; height: 32px; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .6)); }
+  .helper i { position: absolute; right: 2px; bottom: 0; min-width: 16px; padding: 1px 4px 0; border-radius: 8px; background: rgba(15, 18, 21, 0.85);
+    font: 400 var(--fs-13)/1.2 var(--hand); font-style: normal; color: var(--chalk); text-align: center; }
+  .helper.none svg, .helper.used svg { opacity: 0.4; filter: grayscale(1); }
+  .helper:active svg { transform: scale(0.9); }
+  #catpaw { position: fixed; z-index: 5; right: 0; width: 130px; height: 64px; pointer-events: none; transform: translateX(110%); transform-origin: 100% 50%; }
+  #catpaw svg { width: 100%; height: 100%; filter: drop-shadow(0 4px 6px rgba(0, 0, 0, .5)); }
+  #catpaw.go { animation: catpaw 1.6s cubic-bezier(.3, .7, .3, 1) forwards; }
+  @keyframes catpaw { 0% { transform: translateX(110%); } 28% { transform: translateX(14%) rotate(-5deg); } 40% { transform: translateX(22%) rotate(3deg); }
+    55% { transform: translateX(16%) rotate(-4deg); } 70% { transform: translateX(24%) rotate(2deg); } 100% { transform: translateX(110%); } }
   #score.down b { color: var(--chalk-red); }
   #tally .nw { stroke: var(--chalk); stroke-dasharray: 30; animation: draw .3s ease-out backwards; }
   @keyframes draw { from { stroke-dashoffset: 30; } }
@@ -317,10 +347,14 @@
   .prize { margin: 0; font: 400 var(--fs-20)/1.3 var(--hand); color: var(--chalk); }
   /* the result, three ways to compare: a card at the top (the board and its piles stay in view below it), a card in
      the middle, or the slab across the bottom. Top and middle keep the tally folded under the score. */
-  #done[data-v="top"] { justify-content: flex-start; background: linear-gradient(to bottom, rgba(10, 12, 15, 0.78), rgba(10, 12, 15, 0.5) 40%, rgba(10, 12, 15, 0) 62%); }
-  #done[data-v="top"] .slab { border-top: 0; border-bottom: 1px solid rgba(255, 255, 255, 0.07); gap: 10px;
+  .screen[data-v="top"] h2 { font-size: var(--fs-28); }
+  .screen[data-v="top"] .primary svg { width: 24px; height: 24px; fill: currentColor; }
+  .screen[data-v="top"] .primary { height: 54px; }
+  .screen[data-v="top"] .ghost { min-height: 48px; }
+  #fail[data-v="top"], #done[data-v="top"] { justify-content: flex-start; background: linear-gradient(to bottom, rgba(10, 12, 15, 0.78), rgba(10, 12, 15, 0.5) 40%, rgba(10, 12, 15, 0) 62%); }
+  #fail[data-v="top"] .slab, #done[data-v="top"] .slab { border-top: 0; border-bottom: 1px solid rgba(255, 255, 255, 0.07); gap: 10px;
     padding-top: calc(env(safe-area-inset-top, 0px) + 16px); padding-bottom: 22px; animation-name: drop; box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45); }
-  #done[data-v="top"] .slab::before { top: auto; bottom: 9px; }
+  #fail[data-v="top"] .slab::before, #done[data-v="top"] .slab::before { top: auto; bottom: 9px; }
   @keyframes drop { from { transform: translateY(-40px); opacity: 0; } }
   #done[data-v="card"] { justify-content: center; background: rgba(10, 12, 15, 0.32); }
   #done[data-v="card"] .slab { width: min(calc(100% - 32px), 400px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 18px 14px 18px 15px;
@@ -365,7 +399,7 @@
   #tuneJson { width: 100%; box-sizing: border-box; background: #0d0f12; color: var(--chalk); border: 1px solid var(--chalk-3); border-radius: 10px; font: 12px ui-monospace, Menlo, monospace; }
 
   @media (prefers-reduced-motion: reduce) {
-    .slab, #done .slab, #chip.swap, .stars.big svg.stamp, #streak.up b, #streak.lost, #streak.lost b, .tally li, .total em, #tally .nw, .lcard.next { animation: none; }
+    .slab, #done .slab, #chip.swap, .dial.up svg, #catpaw.go, .stars.big svg.stamp, #streak.up b, #streak.lost, #streak.lost b, .tally li, .total em, #tally .nw, .lcard.next { animation: none; }
     .bpage .bopen, .bpage.laid .lcard, .bpage > canvas { transition: none; }
     .rest::before { animation: none; opacity: 0.5; }
     #hint, #toast, #banner, #fuse, #streak b, .tableview, #enterHint, .dots i, .roomtitle { transition: none; }
@@ -381,6 +415,7 @@
   <div class="side">
     <button id="leaveBtn" class="iconbtn" aria-label="Back to the boards"><svg viewBox="0 0 22 22" aria-hidden="true"><path d="M13.6 4.4c-2.5 2.3-4.4 4.3-6.3 6.5 1.9 2.1 3.9 4.1 6.4 6.5"/></svg></button>
     <button id="againBtn" class="iconbtn" aria-label="Start the level again"><svg viewBox="0 0 22 22" aria-hidden="true"><path d="M18.6 13.4a7.8 7.8 0 1 1-1.9-8L20 8.6"/><path d="M20.3 3.6v5.2h-5.1"/></svg></button>
+    <button id="hamBtn" class="helper" aria-label="Zen Hamster" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6.4" cy="6.6" r="3" fill="#e9b07a"/><circle cx="17.6" cy="6.6" r="3" fill="#e9b07a"/><circle cx="6.4" cy="6.6" r="1.5" fill="#f2a5a5"/><circle cx="17.6" cy="6.6" r="1.5" fill="#f2a5a5"/><ellipse cx="12" cy="13.4" rx="8.6" ry="7.4" fill="#e0a25c"/><ellipse cx="12" cy="16" rx="5.4" ry="4.2" fill="#f6e2c6"/><circle cx="8.8" cy="12" r="1.3" fill="#1b120c"/><circle cx="15.2" cy="12" r="1.3" fill="#1b120c"/><ellipse cx="12" cy="14.4" rx="1.3" ry="0.9" fill="#e8858c"/></svg><i>0</i></button>
   </div>
   <div class="mid">
     <div id="chip" class="chalk" aria-live="polite"><svg class="ico" viewBox="0 0 20 20" aria-hidden="true"></svg><span class="name">Lentils</span><span class="left">0</span></div>
@@ -390,10 +425,22 @@
   </div>
   <div class="side end">
     <button id="menuBtn" class="iconbtn big" aria-label="Pause"><svg viewBox="0 0 22 22" aria-hidden="true"><path d="M7.4 4.2c.2 4.6-.1 9.2.3 13.6M14.8 4.4c-.3 4.4.1 9 .1 13.4"/></svg></button>
-    <div id="score" class="chalk"><b>0</b><span id="clock">0:00</span></div>
+    <div id="score" class="chalk"><b>0</b></div>
+    <button id="clock" class="dial" aria-label="Time left"><svg viewBox="0 0 46 46" aria-hidden="true">
+      <circle class="face" cx="23" cy="23" r="19"/><path class="pale" d=""/><path class="gold" d=""/>
+      <path class="ticks" d="M23 5.5v3M23 37.5v3M5.5 23h3M37.5 23h3M31.75 7.84l-1 1.73M38.16 14.25l-1.73 1M38.16 31.75l-1.73-1M31.75 38.16l-1-1.73M14.25 38.16l1-1.73M7.84 31.75l1.73-1M7.84 14.25l1.73 1M14.25 7.84l1 1.73"/>
+      <line class="hand" x1="23" y1="23" x2="23" y2="8"/><circle class="pin" cx="23" cy="23" r="2.2"/><text class="secs" x="23" y="28"></text>
+    </svg><span class="paw"><svg viewBox="0 0 20 20" aria-hidden="true"><ellipse cx="10" cy="12.6" rx="4.6" ry="3.8" fill="currentColor"/><circle cx="4.6" cy="7.8" r="2" fill="currentColor"/><circle cx="8.2" cy="5" r="2" fill="currentColor"/><circle cx="11.8" cy="5" r="2" fill="currentColor"/><circle cx="15.4" cy="7.8" r="2" fill="currentColor"/></svg><i>0</i></span></button>
   </div>
 </div>
 <div id="banner" class="note chalk" role="status"><b></b><span></span></div>
+<div id="catpaw" aria-hidden="true"><svg viewBox="0 0 130 64">
+  <path d="M130 16C104 15 76 17 56 19 36 21 18 26 16 35c-2 10 14 16 32 15 26-1 54 0 82 0z" fill="#e8a25a" stroke="#9c5a24" stroke-width="2"/>
+  <path d="M84 18c-5 10-5 22 0 32M100 17c-5 11-5 22 0 33M116 16c-5 11-5 23 0 34" stroke="#c1712e" stroke-width="5" fill="none" stroke-linecap="round" opacity=".75"/>
+  <path d="M16 35c0-9 12-15 26-16 4 10 4 22 0 31-14 1-26-5-26-15z" fill="#f7dcb6" stroke="#9c5a24" stroke-width="2"/>
+  <path d="M22 26c3 2 4 4 4 6M20 37c3 0 5 1 6 3M24 45c2-1 4-1 6 0" stroke="#b07a48" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+  <ellipse cx="19.5" cy="31" rx="2.6" ry="2.2" fill="#f2a0a6"/><ellipse cx="19" cy="39.5" rx="2.6" ry="2.2" fill="#f2a0a6"/><ellipse cx="23" cy="46" rx="2.4" ry="2" fill="#f2a0a6"/><ellipse cx="25" cy="24" rx="2.4" ry="2" fill="#f2a0a6"/>
+</svg></div>
 <div id="hint" class="note chalk off" aria-live="polite"></div>
 
 <section id="title" class="roomview" hidden>
@@ -459,6 +506,19 @@
   </div>
 </section>
 
+<section id="fail" class="screen" data-v="top" hidden>
+  <div class="slab">
+    <p class="kicker chalk" id="failLevel"></p>
+    <h2 class="chalk" id="failTitle">Time is up</h2>
+    <p class="advice chalk" id="failLine"></p>
+    <button id="catBtn" class="primary"><svg viewBox="0 0 20 20" aria-hidden="true"><ellipse cx="10" cy="12.6" rx="4.6" ry="3.8" fill="currentColor"/><circle cx="4.6" cy="7.8" r="2" fill="currentColor"/><circle cx="8.2" cy="5" r="2" fill="currentColor"/><circle cx="11.8" cy="5" r="2" fill="currentColor"/><circle cx="15.4" cy="7.8" r="2" fill="currentColor"/></svg><span>Zen Cat</span></button>
+    <div class="pair">
+      <button id="failRetry" class="ghost"><svg viewBox="0 0 22 22" aria-hidden="true"><path d="M18.6 13.4a7.8 7.8 0 1 1-1.9-8L20 8.6"/><path d="M20.3 3.6v5.2h-5.1"/></svg><span>Try again</span></button>
+      <button id="failBack" class="ghost back"><svg viewBox="0 0 22 22" aria-hidden="true"><path d="M13.6 4.4c-2.5 2.3-4.4 4.3-6.3 6.5 1.9 2.1 3.9 4.1 6.4 6.5"/></svg><span>Back</span></button>
+    </div>
+  </div>
+</section>
+
 <section id="tune" class="screen dim" hidden>
   <div class="slab">
     <h2 class="chalk">Tune feel</h2>
@@ -520,7 +580,8 @@ const GrainSim = (() => {
     solid: 1,            // 1 = loose grains are solid against each other; 0 = they pass through each other
     paceBase: 1.4, pacePerGrain: 0.12,   // seconds a quick row of n grains takes: paceBase + pacePerGrain × n
     paceK: 1,            // scales that pace; above 1 is more forgiving
-    parBase: 8, parPerGrain: 0.5, parPerRow: 1.4,   // the level clock
+    parBase: 8, parPerGrain: 0.5, parPerRow: 1.4,   // the level clock: time within par pays a bonus
+    limitK: 1,           // scales how long a level may take before the time is up; 0 = no limit
     stickSpread: 0.04,   // the channel widens toward the hand
     leanK: 0.45,         // how far the hand follows the tips sideways
     baseBelow: 420,      // the hand sits this far below the board
@@ -572,13 +633,13 @@ const GrainSim = (() => {
   // tune overrides feel numbers for one level. After these, levels are generated without end.
   const AUTHORED = [
     {
-      id: 'first-row', name: 'First row', seed: 11, types: ['lentil'],
+      id: 'first-row', name: 'First row', seed: 11, types: ['lentil'], clockK: 3,
       hint: ['Touch and hold. The lentils walk into the sticks.', 'Fill the row to grow your multiplier.'],
       tune: { paceK: 2 },
       piles: [{ type: 'lentil', kind: 'blob', cx: 0.5, cy: 0.4, r: 0.11, count: 18 }],
     },
     {
-      id: 'two-heaps', name: 'Two heaps', seed: 23, types: ['lentil', 'rice'],
+      id: 'two-heaps', name: 'Two heaps', seed: 23, types: ['lentil', 'rice'], clockK: 3,
       hint: ['After every row the sticks switch to the other kind.'],
       tune: { paceK: 1.6 },
       piles: [
@@ -587,7 +648,7 @@ const GrainSim = (() => {
       ],
     },
     {
-      id: 'touching', name: 'Touching', seed: 37, types: ['lentil', 'rice'], hintRows: 2,
+      id: 'touching', name: 'Touching', seed: 37, types: ['lentil', 'rice'], hintRows: 2, clockK: 3,
       hint: ['Rice next to the tips creeps in. Push it aside with the side of the sticks.'],
       tune: { paceK: 1.3 },
       piles: [
@@ -695,18 +756,18 @@ const GrainSim = (() => {
   // once you hold 70% of all the stars on the boards before it (three and a half a level), so the last one has to
   // be played well, not just played through; its first level brings in what is new on it and nothing else.
   const BOARDS = [
-    { id: 'slate', name: 'Slate', first: 0, count: 10, stars: 0 },
-    { id: 'walnut', name: 'Walnut', first: 10, count: 10, stars: 35, adds: 'stones',
+    { id: 'slate', name: 'Slate', first: 0, count: 10, stars: 0, clock: 2.2 },
+    { id: 'walnut', name: 'Walnut', first: 10, count: 10, stars: 35, adds: 'stones', clock: 2,
       intro: { name: 'Stones', text: 'They can\u2019t be picked, and they go for the tips. Push them aside.' } },
-    { id: 'bamboo', name: 'Bamboo', first: 20, count: 10, stars: 70, adds: 'manual',
+    { id: 'bamboo', name: 'Bamboo', first: 20, count: 10, stars: 70, adds: 'manual', clock: 1.9,
       intro: { name: 'Carry it yourself', text: 'Take each row to its pile and let go. The wrong pile spills back onto the board.' } },
-    { id: 'clay', name: 'Tenmoku', first: 30, count: 10, stars: 105, adds: 'jar',
+    { id: 'clay', name: 'Tenmoku', first: 30, count: 10, stars: 105, adds: 'jar', clock: 1.8,
       intro: { name: 'The jar', text: 'It pours more grains in as you go. Keep up with it.' } },
-    { id: 'lacquer', name: 'Lacquer', first: 40, count: 10, stars: 140, adds: 'tilt',
+    { id: 'lacquer', name: 'Lacquer', first: 40, count: 10, stars: 140, adds: 'tilt', clock: 1.75,
       intro: { name: 'The tray tilts', text: 'Grains slide down it. Catch them before they fall off the edge.' } },
-    { id: 'paper', name: 'Paper', first: 50, count: 10, stars: 175, adds: 'remix', remix: true,
+    { id: 'paper', name: 'Paper', first: 50, count: 10, stars: 175, adds: 'remix', remix: true, clock: 1.7,
       intro: { name: 'Old paper', text: 'Everything you have met so far comes back here, two at a time.' } },
-    { id: 'iron', name: 'Damascus steel', first: 60, count: Infinity, stars: 210, endless: true },
+    { id: 'iron', name: 'Damascus steel', first: 60, count: Infinity, stars: 210, endless: true, clock: 1.7 },
   ];
   function boardOf(i) { let b = BOARDS[0]; for (const B of BOARDS) if (i >= B.first) b = B; return b; }
   // The endless board changes its material every ten levels, round and round, so there is always a new one ahead.
@@ -972,6 +1033,7 @@ const GrainSim = (() => {
     }
     const L = {
       id: 'gen-' + (i + 1), name: ARCH[arch], seed: 1000 + i * 31, types, piles, tune, parK: (1 - 0.25 * d) * (manual ? 1.15 : 1), generated: true, difficulty: d, mix: want,
+      clockK: board.clock,
       board: board.id, rule: news ? news.name : twist ? TWIST[twist].name : null,
       ruleText: news ? news.text : twist ? TWIST[twist].text : null, news: news ? (news.kind || news.feature || news.twist) : null,
     };
@@ -1222,7 +1284,7 @@ const GrainSim = (() => {
     const sim = {
       cfg, level, W, H: layout.H, top: layout.top, bottom: layout.bottom,
       t: 0, steps: 0, events: [], done: false, waitLift: false, rearm: 0, result: null,
-      score: 0, mult: 1, combo: 0, bestCombo: 0, bestMult: 1, lastPull: 0, clock: 0, started: false,
+      score: 0, mult: 1, combo: 0, bestCombo: 0, bestMult: 1, lastPull: 0, clock: 0, started: false, timeUp: false, added: 0,
     };
     // loose grains stay out of a bottom strip deep enough that the tips can always come at them from below,
     // given how far above the finger the tips sit and how far behind the tips the sticks still pull
@@ -1263,6 +1325,14 @@ const GrainSim = (() => {
       sim.par += Math.round(scoops.length * 1.5);
     }
     sim.ideal = idealScore(level.types, sim.total, sim.caps, sim.par);
+    // The time the level may take: a few times par (more on the first levels, less on later boards), a little more
+    // after failing it on time before (extraTime, from the host). When it runs out the level stops; time can be added.
+    sim.limit = cfg.limitK > 0 ? Math.round(sim.par * (level.clockK || 2) * cfg.limitK * (1 + ((cfgIn && cfgIn.extraTime) || 0))) : Infinity;
+    sim.extend = function (sec) {
+      sim.limit += sec; sim.added += sec;
+      const was = sim.timeUp; sim.timeUp = false;
+      emit('time_added', { sec, limit: sim.limit, was });
+    };
     // how quick the row being gathered is so far: below 0.75 a full row counts as Lightning, above 2 as Slow
     sim.paceRatio = () => (sim.clock - sim.lastPull) / paceFor(Math.max(1, S.need || sim.caps[sim.target]), cfg);
     sim.target = level.types.find((t) => sim.total[t] > 0);
@@ -1287,7 +1357,8 @@ const GrainSim = (() => {
       return n;
     };
     sim.inJar = () => (sim.jar ? sim.jar.scoops.reduce((a, sc) => a + sc.length, 0) + sim.jar.pour.length : 0);
-    sim.timeLeft = () => sim.par - sim.clock;
+    sim.timeLeft = () => sim.par - sim.clock;          // bonus time left: below 0 the bonus is spent
+    sim.limitLeft = () => sim.limit - sim.clock;
     sim.slotPos = (type, k) => slotPos(sim.stores[type], k);
     sim.setLayout = function (l) {
       sim.H = l.H; sim.top = l.top; sim.bottom = l.bottom;
@@ -1457,7 +1528,7 @@ const GrainSim = (() => {
       if (sim.remaining() === 0) finish(); else switchTarget();
     }
     function finish() {
-      sim.done = true;
+      sim.done = true; sim.timeUp = false;
       const noBreak = sim.stats.breaks === 0 ? Math.round(sim.score * SCORE.noBreaks) : 0;
       const left = Math.max(0, Math.ceil(sim.timeLeft()));
       // time left pays for the share of grains actually sorted, so letting a tray empty itself earns nothing
@@ -1469,7 +1540,7 @@ const GrainSim = (() => {
         fullRows: sim.stats.fullRows, rows: sim.stats.rows, breaks: sim.stats.breaks, penalty: sim.stats.penalty, noBreak,
         rowPts: sim.stats.rowPts, comboPts: sim.stats.comboPts,
         short: sim.stats.short, slow: sim.stats.slow, saved: sim.stats.saved, stoneBreaks: sim.stats.stoneBreaks,
-        time: sim.clock, par: sim.par, timeBonus, sorted, lost: sim.stats.lost, spills: sim.stats.spills,
+        time: sim.clock, par: sim.par, timeBonus, sorted, lost: sim.stats.lost, spills: sim.stats.spills, limit: sim.limit, added: sim.added,
       };
       emit('level_complete', sim.result);
     }
@@ -1772,7 +1843,14 @@ const GrainSim = (() => {
     }
 
     function tickClocks(dt) {
-      if (sim.started && !sim.done) sim.clock += dt;
+      if (!sim.started || sim.done || sim.timeUp) return;
+      sim.clock += dt;
+      if (sim.clock >= sim.limit) {
+        sim.clock = sim.limit; sim.timeUp = true;
+        // a row already closed and on its way to the pile still lands; everything else stops
+        if (S.phase === 'open' || S.phase === 'enter') { if (S.row.length) startClose(true); else startRetract(); }
+        emit('time_up', { left: sim.remaining(), limit: sim.limit });
+      }
     }
 
     // The next kind: in turn, or by chance in a level where the sticks ask for any kind. A kind on the board comes
@@ -1805,7 +1883,7 @@ const GrainSim = (() => {
       const J = sim.jar;
       if (!J) return;
       J.tip = Math.max(0, J.tip - dt * 1.6);
-      if (!sim.started || sim.done) return;
+      if (!sim.started || sim.done || sim.timeUp) return;
       if (!J.pour.length && J.scoops.length) {
         // nothing to gather on the board and nothing in the sticks: the next scoop comes after a breath
         let clear = !S.row.length && !S.trail.length;
@@ -1834,7 +1912,7 @@ const GrainSim = (() => {
     sim.step = function (input) {
       const dt = 1 / cfg.stepHz;
       sim.t += dt; sim.steps++;
-      const down = !!(input && input.down) && !sim.done;
+      const down = !!(input && input.down) && !sim.done && !sim.timeUp;
       if (!down) { sim.waitLift = false; sim.rearm = 0; } else if (sim.rearm > 0) sim.rearm -= dt;
       const ix = input && Number.isFinite(input.x) ? input.x : W / 2;
       const iy = input && Number.isFinite(input.y) ? input.y : sim.H * 0.7;
@@ -1924,6 +2002,14 @@ const GrainSim = (() => {
       for (const g of sim.grains) { mix(Math.round(g.x * 100)); mix(Math.round(g.y * 100)); mix(g.st); }
       mix(sim.stats.rows); mix(sim.stats.breaks); mix(sim.score); mix(Math.round(S.tx * 100)); mix(Math.round(S.ty * 100));
       return h >>> 0;
+    };
+    // a helper carries one stone off the board
+    sim.takeStone = function (id) {
+      const g = sim.grains[id];
+      if (!g || !TYPES[g.type].stone || (g.st !== ST.REST && g.st !== ST.SLIDE)) return false;
+      g.st = ST.LOST; g.vx = g.vy = 0; g.warn = 0;
+      emit('stone_taken', { id, x: g.x, y: g.y });
+      return true;
     };
     sim.debugPut = function (type, x, y) {
       const g = makeGrain(sim.grains.length, type, x, y, 0, 1, 0);
@@ -2075,7 +2161,18 @@ const GrainSim = (() => {
   // Every text keeps its English wording as its key; tr() swaps in the Polish one and fills {names}.
   const PL = { "Tap to sit at the table": "Dotknij, by usiąść przy stole", "Sit down at the table": "Usiądź przy stole", "Back to the room": "Wróć do pokoju", "Boards": "Plansze", "Change chopsticks": "Zmień pałeczki", "Game board": "Plansza gry", "Pause": "Pauza", "Start the level again": "Zacznij poziom od nowa", "Back to the boards": "Wróć do plansz", "Chopsticks": "Pałeczki", "Each pair is earned by playing well.": "Każdą parę zdobywasz dobrą grą.", "Back": "Wstecz", "Paused": "Pauza", "Resume": "Wznów", "Restart level": "Zacznij od nowa", "Tune feel": "Dostrój", "Score": "Wynik", "Next level": "Następny poziom", "Retry": "Powtórz", "Choose a level": "Wybierz poziom", "On to {board}": "Dalej: {board}", "Changes apply right away and stay on this device. Row length applies from the next level. A level with its own rule keeps it.": "Zmiany działają od razu i zostają na tym urządzeniu. Długość rzędu zmienia się od następnego poziomu. Poziom z własną zasadą ją zachowuje.", "Show how far the sticks reach": "Pokaż zasięg pałeczek", "Vibrate": "Wibracje", "Solid grains": "Twarde ziarna", "Reset": "Przywróć", "Copy values": "Kopiuj wartości", "Done": "Gotowe", "Game sounds": "Dźwięki gry", "Ambience": "Otoczenie", "Slate": "Łupek", "Walnut": "Orzech", "Bamboo": "Bambus", "Clay": "Glina", "Lacquer": "Laka", "Cast iron": "Żeliwo", "Walnut is open": "Orzech otwarty", "Bamboo is open": "Bambus otwarty", "Clay is open": "Glina otwarta", "Lacquer is open": "Laka otwarta", "Cast iron is open": "Żeliwo otwarte", "Tenmoku": "Tenmoku", "Damascus steel": "Stal damasceńska", "Black marble": "Czarny marmur", "Charred cedar": "Opalany cedr", "Obsidian": "Obsydian", "{board} is open": "Otwarte: {board}", "Tenmoku is open": "Tenmoku otwarte", "Damascus steel is open": "Stal damasceńska otwarta", "Black marble is open": "Czarny marmur otwarty", "Charred cedar is open": "Opalany cedr otwarty", "Obsidian is open": "Obsydian otwarty", "Paper": "Papier", "Paper is open": "Papier otwarty", "Old paper": "Stary papier", "Everything you have met so far comes back here, two at a time.": "Wszystko, co już znasz, wraca tu po dwa naraz.", "Lentils": "Soczewica", "Rice": "Ryż", "Mung beans": "Fasola mung", "Chickpeas": "Ciecierzyca", "Sesame": "Sezam", "Kidney beans": "Fasola czerwona", "Stones": "Kamyki", "First row": "Pierwszy rząd", "Two heaps": "Dwie kupki", "Touching": "Stykają się", "Strays": "Zabłąkane", "The slate": "Łupek", "Short reach": "Krótki zasięg", "Mixed heap": "Pomieszana kupka", "Restless": "Niespokojne", "Pantry spill": "Rozsypana spiżarnia", "Heaps": "Kupki", "Spill": "Rozsypka", "Edges": "Brzegi", "Stripes": "Pasy", "Clusters": "Skupiska", "Pushy rice": "Natrętny ryż", "Rice creeps in from further away. Sweep the heap apart, then gather.": "Ryż wkrada się z daleka. Rozgarnij kupkę, potem zbieraj.", "Short reach, restless": "Krótki zasięg, niespokojne", "Close reach and wandering grains, all three kinds.": "Bliski zasięg i wędrujące ziarna, wszystkie trzy rodzaje.", "Restless grains": "Niespokojne ziarna", "They wander and mix again. Sort them before they spread.": "Wędrują i znów się mieszają. Posortuj je, zanim się rozejdą.", "The sticks pull from close by. Drive the tips through the grains.": "Pałeczki ciągną z bliska. Prowadź końcówki przez ziarna.", "Narrow reach": "Wąski zasięg", "The sticks only pull from straight ahead. Come at grains from below.": "Pałeczki ciągną tylko na wprost. Podchodź do ziaren od dołu.", "Long sticks": "Długie pałeczki", "They hold a longer row: more points, and more to lose.": "Mieszczą dłuższy rząd: więcej punktów i więcej do stracenia.", "They can’t be picked, and they go for the tips. Push them aside.": "Nie da się ich zebrać, a pchają się do końcówek. Odsuwaj je.", "Carry it yourself": "Nieś sam", "Take each row to its pile and let go. The wrong pile spills back onto the board.": "Zanieś każdy rząd na jego kupkę i puść. Zła kupka rozsypie się z powrotem na planszę.", "The jar": "Słoik", "It pours more grains in as you go. Keep up with it.": "Dosypuje ziaren w trakcie gry. Nadążaj za nim.", "The tray tilts": "Taca się przechyla", "Grains slide down it. Catch them before they fall off the edge.": "Ziarna zsuwają się w dół. Złap je, zanim spadną z krawędzi.", "Round and heavy. A quick sweep sends them rolling.": "Okrągła i ciężka. Po szybkim machnięciu toczy się daleko.", "Piles move": "Kupki się przesuwają", "The piles change places from level to level. Look before you let go.": "Kupki zmieniają miejsca z poziomu na poziom. Spójrz, zanim puścisz.", "Tiny and light. Long rows, and a sweep scatters it.": "Malutki i lekki. Długie rzędy, a machnięcie go rozsypuje.", "Any order": "Dowolna kolejność", "The sticks can ask for any kind next. Watch the top of the board.": "Pałeczki mogą poprosić o dowolny rodzaj. Patrz na górę planszy.", "Long and heavy. Push one and it swings round.": "Długa i ciężka. Pchnięta obraca się.", "Touch and hold. The lentils walk into the sticks.": "Dotknij i przytrzymaj. Soczewica sama wchodzi między pałeczki.", "Fill the row to grow your multiplier.": "Wypełnij rząd, a mnożnik urośnie.", "After every row the sticks switch to the other kind.": "Po każdym rzędzie pałeczki przechodzą na drugi rodzaj.", "Rice next to the tips creeps in. Push it aside with the side of the sticks.": "Ryż przy końcówkach wkrada się do środka. Odsuń go bokiem pałeczek.", "The line under the multiplier wears away. Fill the row before it is gone.": "Kreska pod mnożnikiem się ściera. Wypełnij rząd, zanim zniknie.", "A short row keeps the multiplier but shrinks it.": "Krótki rząd zachowuje mnożnik, ale go zmniejsza.", "A third kind, with its own pile in the middle.": "Trzeci rodzaj, z własną kupką na środku.", "{n} left": "{n}", "Lightning": "Błyskawica", "Quick": "Szybko", "Steady": "Równo", "Slow": "Wolno", "Short row {m}": "Krótki rząd {m}", "{kind} cleared {m}": "Koniec: {kind} {m}", "Steady hands": "Pewne ręce", "Grain master": "Mistrz ziaren", "Zen hands": "Ręce zen", "+{b} for {n} full rows in a row": "+{b} za {n} pełnych rzędów z rzędu", "New chopsticks": "Nowe pałeczki", "Multiplier {m}, {n} full rows in a row": "Mnożnik {m}, pełne rzędy z rzędu: {n}", "A lentil got in": "Wpadła soczewica", "Rice got in": "Wpadł ryż", "A mung bean got in": "Wpadła fasola mung", "A stone got in": "Wpadł kamyk", "A chickpea got in": "Wpadła ciecierzyca", "Sesame got in": "Wpadł sezam", "A kidney bean got in": "Wpadła fasola", "A wrong grain got in": "Wpadło złe ziarno", ", back to ×1": ", z powrotem ×1", "Broken": "Przerwany", "Wrong pile": "Zła kupka", "Touch the board to pick the row up again.": "Dotknij planszy, by znów podnieść rząd.", "Tap the arrow again to leave this level.": "Dotknij strzałki jeszcze raz, by wyjść z poziomu.", "Tap again to start this level over.": "Dotknij jeszcze raz, by zacząć od nowa.", "{n} more open {board}": "{n} do otwarcia: {board}", "Every board is open": "Wszystkie plansze otwarte", "{board}, {n} stars": "{board}, gwiazdki: {n}", "{board}, opens with {n} stars": "{board}, otwiera się przy gwiazdkach: {n}", "{n} more {star} to open": "jeszcze {n} {star} do otwarcia", "{board} levels": "Poziomy: {board}", "{level}, {n} of 5 stars": "{level}, {n} z 5 gwiazdek", "{level}, locked": "{level}, zablokowany", "Clear {level} to open this one.": "Najpierw ukończ: {level}.", "{level} cleared": "Ukończono: {level}", "{n} of 5 stars": "{n} z 5 gwiazdek", "Combo prizes": "Nagrody za serie", "Time {t} of {par}": "Czas {t} z {par}", "No row broken": "Bez przerwanego rzędu", "New best": "Rekord", "Next star at {s}": "Następna gwiazdka przy {s}", "New chopsticks: <b>{names}</b>. Pick them under Chopsticks.": "Nowe pałeczki: <b>{names}</b>. Wybierzesz je w menu Pałeczki.", "Cherry lacquer": "Wiśniowa laka", "Ebony": "Hebanowe", "Jade": "Jadeitowe", "Steel": "Stalowe", "Gold leaf": "Złocone", "Reach a ×3 multiplier": "Osiągnij mnożnik ×3", "Make 7 full rows in a row": "Zrób 7 pełnych rzędów z rzędu", "Sort 1,000 grains": "Posortuj 1000 ziaren", "Collect 20 stars": "Zbierz 20 gwiazdek", "Reach a ×6 multiplier": "Osiągnij mnożnik ×6", "Your first pair": "Twoja pierwsza para", "In use": "W użyciu", "Use": "Użyj", "{req} to earn these.": "{req}, żeby je zdobyć.", "Control: drag anywhere": "Sterowanie: przeciąganie", "Control: above the finger": "Sterowanie: nad palcem", "Drag anywhere: the sticks move with your drag, your thumb can stay low.": "Przeciągaj gdziekolwiek: pałeczki idą za ruchem, kciuk może zostać nisko.", "The tips sit above your finger.": "Końcówki są nad twoim palcem.", "Sound on": "Dźwięk: tak", "Sound off": "Dźwięk: nie", "Music on": "Muzyka: tak", "Music off": "Muzyka: nie", "Back to the default feel.": "Przywrócono domyślne ustawienia.", "Select the values and copy them.": "Zaznacz wartości i skopiuj.", "Values copied.": "Skopiowano.", "Tips above the finger": "Końcówki nad palcem", "How tightly the sticks follow": "Jak ciasno pałeczki podążają", "Reach of the open sticks": "Zasięg otwartych pałeczek", "How far ahead of the tips they pull": "Jak daleko przed końcówkami ciągną", "Wrong grains creep from": "Złe ziarna wkradają się z", "Wrong grain creep speed": "Szybkość wkradania się złych ziaren", "How far a sweep flicks grains": "Jak daleko machnięcie odrzuca ziarna", "Next grain joins every (s)": "Kolejne ziarno dołącza co (s)", "Walking speed": "Szybkość marszu", "Pace (higher is more forgiving)": "Tempo (więcej = łagodniej)", "Row length": "Długość rzędu",
     "Lift your finger, then touch again.": "Podnieś palec i dotknij znowu.",
-    "Next star at {s}.": "Następna gwiazdka przy {s}.", "new": "nowe",
+    "Next star at {s}.": "Następna gwiazdka przy {s}.", "new": "nowe", "Time limit (0 = none)": "Limit czasu (0 = bez limitu)",
+    "Time left: {t}": "Pozostały czas: {t}", "Time left": "Pozostały czas", "Time is up": "Czas minął", "{n} still to sort.": "Do posortowania zostało: {n}.",
+    "Zen Cat": "Kot Zen", "Zen Hamster": "Chomik Zen", "Zen Cat: +{s} s": "Kot Zen: +{s} s", "Try again": "Spróbuj jeszcze raz",
+    "The Zen Cat can turn the clock back.": "Kot Zen może cofnąć wskazówkę zegara.",
+    "Next time it will give you a little more time.": "Następnym razem poziom da ci trochę więcej czasu.",
+    "You get a Zen Cat for five stars on a level, and more when a board opens.": "Kota Zen dostajesz za pięć gwiazdek na poziomie i kolejne, gdy otwiera się plansza.",
+    "The Zen Cat turns the clock back once a round.": "Kot Zen cofa zegar raz na rundę.",
+    "The Zen Cat gives you {s} more seconds.": "Kot Zen daje ci {s} sekund więcej.",
+    "The clock starts with your first touch.": "Zegar rusza przy pierwszym dotknięciu.",
+    "The Zen Hamster takes the stones once a round.": "Chomik Zen zabiera kamyki raz na rundę.",
+    "No stones left on the board.": "Na planszy nie ma już kamyków.",
+    "You get Zen Hamsters when a new board opens.": "Chomiki Zen dostajesz, gdy otwiera się nowa plansza.",
     "Stones lie among the grains. They can’t be picked up and they head for the tips: push them aside.": "Między ziarnami leżą kamyki. Nie da się ich zebrać, a pchają się do pałeczek: odsuwaj je na bok.",
     "Here you carry every row to its pile yourself and let go right above it.": "Tu każdy rząd zanosisz sam na jego kupkę i puszczasz tuż nad nią.",
     "A jar keeps pouring in more grains while you sort. Keep up with it.": "Słoik dosypuje ziarna, kiedy sortujesz. Trzeba za nim nadążyć.",
@@ -2145,7 +2242,7 @@ const GrainSim = (() => {
     const fresh = {
       saveVersion: SAVE_VERSION, levels: {}, reached: 0, sound: true, music: true, haptics: true, showReach: true, control: 'direct',
       totals: { grains: 0, bestCombo: 0, bestMult: 1 }, sticks: { owned: ['bamboo'], equipped: 'bamboo', looked: ['bamboo'] }, seen: ['slate'], lang: null,
-      sfxVol: 1, ambVol: 1, soundStyle: 'game',
+      sfxVol: 1, ambVol: 1, soundStyle: 'game', helpers: { cat: 3, hamster: 0 }, fails: {},
     };
     const s = Store.get(SAVE_KEY);
     if (!s || typeof s !== 'object' || ![1, 2, 3, 4].includes(s.saveVersion)) return fresh;
@@ -2153,6 +2250,9 @@ const GrainSim = (() => {
     if (s.control === 'drag') fresh.control = 'drag';
     if (s.lang === 'en' || s.lang === 'pl') fresh.lang = s.lang;
     if (s.soundStyle === 'quiet') fresh.soundStyle = 'quiet';
+    if (s.helpers && typeof s.helpers === 'object') fresh.helpers = { cat: num(s.helpers.cat) || 0, hamster: num(s.helpers.hamster) || 0 };
+    else if (Array.isArray(s.seen) && s.seen.includes('walnut')) fresh.helpers.hamster = 3;   // stones already met: the hamsters that came with them
+    if (s.fails && typeof s.fails === 'object') for (const k of Object.keys(s.fails)) { const v = num(s.fails[k]); if (v && k.length <= 40) fresh.fails[k] = Math.min(9, v); }
     const vol = (v, d) => (Number.isFinite(v) ? clamp(v, 0, 1) : d);
     fresh.sfxVol = vol(s.sfxVol, fresh.sound ? 1 : 0); fresh.ambVol = vol(s.ambVol, fresh.sound ? 1 : 0);
     fresh.sound = fresh.sfxVol > 0 || fresh.ambVol > 0;
@@ -2221,6 +2321,7 @@ const GrainSim = (() => {
     { key: 'walkSpeed', label: 'Walking speed', min: 200, max: 1000, step: 10 },
     { key: 'paceK', label: 'Pace (higher is more forgiving)', min: 0.5, max: 3, step: 0.05 },
     { key: 'channelLen', label: 'Row length', min: 220, max: 480, step: 5 },
+    { key: 'limitK', label: 'Time limit (0 = none)', min: 0, max: 2.5, step: 0.05 },
   ];
   const cfg = {};
   const tsave = Store.get(TUNE_KEY);
@@ -2518,6 +2619,28 @@ const GrainSim = (() => {
       [1318.5, 1568, 1975.5, 2349.3, 2637, 3136].forEach((f, i) => { this.tone(t + i * 0.05, 'sine', f, f, 0.06, 0.7); });
       this.sweep(t, 4000, 9000, 0.05, 0.6, 0.7);
     },
+    // time is up: a low wooden knock, twice
+    timeUp() {
+      if (!this.ready()) return;
+      const t = this.ctx.currentTime;
+      for (const d of [0, 0.22]) { this.noiseBurst(t + d, 'bandpass', 900, 3, 0.35, 0.05); this.tone(t + d, 'triangle', 196, 150, 0.2, 0.18); }
+    },
+    // the cat: the little bell on her collar
+    cat() {
+      if (!this.ready()) return;
+      const t = this.ctx.currentTime;
+      for (let i = 0; i < 6; i++) { const s = t + 0.05 + i * 0.07 + Math.random() * 0.02; this.tone(s, 'sine', 3520 + Math.random() * 300, 3400, 0.05, 0.25); this.tone(s, 'sine', 5280, 5200, 0.02, 0.15); }
+    },
+    // the hand turned back: a quick run of clock ticks
+    rewind() {
+      if (!this.ready()) return;
+      const t = this.ctx.currentTime;
+      for (let i = 0; i < 9; i++) this.noiseBurst(t + i * 0.055, 'bandpass', 3000 + i * 120, 6, 0.12, 0.015);
+    },
+    // the hamster: a tiny squeak as it comes in, a soft pop for each stone, and the patter of its feet
+    squeak() { if (this.ready()) { const t = this.ctx.currentTime; this.tone(t, 'sine', 2300, 2900, 0.07, 0.09, 0.05); this.tone(t + 0.11, 'sine', 2600, 3300, 0.05, 0.08, 0.05); } },
+    nibble() { if (this.ready()) { const t = this.ctx.currentTime; this.noiseBurst(t, 'bandpass', 1400, 3, 0.18, 0.03); this.tone(t, 'sine', 700, 1100, 0.06, 0.06, 0.04); } },
+    patter() { if (this.ready()) this.noiseBurst(this.ctx.currentTime, 'bandpass', 2600 + Math.random() * 1500, 5, 0.04, 0.012); },
     // a star stamped on the end screen, each one a step up the chord
     stamp(i) {
       if (!this.ready()) return;
@@ -2827,7 +2950,7 @@ const GrainSim = (() => {
   // ---------- state ----------
   let screen = 'title';
   let sim = null, levelIndex = 0, autoBot = null;
-  let hintStage = -1, hintRows = 0, pendingDone = null, levelUnlocks = [];
+  let hintStage = -1, hintRows = 0, pendingDone = null, pendingFail = 0, levelUnlocks = [];
   const input = { down: false, x: W / 2, y: 1100, id: null };
   const virt = { x: W / 2, y: 700, set: false };   // where the tips go in drag-anywhere mode
   const drag = { sx: 0, sy: 0, x0: 0, y0: 0 };
@@ -2836,6 +2959,7 @@ const GrainSim = (() => {
     pops: new Map(), lands: new Map(), sparks: [], steam: [], floats: [], rings: [], wave: null, shakeT: 0, bad: null, falls: [], tickT: 0, targetPulse: 1,
     stop: 0, heat: 0, quench: 0, beatT: 0, beat: 0, spill: null, shimmer: null, score: 0, settle: new Map(), prevSt: null,
     slow: 0, scoreRed: 0, saved: false, holdStuck: 0, stars: [], flash: null, lay: null, restRing: null,
+    catUsed: false, hamUsed: false, ham: null, dialFrom: null, dialT: 0, lastTick: -1,
   };
 
   function readSafe() {
@@ -3406,11 +3530,14 @@ const GrainSim = (() => {
   function startLevel(i, cause) {
     levelIndex = Math.max(0, i);
     const L = levelAt(levelIndex);
-    sim = GS.create(Object.assign({}, cfg, { perks: stickById(save.sticks.equipped).perks || null }), L, layout(), ((Date.now() >>> 0) ^ (levelIndex * 7919)) >>> 0);
+    const failed = save.fails[L.id] || 0;
+    sim = GS.create(Object.assign({}, cfg, { perks: stickById(save.sticks.equipped).perks || null, extraTime: 0.12 * Math.min(3, failed) }), L, layout(), ((Date.now() >>> 0) ^ (levelIndex * 7919)) >>> 0);
     autoBot = null; pendingDone = null; levelUnlocks = [];
     fx.pops.clear(); fx.lands.clear(); fx.sparks = []; fx.steam = []; fx.floats = []; fx.rings = []; fx.wave = null; fx.bad = null; fx.shakeT = 0; fx.falls = []; fx.targetPulse = 1;
     fx.stop = 0; fx.heat = 0; fx.quench = 0; fx.beat = 0; fx.beatT = 0; fx.shimmer = null; fx.score = 0; fx.settle.clear(); fx.prevSt = null;
     fx.slow = 0; fx.scoreRed = 0; fx.saved = false; fx.holdStuck = 0; fx.stars = []; fx.flash = null; fx.lay = null; fx.restRing = null;
+    fx.catUsed = false; fx.hamUsed = false; fx.ham = null; fx.dialFrom = null; fx.lastTick = -1; pendingFail = 0; dialKey = '';
+    clockEl.classList.remove('up');
     scoreEl.querySelector('b').textContent = fmt(0); scoreEl.classList.remove('down');
     if (reducedMotion()) fx.spill = null;
     else {
@@ -3429,6 +3556,7 @@ const GrainSim = (() => {
     chipType = null;
     updateHud(false);
     updateStreak(null);
+    syncHelpers();
     if (L.rule) banner(tr(L.rule), tr(L.ruleText || ''), 2600);
     Analytics.emit('level_start', { level: L.id, cause: cause || 'play', grains: sim.grains.length, ideal: sim.ideal, par: sim.par });
   }
@@ -3460,10 +3588,7 @@ const GrainSim = (() => {
     }
     fx.scoreRed = Math.max(0, fx.scoreRed - dt);
     scoreEl.classList.toggle('down', fx.scoreRed > 0);
-    const left = sim.timeLeft();
-    clockEl.textContent = (left < 0 ? '+' : '') + mmss(left);
-    clockEl.classList.toggle('over', left < 0);
-    clockEl.classList.toggle('low', left >= 0 && left < 10 && sim.started);
+    drawDial(dt);
     // the pace line: whole right after a pull, gone once a full row would only count as Slow
     const r = sim.started && !sim.done ? sim.paceRatio() : 0, pace = GS.speedLabel(r);
     fuseEl.style.transform = 'scaleX(' + (sim.started && !sim.done ? clamp(1 - r / 2, 0, 1) : 0).toFixed(3) + ')';
@@ -3471,6 +3596,50 @@ const GrainSim = (() => {
       fuseEl.dataset.pace = pace;
       if (pace === 'Slow' && sim.mult > 1.05 && screen === 'play' && sim.started) Sound.tick(false);
     }
+  }
+  // The dial: the hand at the share of the limit gone by, the gold wedge from the hand to par (the time that still
+  // pays), the pale wedge from there round to the top (the rest). When the cat turns it back, the limit shown eases
+  // up to the new one, so the hand swings back instead of jumping.
+  const sector = (a0, a1) => {
+    if (a1 - a0 < 0.002) return '';
+    const r = 16.4, p = (a) => (23 + r * Math.sin(a)).toFixed(2) + ' ' + (23 - r * Math.cos(a)).toFixed(2);
+    return 'M23 23L' + p(a0) + 'A' + r + ' ' + r + ' 0 ' + (a1 - a0 > Math.PI ? 1 : 0) + ' 1 ' + p(a1) + 'Z';
+  };
+  let dialKey = '';
+  function drawDial(dt) {
+    const lim = sim.limit;
+    if (!Number.isFinite(lim)) { if (dialKey !== 'off') { dialKey = 'off'; clockEl.hidden = true; } return; }
+    clockEl.hidden = false;
+    let shown = lim;
+    if (fx.dialFrom != null) {
+      fx.dialT += dt;
+      const k = clamp(fx.dialT / 0.7, 0, 1), e = 1 - Math.pow(1 - k, 3);
+      shown = fx.dialFrom + (lim - fx.dialFrom) * e;
+      if (k >= 1) fx.dialFrom = null;
+    }
+    const T = Math.PI * 2, a = clamp(sim.clock / shown, 0, 1) * T, ap = clamp(sim.par / shown, 0, 1) * T;
+    const left = Math.max(0, Math.ceil(sim.limitLeft())), low = sim.started && left <= 10 && !sim.done;
+    const key = a.toFixed(3) + '|' + ap.toFixed(3) + '|' + (low ? left : '');
+    if (key === dialKey) return;
+    dialKey = key;
+    const svg = clockEl.firstElementChild;
+    svg.querySelector('.gold').setAttribute('d', a < ap ? sector(a, ap) : '');
+    svg.querySelector('.pale').setAttribute('d', sector(Math.max(a, ap), T));
+    const h = svg.querySelector('.hand');
+    h.setAttribute('x2', (23 + 15 * Math.sin(a)).toFixed(2)); h.setAttribute('y2', (23 - 15 * Math.cos(a)).toFixed(2));
+    svg.querySelector('.secs').textContent = low ? String(left) : '';
+    clockEl.classList.toggle('low', low);
+    clockEl.setAttribute('aria-label', tr('Time left: {t}', { t: mmss(sim.limitLeft()) }));
+    if (low && left !== fx.lastTick && left > 0) { fx.lastTick = left; Sound.tick(left <= 3); }
+  }
+  function syncHelpers() {
+    const paw = clockEl.querySelector('.paw'), n = save.helpers.cat;
+    paw.querySelector('i').textContent = n; paw.classList.toggle('none', !n);
+    clockEl.classList.toggle('used', !!(sim && fx.catUsed));
+    const hb = $('hamBtn'), stones = !!(sim && sim.grains.some((g) => TYPES[g.type].stone));
+    hb.hidden = !stones;
+    hb.querySelector('i').textContent = save.helpers.hamster;
+    hb.classList.toggle('none', !save.helpers.hamster); hb.classList.toggle('used', !!fx.hamUsed);
   }
   function restartAnim(el, cls) {
     if (reducedMotion()) return;
@@ -3523,7 +3692,7 @@ const GrainSim = (() => {
   }
 
   // ---------- screens ----------
-  const SCREENS = ['title', 'table', 'sticks', 'pause', 'done', 'tune'];
+  const SCREENS = ['title', 'table', 'sticks', 'pause', 'done', 'tune', 'fail'];
   let tuneFrom = 'pause', sticksFrom = 'table';
   function setScreen(s) {
     // the phone's notch can be measured as nothing at the very start (an app on the home screen): look again
@@ -3544,7 +3713,7 @@ const GrainSim = (() => {
     if (s === 'sticks') renderSticks();
     if (s === 'pause') syncControl();
     Room.set(s === 'title' ? 'hut' : s === 'table' || s === 'sticks' ? 'table' : 'play');
-    const focusMap = { title: 'enterBtn', table: 'tableBack', sticks: 'sticksBackBtn', pause: 'resumeBtn', done: 'nextBtn', tune: 'tuneDoneBtn' };
+    const focusMap = { title: 'enterBtn', table: 'tableBack', sticks: 'sticksBackBtn', pause: 'resumeBtn', done: 'nextBtn', tune: 'tuneDoneBtn', fail: 'failRetry' };
     if (focusMap[s] && document.activeElement && document.activeElement !== document.body) $(focusMap[s]).focus({ preventScroll: true });
   }
   // a chalk star, drawn a little crooked; each of the five leans its own way
@@ -4071,6 +4240,7 @@ const GrainSim = (() => {
   const DONE_V = (/[?&]done=(top|card|sheet)/.exec(location.search) || [])[1] || 'top';
   $('done').dataset.v = DONE_V;
   $('doneTotal').addEventListener('click', () => { if (DONE_V !== 'sheet') $('doneSlab').classList.toggle('open'); });
+  let levelGifts = { cat: 0, hamster: 0 };
   function showDone(res, prev, unlocks, opened) {
     const L = levelAt(levelIndex);
     $('doneLevel').textContent = tr('{level} cleared', { level: levelName(levelIndex) });
@@ -4110,6 +4280,13 @@ const GrainSim = (() => {
     let goal = '';
     const prizes = (opened || []).map((B) => '<b>' + isOpenText(B.name) + '.</b>');
     for (const k of unlocks) prizes.push(tr('New chopsticks: <b>{name}</b>. {perk} Pick them under Chopsticks.', { name: tr(k.name), perk: tr(k.perk) }));
+    if (levelGifts.cat || levelGifts.hamster) {
+      const g = [];
+      if (levelGifts.cat) g.push(tr('Zen Cat') + ' +' + levelGifts.cat);
+      if (levelGifts.hamster) g.push(tr('Zen Hamster') + ' +' + levelGifts.hamster);
+      prizes.push('<b>' + g.join(', ') + '.</b>');
+      levelGifts = { cat: 0, hamster: 0 };
+    }
     if (!prizes.length) {
       // the pair you are closest to earning, and how far along you are
       let best = null, bf = -1;
@@ -4283,6 +4460,13 @@ const GrainSim = (() => {
           break;
         }
         case 'target': Sound.swap(); updateHud(true); if (!reducedMotion()) fx.targetPulse = 1; break;
+        case 'time_up':
+          Sound.timeUp(); Haptics.buzz([30, 60, 30]); restartAnim(clockEl, 'up');
+          pendingFail = performance.now() + 1100;
+          Analytics.emit('time_up', { level: L.id, left: e.left, limit: e.limit });
+          break;
+        case 'time_added': pendingFail = 0; break;
+        case 'stone_taken': Sound.nibble(); if (fx.ham) fx.ham.cheeks = Math.min(1.7, fx.ham.cheeks + 0.22); break;
         case 'jar': Sound.scatter(Math.min(12, e.n * 2)); break;
         case 'lost': {
           fx.falls.push({ id: e.id, t: 0 });
@@ -4335,6 +4519,14 @@ const GrainSim = (() => {
           levelUnlocks.push(...checkUnlocks());
           Analytics.emit('level_complete', { level: L.id, score: e.score, stars: e.stars, breaks: e.breaks, bestCombo: e.bestCombo, bestMult: e.bestMult, time: e.time });
           const opened = GS.BOARDS.filter((B) => B.stars > starsBefore && B.stars <= starCount() && !save.seen.includes(B.id));
+          // helpers: a Zen Cat for the first five stars on a level; cats and hamsters when a board opens
+          const gifts = { cat: 0, hamster: 0 };
+          if (e.stars >= 5 && !(prev && prev.stars >= 5)) gifts.cat++;
+          for (const B of opened) { gifts.cat += 2; if (B.first >= 10) gifts.hamster += 2; }
+          save.helpers.cat += gifts.cat; save.helpers.hamster += gifts.hamster;
+          delete save.fails[L.id];
+          persist();
+          levelGifts = gifts;
           // the sticks are laid on their rest and the gong rings; then the result (a tap brings it at once)
           pendingDone = { at: performance.now() + (reducedMotion() ? 900 : LAY_T * 1000 + (DONE_V === 'sheet' ? 1300 : 1000)), res: e, prev, unlocks: levelUnlocks.slice(), opened };
           updateHud(false);
@@ -4426,6 +4618,117 @@ const GrainSim = (() => {
         vy: -30 - Math.random() * 50, r: 7 + Math.random() * 9, t: 0, life: 0.6 + Math.random() * 0.5 });
     }
   }
+
+  // ---------- helpers: the Zen Cat turns the clock back, the Zen Hamster carries the stones off; once a round each ----------
+  const catSeconds = () => clamp(Math.round((sim.par * 0.4) / 5) * 5, 10, 30);
+  function useCat(fromFail) {
+    if (!sim || sim.done) return;
+    if (!fromFail && !sim.started) { toast(tr('The clock starts with your first touch.')); return; }
+    if (fx.catUsed) { toast(tr('The Zen Cat turns the clock back once a round.')); return; }
+    if (!save.helpers.cat) { toast(tr('You get a Zen Cat for five stars on a level, and more when a board opens.')); return; }
+    save.helpers.cat--; persist(); fx.catUsed = true; syncHelpers();
+    const sec = catSeconds(), paw = $('catpaw'), r = clockEl.getBoundingClientRect();
+    paw.style.top = Math.round(r.top + r.height / 2 - 32) + 'px';
+    Sound.cat();
+    const swing = () => { fx.dialFrom = sim.limit; fx.dialT = 0; sim.extend(sec); Sound.rewind(); Haptics.buzz([8, 30, 8, 30, 8]); toast(tr('The Zen Cat gives you {s} more seconds.', { s: sec })); };
+    if (reducedMotion()) swing();
+    else { paw.classList.remove('go'); void paw.offsetWidth; paw.classList.add('go'); setTimeout(swing, 480); setTimeout(() => paw.classList.remove('go'), 1700); }
+    Analytics.emit('helper', { kind: 'cat', level: levelAt(levelIndex).id, fromFail: !!fromFail });
+  }
+  clockEl.addEventListener('click', () => useCat(false));
+  // the hamster runs in from the left, from stone to stone (the nearest next), each one into its cheeks, and out
+  function useHamster() {
+    if (!sim || sim.done || sim.timeUp) return;
+    const stones = sim.grains.filter((g) => TYPES[g.type].stone && (g.st === ST.REST || g.st === ST.SLIDE));
+    if (fx.hamUsed) { toast(tr('The Zen Hamster takes the stones once a round.')); return; }
+    if (!stones.length) { toast(tr('No stones left on the board.')); return; }
+    if (!save.helpers.hamster) { toast(tr('You get Zen Hamsters when a new board opens.')); return; }
+    save.helpers.hamster--; persist(); fx.hamUsed = true; syncHelpers();
+    const order = [], left = stones.slice();
+    let x = -40, y = stones.reduce((a, g) => a + g.y, 0) / stones.length;
+    while (left.length) {
+      let k = 0, bd = Infinity;
+      left.forEach((g, j) => { const d = Math.hypot(g.x - x, g.y - y); if (d < bd) { bd = d; k = j; } });
+      const g = left.splice(k, 1)[0]; order.push(g.id); x = g.x; y = g.y;
+    }
+    fx.ham = { x: -50, y: sim.grains[order[0]].y, a: 0, queue: order, cheeks: 0, pause: 0, step: 0, out: null };
+    Sound.squeak();
+    Analytics.emit('helper', { kind: 'hamster', level: levelAt(levelIndex).id, stones: stones.length });
+  }
+  $('hamBtn').addEventListener('click', useHamster);
+  function updateHamster(dt) {
+    const h = fx.ham;
+    if (!h || !sim) return;
+    if (h.pause > 0) { h.pause -= dt; return; }
+    while (h.queue.length && sim.grains[h.queue[0]].st !== ST.REST && sim.grains[h.queue[0]].st !== ST.SLIDE) h.queue.shift();
+    let tx, ty;
+    if (h.queue.length) { const g = sim.grains[h.queue[0]]; tx = g.x; ty = g.y; }
+    else { if (!h.out) h.out = { x: W + 70, y: h.y + (h.y > view.H / 2 ? -80 : 80) }; tx = h.out.x; ty = h.out.y; }
+    const dx = tx - h.x, dy = ty - h.y, d = Math.hypot(dx, dy), v = 640 * dt;
+    let da = Math.atan2(dy, dx) - h.a; while (da > Math.PI) da -= 2 * Math.PI; while (da < -Math.PI) da += 2 * Math.PI;
+    h.a += da * Math.min(1, dt * 12);
+    h.step += dt * 22;
+    if (d <= Math.max(v, 12)) {
+      h.x = tx; h.y = ty;
+      if (h.queue.length) { sim.takeStone(h.queue.shift()); h.pause = 0.12; }
+      else fx.ham = null;
+      return;
+    }
+    h.x += (dx / d) * v; h.y += (dy / d) * v;
+    if (Math.random() < dt * 14) Sound.patter();
+  }
+  // the hamster from above: round and golden, its ears, its eyes and pink nose at the front, cheeks filling up
+  function drawHamster(ox, oy) {
+    const h = fx.ham;
+    if (!h) return;
+    worldTransform(ox, oy);
+    ctx.save(); ctx.translate(h.x, h.y); ctx.rotate(h.a);
+    const bob = Math.sin(h.step) * 1.4, ch = h.cheeks;
+    ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(4, 9, 30, 19, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#f2b4b4';
+    for (const [fx0, side, ph] of [[12, 1, 0], [12, -1, Math.PI], [-14, 1, Math.PI], [-14, -1, 0]]) {
+      ctx.beginPath(); ctx.ellipse(fx0 + Math.sin(h.step + ph) * 4, side * 15, 4, 3, 0, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.fillStyle = '#f0c9a0'; ctx.beginPath(); ctx.ellipse(-30, 0, 4, 3, 0, 0, Math.PI * 2); ctx.fill();          // the tail, a nub
+    const bg = ctx.createRadialGradient(-4, -6 + bob, 2, -2, bob, 30);
+    bg.addColorStop(0, '#f2bb78'); bg.addColorStop(0.7, '#d9944c'); bg.addColorStop(1, '#b8743a');
+    ctx.fillStyle = bg; ctx.beginPath(); ctx.ellipse(-6, bob, 25, 19, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(255,240,215,0.55)'; ctx.beginPath(); ctx.ellipse(-12, bob, 12, 6, 0, 0, Math.PI * 2); ctx.fill();   // a pale stripe down its back
+    for (const side of [1, -1]) {                       // cheeks
+      ctx.fillStyle = '#efc493'; ctx.beginPath(); ctx.ellipse(13, side * (9 + 3 * ch) + bob, 8 + 3 * ch, 7 + 3 * ch, 0, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.fillStyle = '#e3a35e'; ctx.beginPath(); ctx.ellipse(15, bob, 14, 12.5, 0, 0, Math.PI * 2); ctx.fill();          // head
+    ctx.fillStyle = '#f6e2c6'; ctx.beginPath(); ctx.ellipse(22, bob, 7, 6.5, 0, 0, Math.PI * 2); ctx.fill();             // muzzle
+    for (const side of [1, -1]) {
+      ctx.fillStyle = '#e9b07a'; ctx.beginPath(); ctx.arc(7, side * 11 + bob, 5.5, 0, Math.PI * 2); ctx.fill();          // ears
+      ctx.fillStyle = '#f2a5a5'; ctx.beginPath(); ctx.arc(7, side * 11 + bob, 3, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#1b120c'; ctx.beginPath(); ctx.arc(19, side * 6 + bob, 2.6, 0, Math.PI * 2); ctx.fill();          // eyes
+      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(19.8, side * 6 - 0.9 + bob, 0.9, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = 'rgba(60,40,25,0.5)'; ctx.lineWidth = 0.8;
+      ctx.beginPath(); ctx.moveTo(26, side * 2.5 + bob); ctx.lineTo(37, side * 7 + bob); ctx.moveTo(26, side * 3.5 + bob); ctx.lineTo(35, side * 11 + bob); ctx.stroke();
+    }
+    ctx.fillStyle = '#e8858c'; ctx.beginPath(); ctx.ellipse(28.5, bob, 2.4, 1.9, 0, 0, Math.PI * 2); ctx.fill();          // nose
+    ctx.restore();
+  }
+  // time is up: the card at the top, the board as it was left; the cat if she can still help, else try again
+  function showFail() {
+    const L = levelAt(levelIndex);
+    save.fails[L.id] = (save.fails[L.id] || 0) + 1; persist();
+    $('failLevel').textContent = levelName(levelIndex);
+    $('failTitle').textContent = tr('Time is up');
+    const n = sim.remaining(), can = !fx.catUsed && save.helpers.cat > 0;
+    $('failLine').textContent = tr('{n} still to sort.', { n: nn(n, 'grain') }) + ' ' +
+      (can ? tr('The Zen Cat can turn the clock back.') : fx.catUsed ? tr('Next time it will give you a little more time.') : tr('You get a Zen Cat for five stars on a level, and more when a board opens.'));
+    const cat = $('catBtn'), retry = $('failRetry');
+    cat.hidden = !can;
+    cat.querySelector('span').textContent = tr('Zen Cat: +{s} s', { s: catSeconds() }) + ' (' + save.helpers.cat + ')';
+    retry.className = can ? 'ghost' : 'primary';
+    setScreen('fail');
+    Analytics.emit('level_fail', { level: L.id, left: n, cat: can });
+  }
+  $('catBtn').addEventListener('click', () => { setScreen('play'); useCat(true); });
+  $('failRetry').addEventListener('click', () => { Analytics.emit('level_retry', { level: levelAt(levelIndex).id, from: 'fail' }); startLevel(levelIndex, 'retry'); });
+  $('failBack').addEventListener('click', () => { tableBoard = GS.boardOf(levelIndex); setScreen('table'); });
 
   // ---------- pause / resume ----------
   function pause() { if (screen !== 'play' || !sim || sim.done) return; setScreen('pause'); Analytics.emit('pause', { level: levelAt(levelIndex).id }); }
@@ -4787,6 +5090,7 @@ const GrainSim = (() => {
       drawGrain(g, 1 + 0.35 * Math.sin(Math.PI * k), 0, 0, ox, oy);
     }
     if (s !== sim) return;
+    drawHamster(ox, oy);
     drawGhost(ox, oy);
     worldTransform(ox, oy);
     for (const r of fx.rings) {
@@ -4929,6 +5233,8 @@ const GrainSim = (() => {
       } else if (fx.holdStuck > 0) fx.holdStuck = 0;
       updateClocks(dt);
       if (pendingDone && now >= pendingDone.at) { const p = pendingDone; pendingDone = null; showDone(p.res, p.prev, p.unlocks, p.opened); }
+      if (pendingFail && now >= pendingFail && sim.timeUp && !sim.done) { pendingFail = 0; showFail(); }
+      updateHamster(dt);
     } else acc = 0;
     updateFx(dt);
     updateCam(dt);
@@ -4954,6 +5260,7 @@ const GrainSim = (() => {
         cfg[t.key] = v; out.textContent = show(v);
         const L = levelAt(levelIndex);
         if (sim && !(L.tune && t.key in L.tune)) sim.cfg[t.key] = v;
+        if (sim && t.key === 'limitK') { sim.limit = v > 0 ? Math.round(sim.par * (L.clockK || 2) * v) + sim.added : Infinity; dialKey = ''; }
         saveTune(); Analytics.emit('tune_change', { key: t.key, value: v });
       });
     }
@@ -5065,6 +5372,7 @@ const GrainSim = (() => {
     ['#sticks h2', 'Chopsticks'], ['#sticks .sub', 'Each pair is earned by playing well.'], ['#sticksBackBtn', 'Back'],
     ['#pause h2', 'Paused'], ['#resumeBtn', 'Resume'], ['label[for=sfxVol]', 'Game sounds'], ['label[for=ambVol]', 'Ambience'], ['#restartBtn', 'Restart level'], ['#tuneBtn', 'Tune feel'], ['#pauseLevelsBtn', 'Back to the boards'],
     ['#doneTotal span', 'Score'], ['#retryBtn', 'Retry'], ['#doneLevelsBtn', 'Back'],
+    ['#failRetry span', 'Try again'], ['#failBack span', 'Back'], ['#clock', 'Time left', 'aria-label'], ['#hamBtn', 'Zen Hamster', 'aria-label'],
     ['#tune h2', 'Tune feel'], ['#tune .sub', 'Changes apply right away and stay on this device. Row length applies from the next level. A level with its own rule keeps it.'],
     ['label.check:nth-of-type(1)', 'Show how far the sticks reach'], ['label.check:nth-of-type(2)', 'Vibrate'], ['label.check:nth-of-type(3)', 'Solid grains'],
     ['#tuneResetBtn', 'Reset'], ['#tuneCopyBtn', 'Copy values'], ['#tuneDoneBtn', 'Done'],
