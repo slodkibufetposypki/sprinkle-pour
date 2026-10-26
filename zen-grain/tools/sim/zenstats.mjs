@@ -14,7 +14,7 @@ for (let i = 0; i < secs * 120 && !sim.done; i++) {
   }
   if (i % 120 === 0) { crowdMax = Math.max(crowdMax, sim.crowd); crowdSum += sim.crowd; n++; }
 }
-const keys = ['jar', 'row_taken', 'break', 'life_lost', 'pile_packed', 'capybara', 'stage', 'new_kind', 'zone', 'stone_sunk', 'gold', 'gold_caught', 'gold_escaped', 'ember_burst', 'zen_over'];
+const keys = ['jar', 'row_taken', 'break', 'life_lost', 'pile_packed', 'capybara', 'stage', 'new_kind', 'zone', 'stone_sunk', 'order', 'order_done', 'order_failed', 'flow', 'gold', 'gold_caught', 'gold_escaped', 'ember_burst', 'zen_over'];
 console.log('bot', skill, 'seed', seed, '| lasted', Math.round(sim.clock), 's | score', sim.score, '| bowls', sim.bowls, '| lives', sim.lives, sim.done ? '(over: ' + sim.result.why + ')' : '');
 for (const k of keys) console.log(k.padEnd(13), String(count[k] || 0).padStart(4), (at[k] || []).slice(0, 14).join(' '));
 const avg = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0);

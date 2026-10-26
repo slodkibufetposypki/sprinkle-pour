@@ -616,6 +616,7 @@
       <li data-t="If the board fills up, a life goes. You have three.">If the board fills up, a life goes. You have three.</li>
       <li data-t="Full rows charge the Zen Zone: then wrong grains sleep and every row pays double. A broken row takes some of it back.">Full rows charge the Zen Zone: then wrong grains sleep and every row pays double. A broken row takes some of it back.</li>
       <li data-t="Every five full bowls the Zen Capybara gives a life back.">Every five full bowls the Zen Capybara gives a life back.</li>
+      <li data-t="Now and then the jar does something else: a wave, a spill, or a bowl asking for so many grains in so many seconds.">Now and then the jar does something else: a wave, a spill, or a bowl asking for so many grains in so many seconds.</li>
       <li data-t="Now and then a golden bean hops in: catch it before it leaps off.">Now and then a golden bean hops in: catch it before it leaps off.</li>
     </ul>
     <button id="zenGo" class="primary">Play</button>
@@ -1205,6 +1206,10 @@ const GrainSim = (() => {
   // seconds the jar pours faster, wrong grains lie still and cannot break a row, and every row pays double.
   const ZEN_ZONE = { full: 0.07, short: 0.02, broken: 0.25, secs: 8, pourK: 2.2, pay: 2 };
   const ZEN_STONE_S = 22;   // zen: a stone sinks into the sand after this long on the board
+  // The night's rhythm: between stretches of steady pouring the jar does something. A wave: a short warning, then it
+  // pours hard, all kinds mixed, and after it a calm to tidy up. A spill: it tips over across the board. An order: one
+  // bowl asks for so many of its kind in so many seconds. Never the same twice running, closer together as it goes on.
+  const ZEN_FLOW = { first: 34, gap: [20, 30], gapMin: 13, warn: 2, rush: 12, rushK: 2.3, calm: 9, calmK: 0.4, orderT: 22, orderGain: 0.3, orderLoss: 0.15 };
 
   // The title screen plays this board by itself, in its top half.
   const DEMO = {
@@ -1491,6 +1496,7 @@ const GrainSim = (() => {
       sim.lives = level.lives || 3; sim.overT = 0; sim.zenN = 0; sim.packs = []; sim.stage = 0; sim.bowls = 0; sim.continues = 0;
       sim.retiring = new Set(); sim.goldT = 40; sim.emberT = 9; sim.golds = 0;
       sim.zone = 0; sim.zoneT = 0; sim.zones = 0;
+      sim.flow = { kind: 'steady', until: 0, next: ZEN_FLOW.first, last: null }; sim.order = null; sim.orders = 0;
       sim.jar = { scoops: [], pour: [], every: 7.5, next: 1.2, gap: 0, idle: 0, aim: 0, left: true, x: 62, y: sim.top + 50, tip: 0, reach: 1 };
     }
     // The time the level may take: a few times par (more on the first levels, less on later boards), a little more
@@ -1688,15 +1694,8 @@ const GrainSim = (() => {
       sim.stats.rows++;
       sim.stats.taken[type] = (sim.stats.taken[type] || 0) + n; sim.stats.sorted += n;
       if (sim.zen && st.n >= ZEN_PILE && !sim.packs.some((p) => p.type === type)) sim.packs.push({ type, at: sim.t + 0.5 });
-      if (sim.zen && !zoneOn) {
-        sim.zone = Math.min(1, sim.zone + (kind === 'short' ? ZEN_ZONE.short : ZEN_ZONE.full));
-        if (sim.zone >= 1) {
-          sim.zone = 0; sim.zoneT = ZEN_ZONE.secs; sim.zones++;
-          if (sim.jar) sim.jar.next = Math.min(sim.jar.next, sim.clock + 0.3);
-          for (const g of sim.grains) g.warn = 0;
-          emit('zone', { on: true, secs: ZEN_ZONE.secs, zones: sim.zones });
-        }
-      }
+      if (sim.zen && !zoneOn) chargeZone(kind === 'short' ? ZEN_ZONE.short : ZEN_ZONE.full);
+      if (sim.zen && sim.order && sim.order.type === type) sim.order.got += n;
       const hp = slotPos(st, Math.max(0, st.n - Math.ceil(n / 2)));
       const cleared = sim.remaining(type) === 0;
       emit('row_taken', {
@@ -1759,14 +1758,17 @@ const GrainSim = (() => {
       const ks = kinds.length ? kinds : [level.types[level.types.length - 1]];
       // the first scoops are one kind each; then two kinds mixed, and from the third minute three, so a scoop has
       // to be sorted, not just picked up. A scoop is a row's worth to begin with, growing to two.
-      const mix = Math.min(ks.length, t < 30 ? 1 : t < 180 ? 2 : 3), first = sim.zenN % ks.length;
+      const F = sim.flow, rush = F.kind === 'rush', calm = F.kind === 'calm';
+      const mix = calm ? 1 : rush ? ks.length : Math.min(ks.length, t < 30 ? 1 : t < 180 ? 2 : 3), first = sim.zenN % ks.length;
       sim.zenN++;
       const use = [...Array(mix).keys()].map((k) => ks[(first + k) % ks.length]);
+      const O = sim.order && ks.includes(sim.order.type) ? sim.order.type : null;
+      if (O && !use.includes(O)) use[use.length - 1] = O;
       const row = use.reduce((a, k) => a + sim.caps[k], 0) / use.length;
       const n = Math.round(row * (1 + Math.min(1, t / 600)) * (sim.zoneT > 0 ? 1.5 : 1));
-      for (let i = 0; i < n; i++) ids.push(spareGrain(use[i % use.length]).id);
+      for (let i = 0; i < n; i++) ids.push(spareGrain(O && i % 2 === 0 ? O : use[i % use.length]).id);
       if (ZEN_STAGES[sim.stage].stones && rng() < Math.min(0.6, 0.25 + t / 900)) ids.push(spareGrain('stone').id);
-      J.every = Math.max(0.5, ids.length / (zenPour(t) * (sim.zoneT > 0 ? ZEN_ZONE.pourK : 1)));
+      J.every = Math.max(0.5, ids.length / (zenPour(t) * (sim.zoneT > 0 ? ZEN_ZONE.pourK : 1) * (rush ? ZEN_FLOW.rushK : calm ? ZEN_FLOW.calmK : 1)));
       J.left = rng() < 0.5; J.x = J.left ? 62 : W - 62;
       return ids;
     }
@@ -1857,6 +1859,75 @@ const GrainSim = (() => {
           emit('gold_hop', { id: g.id });
         }
       }
+    }
+    // zen: the Zen Zone fills; when full it starts at once
+    function chargeZone(k) {
+      if (sim.zoneT > 0) return;
+      sim.zone = clamp(sim.zone + k, 0, 1);
+      if (sim.zone < 1) return;
+      sim.zone = 0; sim.zoneT = ZEN_ZONE.secs; sim.zones++;
+      if (sim.jar) sim.jar.next = Math.min(sim.jar.next, sim.clock + 0.3);
+      for (const g of sim.grains) g.warn = 0;
+      emit('zone', { on: true, secs: ZEN_ZONE.secs, zones: sim.zones });
+    }
+    // zen: the night's rhythm (see ZEN_FLOW)
+    function zenFlow() {
+      const F = sim.flow, t = sim.clock;
+      const rest = () => { F.kind = 'steady'; F.next = t + Math.max(ZEN_FLOW.gapMin, ZEN_FLOW.gap[0] + rng() * (ZEN_FLOW.gap[1] - ZEN_FLOW.gap[0]) - sim.stage * 1.5); };
+      if (F.kind !== 'steady' && t >= F.until) {
+        if (F.kind === 'warn') {
+          F.kind = 'rush'; F.until = t + ZEN_FLOW.rush;
+          if (sim.jar) sim.jar.next = Math.min(sim.jar.next, t + 0.2);
+          emit('flow', { kind: 'rush', secs: ZEN_FLOW.rush });
+        } else if (F.kind === 'rush' || F.kind === 'spill') {
+          F.kind = 'calm'; F.until = t + ZEN_FLOW.calm;
+          emit('flow', { kind: 'calm', secs: ZEN_FLOW.calm });
+        } else { rest(); emit('flow', { kind: 'steady' }); }
+        return;
+      }
+      const O = sim.order;
+      if (O) {
+        const st = sim.stores[O.type];
+        if (O.got >= O.need && st) {
+          const bonus = Math.round(30 * O.need * (ZEN_WORTH[O.type] || 1) * sim.mult);
+          sim.score += bonus; sim.orders++; sim.order = null; rest();
+          emit('order_done', { grain: O.type, need: O.need, bonus, score: sim.score, x: st.x, y: st.y });
+          chargeZone(ZEN_FLOW.orderGain);
+        } else if (t >= O.until || !st) {
+          sim.order = null; rest();
+          sim.zone = Math.max(0, sim.zone - ZEN_FLOW.orderLoss);
+          emit('order_failed', { grain: O.type, need: O.need, got: O.got, x: st ? st.x : W / 2, y: st ? st.y : sim.H });
+        }
+        return;      // nothing else starts while an order is open
+      }
+      if (F.kind !== 'steady' || t < F.next) return;
+      // what comes next: never what came last; a spill only from the second stage on
+      const pick = ['rush', 'order', 'spill'].filter((k) => k !== F.last && (k !== 'spill' || sim.stage >= 1));
+      const k = pick[Math.floor(rng() * pick.length)];
+      F.last = k;
+      if (k === 'rush') { F.kind = 'warn'; F.until = t + ZEN_FLOW.warn; emit('flow', { kind: 'warn', secs: ZEN_FLOW.warn }); }
+      else if (k === 'spill') zenSpill();
+      else zenOrder();
+    }
+    function zenOrder() {
+      const kinds = pourKinds().filter((t) => sim.stores[t]);
+      if (!kinds.length) { sim.flow.next = sim.clock + 5; return; }
+      const type = kinds[Math.floor(rng() * kinds.length)], need = Math.min(ZEN_PILE, Math.round(sim.caps[type] * (1.2 + 0.15 * sim.stage)));
+      sim.order = { type, need, got: 0, until: sim.clock + ZEN_FLOW.orderT, secs: ZEN_FLOW.orderT };
+      emit('order', { grain: type, need, secs: ZEN_FLOW.orderT, x: sim.stores[type].x, y: sim.stores[type].y });
+    }
+    // the jar tips over: a mixed spill across the board; it rights itself after a few seconds, then a calm
+    function zenSpill() {
+      const kinds = pourKinds(), B = bounds(), n = Math.round(20 + 3 * sim.stage);
+      if (!kinds.length) { sim.flow.next = sim.clock + 5; return; }
+      for (let i = 0; i < n; i++) {
+        const g = spareGrain(kinds[i % kinds.length]), a = rng() * Math.PI * 2, v = (40 + rng() * 80) * cfg.friction;
+        g.x = B.x0 + rng() * (B.x1 - B.x0); g.y = B.y0 + rng() * (B.y1 - B.y0) * 0.75;
+        g.st = ST.SLIDE; g.vx = Math.cos(a) * v; g.vy = Math.sin(a) * v; g.w = (rng() - 0.5) * 20; g.px = NaN;
+      }
+      sim.flow.kind = 'spill'; sim.flow.until = sim.clock + 1.5;
+      if (sim.jar) sim.jar.next = sim.clock + 4;
+      emit('flow', { kind: 'spill', n });
     }
     // zen: a stone sinks into the sand after a while, so a long run does not fill up with them
     function zenStones(dt) {
@@ -2355,7 +2426,7 @@ const GrainSim = (() => {
       // the last grains slid off the tray, or the last of the jar is gone too: nothing left to sort
       if (!sim.done && sim.started && !sim.zen && !S.row.length && !S.trail.length && S.phase !== 'carry' && S.phase !== 'pour' && sim.remaining() === 0) finish();
       if (sim.zen && sim.started && !sim.done) {
-        zenStages(); packPiles(); zenCrowd(dt); zenGold(dt); zenEmbers(dt); zenStones(dt);
+        zenStages(); packPiles(); zenCrowd(dt); zenGold(dt); zenEmbers(dt); zenStones(dt); zenFlow();
         if (sim.zoneT > 0) { sim.zoneT -= dt; if (sim.zoneT <= 0) { sim.zoneT = 0; emit('zone', { on: false, zones: sim.zones }); } }
         if (sim.mult > 1 && sim.clock - sim.lastPull > 5) sim.mult = Math.max(1, sim.mult - 0.12 * dt);
       }
@@ -2505,7 +2576,7 @@ const GrainSim = (() => {
   }
 
   return {
-    W, ST, DEFAULTS, STICK, TYPES, AUTHORED, DEMO, ZEN, ZEN_PILE, ZEN_FULL, ZEN_STAGES, ZEN_WORTH, ZEN_STAGE_S, ZEN_THANKS, ZEN_ZONE, ZEN_STONE_S, zenPour, SCORE, MILESTONES, TWIST, NEWS, KIND_FROM,
+    W, ST, DEFAULTS, STICK, TYPES, AUTHORED, DEMO, ZEN, ZEN_PILE, ZEN_FULL, ZEN_STAGES, ZEN_WORTH, ZEN_STAGE_S, ZEN_THANKS, ZEN_ZONE, ZEN_STONE_S, ZEN_FLOW, zenPour, SCORE, MILESTONES, TWIST, NEWS, KIND_FROM,
     BOARDS, CHAPTERS, boardOf, chapterOf, surfaceOf, newsAt, creepPull, mulberry32, mixOf, mixTarget, capacity, totalsFor, paceFor, speedFactor, speedLabel, multGain, rowPoints, idealScore, starsFor, parTime, difficulty,
     validateLevel, levelFor, create, makeBot,
     overlapOf(a, b) { orient(a); orient(b); return overlap(a, b, { nx: 0, ny: 0 }); },
@@ -2524,7 +2595,7 @@ const GrainSim = (() => {
   const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
   // ---------- language: English, or Polish on a phone set to Polish; switched in the pause menu ----------
   // Every text keeps its English wording as its key; tr() swaps in the Polish one and fills {names}.
-  const PL = { "Tap to sit at the table": "Dotknij, by usiąść przy stole", "Sit down at the table": "Usiądź przy stole", "Back to the room": "Wróć do pokoju", "Boards": "Plansze", "Change chopsticks": "Zmień pałeczki", "Game board": "Plansza gry", "Pause": "Pauza", "Start the level again": "Zacznij poziom od nowa", "Back to the boards": "Wróć do plansz", "Chopsticks": "Pałeczki", "Each pair is earned by playing well.": "Każdą parę zdobywasz dobrą grą.", "Back": "Wstecz", "Paused": "Pauza", "Resume": "Wznów", "Restart level": "Zacznij od nowa", "Tune feel": "Dostrój", "Score": "Wynik", "Next level": "Następny poziom", "Retry": "Powtórz", "Choose a level": "Wybierz poziom", "On to {board}": "Dalej: {board}", "Changes apply right away and stay on this device. Row length applies from the next level. A level with its own rule keeps it.": "Zmiany działają od razu i zostają na tym urządzeniu. Długość rzędu zmienia się od następnego poziomu. Poziom z własną zasadą ją zachowuje.", "Show how far the sticks reach": "Pokaż zasięg pałeczek", "Vibrate": "Wibracje", "Solid grains": "Twarde ziarna", "Reset": "Przywróć", "Copy values": "Kopiuj wartości", "Done": "Gotowe", "Game sounds": "Dźwięki gry", "Ambience": "Otoczenie", "Slate": "Łupek", "Walnut": "Orzech", "Bamboo": "Bambus", "Clay": "Glina", "Lacquer": "Laka", "Cast iron": "Żeliwo", "Walnut is open": "Orzech otwarty", "Bamboo is open": "Bambus otwarty", "Parchment": "Pergamin", "Parchment is open": "Pergamin otwarty", "Clay is open": "Glina otwarta", "Lacquer is open": "Laka otwarta", "Cast iron is open": "Żeliwo otwarte", "Tenmoku": "Tenmoku", "Damascus steel": "Stal damasceńska", "Black marble": "Czarny marmur", "Charred cedar": "Opalany cedr", "Obsidian": "Obsydian", "{board} is open": "Otwarte: {board}", "Tenmoku is open": "Tenmoku otwarte", "Damascus steel is open": "Stal damasceńska otwarta", "Black marble is open": "Czarny marmur otwarty", "Charred cedar is open": "Opalany cedr otwarty", "Obsidian is open": "Obsydian otwarty", "Paper": "Papier", "Paper is open": "Papier otwarty", "Old paper": "Stary papier", "Everything you have met so far comes back here, two at a time.": "Wszystko, co już znasz, wraca tu po dwa naraz.", "Lentils": "Soczewica", "Rice": "Ryż", "Mung beans": "Fasola mung", "Chickpeas": "Ciecierzyca", "Sesame": "Sezam", "Kidney beans": "Fasola czerwona", "Moonseeds": "Nasiona księżycowe", "Star beans": "Fasolki gwiezdne", "Ember beans": "Fasolki żarzące", "Nebula beans": "Fasolki mgławicowe", "Neon beans": "Fasolki neonowe", "Crystal beans": "Fasolki kryształowe", "Galaxy beans": "Fasolki galaktyczne", "Golden bean": "Złota fasolka", "Dusk": "Zmierzch", "Night": "Noc", "Deep night": "Głęboka noc", "Moonrise": "Wschód księżyca", "Stars": "Gwiazdy", "Nebula": "Mgławica", "Neon": "Neon", "Galaxy": "Galaktyka", "Coming: {kinds}": "Nadchodzą: {kinds}", "The jar pours faster": "Słoik sypie szybciej", "New kind, {w} a grain": "Nowy rodzaj, {w} za ziarno", "Catch it!": "Złap ją!", "Got away": "Uciekła", "The golden bean leapt off": "Złota fasolka odskoczyła", "Bowl packed": "Miska spakowana", "Zen Capybara": "Zen Kapibara", "Thanks for the bowls: a life back": "Dziękuje za miski: życie wraca", "Thanks for the bowls: +{b}": "Dziękuje za miski: +{b}", "Stage {n}": "Etap {n}", "New best!": "Nowy rekord!", "Zen Zone": "Strefa Zen", "Zen Zone ×{p}": "Strefa Zen ×{p}", "Wrong grains sleep, every row pays double": "Złe ziarna śpią, każdy rząd liczy się podwójnie", "Full rows charge the Zen Zone.": "Pełne rzędy ładują Strefę Zen.", "Five full bowls bring the Zen Capybara, who gives a life back.": "Pięć pełnych misek przywołuje Zen Kapibarę, która oddaje życie.", "Stones sink into the sand after a while.": "Kamyki po chwili zapadają się w piasek.", "{n} of {m} to the Capybara": "{n} z {m} do Kapibary", "{n} of {m} bowls to the Zen Capybara": "{n} z {m} misek do Zen Kapibary", "How it goes": "Jak to działa", "Play": "Graj", "Zen mode rules": "Zasady trybu zen", "The jar pours without end, faster and faster.": "Słoik sypie bez końca, coraz szybciej.", "If the board fills up, a life goes. You have three.": "Gdy plansza się zasypie, tracisz życie. Masz trzy.", "Full rows charge the Zen Zone: then wrong grains sleep and every row pays double. A broken row takes some of it back.": "Pełne rzędy ładują Strefę Zen: wtedy złe ziarna śpią, a każdy rząd liczy się podwójnie. Przerwany rząd trochę ją rozładowuje.", "Every five full bowls the Zen Capybara gives a life back.": "Co pięć pełnych misek Zen Kapibara oddaje życie.", "Now and then a golden bean hops in: catch it before it leaps off.": "Czasem wskakuje złota fasolka: złap ją, zanim ucieknie.", "The jar never stops. Full rows charge the Zen Zone; a full board costs a life.": "Słoik nie przestaje sypać. Pełne rzędy ładują Strefę Zen, zasypana plansza kosztuje życie.", "Best {s}": "Rekord {s}", "Stones": "Kamyki", "First row": "Pierwszy rząd", "Two heaps": "Dwie kupki", "Touching": "Stykają się", "Strays": "Zabłąkane", "The slate": "Łupek", "Short reach": "Krótki zasięg", "Mixed heap": "Pomieszana kupka", "Restless": "Niespokojne", "Pantry spill": "Rozsypana spiżarnia", "Heaps": "Kupki", "Spill": "Rozsypka", "Edges": "Brzegi", "Stripes": "Pasy", "Clusters": "Skupiska", "Pushy rice": "Natrętny ryż", "Rice creeps in from further away. Sweep the heap apart, then gather.": "Ryż wkrada się z daleka. Rozgarnij kupkę, potem zbieraj.", "Short reach, restless": "Krótki zasięg, niespokojne", "Close reach and wandering grains, all three kinds.": "Bliski zasięg i wędrujące ziarna, wszystkie trzy rodzaje.", "Restless grains": "Niespokojne ziarna", "They wander and mix again. Sort them before they spread.": "Wędrują i znów się mieszają. Posortuj je, zanim się rozejdą.", "The sticks pull from close by. Drive the tips through the grains.": "Pałeczki ciągną z bliska. Prowadź końcówki przez ziarna.", "Narrow reach": "Wąski zasięg", "The sticks only pull from straight ahead. Come at grains from below.": "Pałeczki ciągną tylko na wprost. Podchodź do ziaren od dołu.", "Long sticks": "Długie pałeczki", "They hold a longer row: more points, and more to lose.": "Mieszczą dłuższy rząd: więcej punktów i więcej do stracenia.", "They can’t be picked, and they go for the tips. Push them aside.": "Nie da się ich zebrać, a pchają się do końcówek. Odsuwaj je.", "Carry it yourself": "Nieś sam", "Take each row to its pile and let go. The wrong pile spills back onto the board.": "Zanieś każdy rząd na jego kupkę i puść. Zła kupka rozsypie się z powrotem na planszę.", "The jar": "Słoik", "It pours more grains in as you go. Keep up with it.": "Dosypuje ziaren w trakcie gry. Nadążaj za nim.", "The tray tilts": "Taca się przechyla", "Grains slide down it. Catch them before they fall off the edge.": "Ziarna zsuwają się w dół. Złap je, zanim spadną z krawędzi.", "Round and heavy. A quick sweep sends them rolling.": "Okrągła i ciężka. Po szybkim machnięciu toczy się daleko.", "Piles move": "Kupki się przesuwają", "The piles change places from level to level. Look before you let go.": "Kupki zmieniają miejsca z poziomu na poziom. Spójrz, zanim puścisz.", "Tiny and light. Long rows, and a sweep scatters it.": "Malutki i lekki. Długie rzędy, a machnięcie go rozsypuje.", "Any order": "Dowolna kolejność", "The sticks can ask for any kind next. Watch the top of the board.": "Pałeczki mogą poprosić o dowolny rodzaj. Patrz na górę planszy.", "Long and heavy. Push one and it swings round.": "Długa i ciężka. Pchnięta obraca się.", "Touch and hold. The lentils walk into the sticks.": "Dotknij i przytrzymaj. Soczewica sama wchodzi między pałeczki.", "Fill the row to grow your multiplier.": "Wypełnij rząd, a mnożnik urośnie.", "After every row the sticks switch to the other kind.": "Po każdym rzędzie pałeczki przechodzą na drugi rodzaj.", "Rice next to the tips creeps in. Push it aside with the side of the sticks.": "Ryż przy końcówkach wkrada się do środka. Odsuń go bokiem pałeczek.", "The line under the multiplier wears away. Fill the row before it is gone.": "Kreska pod mnożnikiem się ściera. Wypełnij rząd, zanim zniknie.", "A short row keeps the multiplier but shrinks it.": "Krótki rząd zachowuje mnożnik, ale go zmniejsza.", "A third kind, with its own pile in the middle.": "Trzeci rodzaj, z własną kupką na środku.", "{n} left": "{n}", "Lightning": "Błyskawica", "Quick": "Szybko", "Steady": "Równo", "Slow": "Wolno", "Short row {m}": "Krótki rząd {m}", "{kind} cleared {m}": "Koniec: {kind} {m}", "Steady hands": "Pewne ręce", "Grain master": "Mistrz ziaren", "Zen hands": "Ręce zen", "+{b} for {n} full rows in a row": "+{b} za {n} pełnych rzędów z rzędu", "New chopsticks": "Nowe pałeczki", "Multiplier {m}, {n} full rows in a row": "Mnożnik {m}, pełne rzędy z rzędu: {n}", "A lentil got in": "Wpadła soczewica", "Rice got in": "Wpadł ryż", "A mung bean got in": "Wpadła fasola mung", "A stone got in": "Wpadł kamyk", "A chickpea got in": "Wpadła ciecierzyca", "Sesame got in": "Wpadł sezam", "A kidney bean got in": "Wpadła fasola", "A wrong grain got in": "Wpadło złe ziarno", ", back to ×1": ", z powrotem ×1", "Broken": "Przerwany", "Wrong pile": "Zła kupka", "Touch the board to pick the row up again.": "Dotknij planszy, by znów podnieść rząd.", "Tap the arrow again to leave this level.": "Dotknij strzałki jeszcze raz, by wyjść z poziomu.", "Tap again to start this level over.": "Dotknij jeszcze raz, by zacząć od nowa.", "{n} more open {board}": "{n} do otwarcia: {board}", "Every board is open": "Wszystkie plansze otwarte", "{board}, {n} stars": "{board}, gwiazdki: {n}", "{board}, opens with {n} stars": "{board}, otwiera się przy gwiazdkach: {n}", "{n} more {star} to open": "jeszcze {n} {star} do otwarcia", "{board} levels": "Poziomy: {board}", "{level}, {n} of 5 stars": "{level}, {n} z 5 gwiazdek", "{level}, locked": "{level}, zablokowany", "Clear {level} to open this one.": "Najpierw ukończ: {level}.", "{level} cleared": "Ukończono: {level}", "{n} of 5 stars": "{n} z 5 gwiazdek", "Combo prizes": "Nagrody za serie", "Time {t} of {par}": "Czas {t} z {par}", "No row broken": "Bez przerwanego rzędu", "New best": "Rekord", "Next star at {s}": "Następna gwiazdka przy {s}", "New chopsticks: <b>{names}</b>. Pick them under Chopsticks.": "Nowe pałeczki: <b>{names}</b>. Wybierzesz je w menu Pałeczki.", "Cherry lacquer": "Wiśniowa laka", "Ebony": "Hebanowe", "Jade": "Jadeitowe", "Steel": "Stalowe", "Gold leaf": "Złocone", "Reach a ×3 multiplier": "Osiągnij mnożnik ×3", "Make 7 full rows in a row": "Zrób 7 pełnych rzędów z rzędu", "Sort 1,000 grains": "Posortuj 1000 ziaren", "Collect 20 stars": "Zbierz 20 gwiazdek", "Reach a ×6 multiplier": "Osiągnij mnożnik ×6", "Your first pair": "Twoja pierwsza para", "In use": "W użyciu", "Use": "Użyj", "{req} to earn these.": "{req}, żeby je zdobyć.", "Control: drag anywhere": "Sterowanie: przeciąganie", "Control: above the finger": "Sterowanie: nad palcem", "Drag anywhere: the sticks move with your drag, your thumb can stay low.": "Przeciągaj gdziekolwiek: pałeczki idą za ruchem, kciuk może zostać nisko.", "The tips sit above your finger.": "Końcówki są nad twoim palcem.", "Sound on": "Dźwięk: tak", "Sound off": "Dźwięk: nie", "Music on": "Muzyka: tak", "Music off": "Muzyka: nie", "Back to the default feel.": "Przywrócono domyślne ustawienia.", "Select the values and copy them.": "Zaznacz wartości i skopiuj.", "Values copied.": "Skopiowano.", "Tips above the finger": "Końcówki nad palcem", "How tightly the sticks follow": "Jak ciasno pałeczki podążają", "Reach of the open sticks": "Zasięg otwartych pałeczek", "How far ahead of the tips they pull": "Jak daleko przed końcówkami ciągną", "Wrong grains creep from": "Złe ziarna wkradają się z", "Wrong grain creep speed": "Szybkość wkradania się złych ziaren", "How far a sweep flicks grains": "Jak daleko machnięcie odrzuca ziarna", "Next grain joins every (s)": "Kolejne ziarno dołącza co (s)", "Walking speed": "Szybkość marszu", "Pace (higher is more forgiving)": "Tempo (więcej = łagodniej)", "Row length": "Długość rzędu",
+  const PL = { "Tap to sit at the table": "Dotknij, by usiąść przy stole", "Sit down at the table": "Usiądź przy stole", "Back to the room": "Wróć do pokoju", "Boards": "Plansze", "Change chopsticks": "Zmień pałeczki", "Game board": "Plansza gry", "Pause": "Pauza", "Start the level again": "Zacznij poziom od nowa", "Back to the boards": "Wróć do plansz", "Chopsticks": "Pałeczki", "Each pair is earned by playing well.": "Każdą parę zdobywasz dobrą grą.", "Back": "Wstecz", "Paused": "Pauza", "Resume": "Wznów", "Restart level": "Zacznij od nowa", "Tune feel": "Dostrój", "Score": "Wynik", "Next level": "Następny poziom", "Retry": "Powtórz", "Choose a level": "Wybierz poziom", "On to {board}": "Dalej: {board}", "Changes apply right away and stay on this device. Row length applies from the next level. A level with its own rule keeps it.": "Zmiany działają od razu i zostają na tym urządzeniu. Długość rzędu zmienia się od następnego poziomu. Poziom z własną zasadą ją zachowuje.", "Show how far the sticks reach": "Pokaż zasięg pałeczek", "Vibrate": "Wibracje", "Solid grains": "Twarde ziarna", "Reset": "Przywróć", "Copy values": "Kopiuj wartości", "Done": "Gotowe", "Game sounds": "Dźwięki gry", "Ambience": "Otoczenie", "Slate": "Łupek", "Walnut": "Orzech", "Bamboo": "Bambus", "Clay": "Glina", "Lacquer": "Laka", "Cast iron": "Żeliwo", "Walnut is open": "Orzech otwarty", "Bamboo is open": "Bambus otwarty", "Parchment": "Pergamin", "Parchment is open": "Pergamin otwarty", "Clay is open": "Glina otwarta", "Lacquer is open": "Laka otwarta", "Cast iron is open": "Żeliwo otwarte", "Tenmoku": "Tenmoku", "Damascus steel": "Stal damasceńska", "Black marble": "Czarny marmur", "Charred cedar": "Opalany cedr", "Obsidian": "Obsydian", "{board} is open": "Otwarte: {board}", "Tenmoku is open": "Tenmoku otwarte", "Damascus steel is open": "Stal damasceńska otwarta", "Black marble is open": "Czarny marmur otwarty", "Charred cedar is open": "Opalany cedr otwarty", "Obsidian is open": "Obsydian otwarty", "Paper": "Papier", "Paper is open": "Papier otwarty", "Old paper": "Stary papier", "Everything you have met so far comes back here, two at a time.": "Wszystko, co już znasz, wraca tu po dwa naraz.", "Lentils": "Soczewica", "Rice": "Ryż", "Mung beans": "Fasola mung", "Chickpeas": "Ciecierzyca", "Sesame": "Sezam", "Kidney beans": "Fasola czerwona", "Moonseeds": "Nasiona księżycowe", "Star beans": "Fasolki gwiezdne", "Ember beans": "Fasolki żarzące", "Nebula beans": "Fasolki mgławicowe", "Neon beans": "Fasolki neonowe", "Crystal beans": "Fasolki kryształowe", "Galaxy beans": "Fasolki galaktyczne", "Golden bean": "Złota fasolka", "Dusk": "Zmierzch", "Night": "Noc", "Deep night": "Głęboka noc", "Moonrise": "Wschód księżyca", "Stars": "Gwiazdy", "Nebula": "Mgławica", "Neon": "Neon", "Galaxy": "Galaktyka", "Coming: {kinds}": "Nadchodzą: {kinds}", "The jar pours faster": "Słoik sypie szybciej", "New kind, {w} a grain": "Nowy rodzaj, {w} za ziarno", "Catch it!": "Złap ją!", "Got away": "Uciekła", "The golden bean leapt off": "Złota fasolka odskoczyła", "Bowl packed": "Miska spakowana", "Zen Capybara": "Zen Kapibara", "Thanks for the bowls: a life back": "Dziękuje za miski: życie wraca", "Thanks for the bowls: +{b}": "Dziękuje za miski: +{b}", "Stage {n}": "Etap {n}", "New best!": "Nowy rekord!", "Zen Zone": "Strefa Zen", "A wave is coming": "Nadchodzi fala", "The jar is about to pour hard": "Słoik zaraz mocno sypnie", "Calm: time to tidy up": "Cisza: czas posprzątać", "The jar tipped over": "Słoik się przewrócił", "Sort the spill before the board fills": "Posortuj rozsypkę, zanim plansza się zasypie", "Order: {kind}": "Zamówienie: {kind}", "{n} into its bowl in {s} s": "{n} do miski w {s} s", "Order filled": "Zamówienie spełnione", "Too late": "Nie zdążyłeś", "The order went unfilled": "Zamówienie przepadło", "Now and then the jar does something else: a wave, a spill, or a bowl asking for so many grains in so many seconds.": "Co jakiś czas słoik robi coś innego: fala, rozsypka albo miska, która prosi o tyle ziaren w tyle sekund.", "Zen Zone ×{p}": "Strefa Zen ×{p}", "Wrong grains sleep, every row pays double": "Złe ziarna śpią, każdy rząd liczy się podwójnie", "Full rows charge the Zen Zone.": "Pełne rzędy ładują Strefę Zen.", "Five full bowls bring the Zen Capybara, who gives a life back.": "Pięć pełnych misek przywołuje Zen Kapibarę, która oddaje życie.", "Stones sink into the sand after a while.": "Kamyki po chwili zapadają się w piasek.", "{n} of {m} to the Capybara": "{n} z {m} do Kapibary", "{n} of {m} bowls to the Zen Capybara": "{n} z {m} misek do Zen Kapibary", "How it goes": "Jak to działa", "Play": "Graj", "Zen mode rules": "Zasady trybu zen", "The jar pours without end, faster and faster.": "Słoik sypie bez końca, coraz szybciej.", "If the board fills up, a life goes. You have three.": "Gdy plansza się zasypie, tracisz życie. Masz trzy.", "Full rows charge the Zen Zone: then wrong grains sleep and every row pays double. A broken row takes some of it back.": "Pełne rzędy ładują Strefę Zen: wtedy złe ziarna śpią, a każdy rząd liczy się podwójnie. Przerwany rząd trochę ją rozładowuje.", "Every five full bowls the Zen Capybara gives a life back.": "Co pięć pełnych misek Zen Kapibara oddaje życie.", "Now and then a golden bean hops in: catch it before it leaps off.": "Czasem wskakuje złota fasolka: złap ją, zanim ucieknie.", "The jar never stops. Full rows charge the Zen Zone; a full board costs a life.": "Słoik nie przestaje sypać. Pełne rzędy ładują Strefę Zen, zasypana plansza kosztuje życie.", "Best {s}": "Rekord {s}", "Stones": "Kamyki", "First row": "Pierwszy rząd", "Two heaps": "Dwie kupki", "Touching": "Stykają się", "Strays": "Zabłąkane", "The slate": "Łupek", "Short reach": "Krótki zasięg", "Mixed heap": "Pomieszana kupka", "Restless": "Niespokojne", "Pantry spill": "Rozsypana spiżarnia", "Heaps": "Kupki", "Spill": "Rozsypka", "Edges": "Brzegi", "Stripes": "Pasy", "Clusters": "Skupiska", "Pushy rice": "Natrętny ryż", "Rice creeps in from further away. Sweep the heap apart, then gather.": "Ryż wkrada się z daleka. Rozgarnij kupkę, potem zbieraj.", "Short reach, restless": "Krótki zasięg, niespokojne", "Close reach and wandering grains, all three kinds.": "Bliski zasięg i wędrujące ziarna, wszystkie trzy rodzaje.", "Restless grains": "Niespokojne ziarna", "They wander and mix again. Sort them before they spread.": "Wędrują i znów się mieszają. Posortuj je, zanim się rozejdą.", "The sticks pull from close by. Drive the tips through the grains.": "Pałeczki ciągną z bliska. Prowadź końcówki przez ziarna.", "Narrow reach": "Wąski zasięg", "The sticks only pull from straight ahead. Come at grains from below.": "Pałeczki ciągną tylko na wprost. Podchodź do ziaren od dołu.", "Long sticks": "Długie pałeczki", "They hold a longer row: more points, and more to lose.": "Mieszczą dłuższy rząd: więcej punktów i więcej do stracenia.", "They can’t be picked, and they go for the tips. Push them aside.": "Nie da się ich zebrać, a pchają się do końcówek. Odsuwaj je.", "Carry it yourself": "Nieś sam", "Take each row to its pile and let go. The wrong pile spills back onto the board.": "Zanieś każdy rząd na jego kupkę i puść. Zła kupka rozsypie się z powrotem na planszę.", "The jar": "Słoik", "It pours more grains in as you go. Keep up with it.": "Dosypuje ziaren w trakcie gry. Nadążaj za nim.", "The tray tilts": "Taca się przechyla", "Grains slide down it. Catch them before they fall off the edge.": "Ziarna zsuwają się w dół. Złap je, zanim spadną z krawędzi.", "Round and heavy. A quick sweep sends them rolling.": "Okrągła i ciężka. Po szybkim machnięciu toczy się daleko.", "Piles move": "Kupki się przesuwają", "The piles change places from level to level. Look before you let go.": "Kupki zmieniają miejsca z poziomu na poziom. Spójrz, zanim puścisz.", "Tiny and light. Long rows, and a sweep scatters it.": "Malutki i lekki. Długie rzędy, a machnięcie go rozsypuje.", "Any order": "Dowolna kolejność", "The sticks can ask for any kind next. Watch the top of the board.": "Pałeczki mogą poprosić o dowolny rodzaj. Patrz na górę planszy.", "Long and heavy. Push one and it swings round.": "Długa i ciężka. Pchnięta obraca się.", "Touch and hold. The lentils walk into the sticks.": "Dotknij i przytrzymaj. Soczewica sama wchodzi między pałeczki.", "Fill the row to grow your multiplier.": "Wypełnij rząd, a mnożnik urośnie.", "After every row the sticks switch to the other kind.": "Po każdym rzędzie pałeczki przechodzą na drugi rodzaj.", "Rice next to the tips creeps in. Push it aside with the side of the sticks.": "Ryż przy końcówkach wkrada się do środka. Odsuń go bokiem pałeczek.", "The line under the multiplier wears away. Fill the row before it is gone.": "Kreska pod mnożnikiem się ściera. Wypełnij rząd, zanim zniknie.", "A short row keeps the multiplier but shrinks it.": "Krótki rząd zachowuje mnożnik, ale go zmniejsza.", "A third kind, with its own pile in the middle.": "Trzeci rodzaj, z własną kupką na środku.", "{n} left": "{n}", "Lightning": "Błyskawica", "Quick": "Szybko", "Steady": "Równo", "Slow": "Wolno", "Short row {m}": "Krótki rząd {m}", "{kind} cleared {m}": "Koniec: {kind} {m}", "Steady hands": "Pewne ręce", "Grain master": "Mistrz ziaren", "Zen hands": "Ręce zen", "+{b} for {n} full rows in a row": "+{b} za {n} pełnych rzędów z rzędu", "New chopsticks": "Nowe pałeczki", "Multiplier {m}, {n} full rows in a row": "Mnożnik {m}, pełne rzędy z rzędu: {n}", "A lentil got in": "Wpadła soczewica", "Rice got in": "Wpadł ryż", "A mung bean got in": "Wpadła fasola mung", "A stone got in": "Wpadł kamyk", "A chickpea got in": "Wpadła ciecierzyca", "Sesame got in": "Wpadł sezam", "A kidney bean got in": "Wpadła fasola", "A wrong grain got in": "Wpadło złe ziarno", ", back to ×1": ", z powrotem ×1", "Broken": "Przerwany", "Wrong pile": "Zła kupka", "Touch the board to pick the row up again.": "Dotknij planszy, by znów podnieść rząd.", "Tap the arrow again to leave this level.": "Dotknij strzałki jeszcze raz, by wyjść z poziomu.", "Tap again to start this level over.": "Dotknij jeszcze raz, by zacząć od nowa.", "{n} more open {board}": "{n} do otwarcia: {board}", "Every board is open": "Wszystkie plansze otwarte", "{board}, {n} stars": "{board}, gwiazdki: {n}", "{board}, opens with {n} stars": "{board}, otwiera się przy gwiazdkach: {n}", "{n} more {star} to open": "jeszcze {n} {star} do otwarcia", "{board} levels": "Poziomy: {board}", "{level}, {n} of 5 stars": "{level}, {n} z 5 gwiazdek", "{level}, locked": "{level}, zablokowany", "Clear {level} to open this one.": "Najpierw ukończ: {level}.", "{level} cleared": "Ukończono: {level}", "{n} of 5 stars": "{n} z 5 gwiazdek", "Combo prizes": "Nagrody za serie", "Time {t} of {par}": "Czas {t} z {par}", "No row broken": "Bez przerwanego rzędu", "New best": "Rekord", "Next star at {s}": "Następna gwiazdka przy {s}", "New chopsticks: <b>{names}</b>. Pick them under Chopsticks.": "Nowe pałeczki: <b>{names}</b>. Wybierzesz je w menu Pałeczki.", "Cherry lacquer": "Wiśniowa laka", "Ebony": "Hebanowe", "Jade": "Jadeitowe", "Steel": "Stalowe", "Gold leaf": "Złocone", "Reach a ×3 multiplier": "Osiągnij mnożnik ×3", "Make 7 full rows in a row": "Zrób 7 pełnych rzędów z rzędu", "Sort 1,000 grains": "Posortuj 1000 ziaren", "Collect 20 stars": "Zbierz 20 gwiazdek", "Reach a ×6 multiplier": "Osiągnij mnożnik ×6", "Your first pair": "Twoja pierwsza para", "In use": "W użyciu", "Use": "Użyj", "{req} to earn these.": "{req}, żeby je zdobyć.", "Control: drag anywhere": "Sterowanie: przeciąganie", "Control: above the finger": "Sterowanie: nad palcem", "Drag anywhere: the sticks move with your drag, your thumb can stay low.": "Przeciągaj gdziekolwiek: pałeczki idą za ruchem, kciuk może zostać nisko.", "The tips sit above your finger.": "Końcówki są nad twoim palcem.", "Sound on": "Dźwięk: tak", "Sound off": "Dźwięk: nie", "Music on": "Muzyka: tak", "Music off": "Muzyka: nie", "Back to the default feel.": "Przywrócono domyślne ustawienia.", "Select the values and copy them.": "Zaznacz wartości i skopiuj.", "Values copied.": "Skopiowano.", "Tips above the finger": "Końcówki nad palcem", "How tightly the sticks follow": "Jak ciasno pałeczki podążają", "Reach of the open sticks": "Zasięg otwartych pałeczek", "How far ahead of the tips they pull": "Jak daleko przed końcówkami ciągną", "Wrong grains creep from": "Złe ziarna wkradają się z", "Wrong grain creep speed": "Szybkość wkradania się złych ziaren", "How far a sweep flicks grains": "Jak daleko machnięcie odrzuca ziarna", "Next grain joins every (s)": "Kolejne ziarno dołącza co (s)", "Walking speed": "Szybkość marszu", "Pace (higher is more forgiving)": "Tempo (więcej = łagodniej)", "Row length": "Długość rzędu",
     "Lift your finger, then touch again.": "Podnieś palec i dotknij znowu.",
     "Next star at {s}.": "Następna gwiazdka przy {s}.", "new": "nowe", "Tap to begin": "Dotknij, by zacząć", "Open the menu": "Otwórz menu", "Menu": "Menu", "Levels": "Poziomy",
     "ASMR mode": "Tryb ASMR", "Settings": "Ustawienia", "Without end": "Bez końca",
@@ -5178,6 +5249,32 @@ const GrainSim = (() => {
             Analytics.emit('zen_zone', { time: sim.clock, zones: e.zones });
           } else Sound.swap();
           break;
+        case 'flow':
+          if (e.kind === 'warn') { banner(tr('A wave is coming'), tr('The jar is about to pour hard'), 2000); Sound.tick(true); Haptics.buzz([20, 40, 20]); }
+          else if (e.kind === 'rush') { Sound.scatter(18); Haptics.buzz(20); if (!reducedMotion()) fx.shakeT = Math.max(fx.shakeT, 0.15); }
+          else if (e.kind === 'calm') toast(tr('Calm: time to tidy up'));
+          else if (e.kind === 'spill') {
+            banner(tr('The jar tipped over'), tr('Sort the spill before the board fills'), 2400);
+            Sound.spill(e.n); Sound.thud(); Haptics.buzz([30, 40, 30]);
+            if (!reducedMotion()) fx.shakeT = Math.max(fx.shakeT, 0.3);
+          }
+          if (e.kind !== 'steady') Analytics.emit('zen_flow', { kind: e.kind, time: sim.clock });
+          break;
+        case 'order':
+          banner(tr('Order: {kind}', { kind: tr(TYPES[e.grain].label) }), tr('{n} into its bowl in {s} s', { n: e.need, s: e.secs }), 2600);
+          Sound.saved(); Haptics.buzz(10);
+          break;
+        case 'order_done':
+          Sound.fanfare(); Haptics.buzz([12, 30, 12, 30, 24]);
+          note('+' + fmt(e.bonus), tr('Order filled'), '#f6c453', '#f6c453', e.x + (e.x < W / 2 ? 120 : e.x > W / 2 ? -120 : 0), e.y - 170);
+          updateHud(false);
+          Analytics.emit('zen_order', { done: true, grain: e.grain, need: e.need, time: sim.clock });
+          break;
+        case 'order_failed':
+          Sound.lost();
+          note(tr('Too late'), tr('The order went unfilled'), '#9aa0a8', '#9aa0a8', e.x + (e.x < W / 2 ? 120 : e.x > W / 2 ? -120 : 0), e.y - 170);
+          Analytics.emit('zen_order', { done: false, grain: e.grain, need: e.need, got: e.got, time: sim.clock });
+          break;
         case 'stone_sunk':
           if (!reducedMotion()) fx.rings.push({ x: e.x, y: e.y, t: 0, life: 0.5, sand: true });
           zenTip('stone', 'Stones sink into the sand after a while.');
@@ -5701,6 +5798,7 @@ const GrainSim = (() => {
       const lab = { type: t, rot: -0.5, s: (TYPES[t].rx > 14 ? 0.78 : 1) * (over ? 1.08 : 0.95), tint: 1, id: 0, x: lx, y: ly };
       drawGrain(lab, 1, 0, 0, ox, oy);
       worldTransform(ox, oy);
+      if (s === sim && s.order && s.order.type === t) drawOrder(s.order, lx, ly, pr);
       for (const id of st.ids) { const g = s.grains[id]; if (g.st === ST.GONE) drawShadow(g, 1, 0, 0.9, ox, oy); }
       for (const id of st.ids) {
         const g = s.grains[id];
@@ -5721,13 +5819,31 @@ const GrainSim = (() => {
       worldTransform(ox, oy);
     }
   }
+  // zen: an open order on a bowl: gold for what is in, a thin chalk ring for the time left, and the count above
+  function drawOrder(O, x, y, pr) {
+    const t = performance.now() / 1000, left = Math.max(0, O.until - sim.clock), k = clamp(O.got / O.need, 0, 1), kt = clamp(left / O.secs, 0, 1);
+    const hurry = left < 6, pulse = hurry ? 0.6 + 0.4 * Math.sin(t * 12) : 1;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = 'rgba(236,232,222,0.18)'; ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.arc(x, y, pr + 9, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = 'rgba(246,196,83,0.95)';
+    ctx.beginPath(); ctx.arc(x, y, pr + 9, -Math.PI / 2, -Math.PI / 2 + k * Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = hurry ? 'rgba(255,122,107,' + pulse.toFixed(2) + ')' : 'rgba(236,232,222,0.6)'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(x, y, pr + 16, -Math.PI / 2, -Math.PI / 2 + kt * Math.PI * 2); ctx.stroke();
+    ctx.lineCap = 'butt';
+    ctx.font = '26px ' + HAND; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(10,12,15,0.85)'; ctx.fillStyle = '#f6c453';
+    const txt = O.got + '/' + O.need + ' · ' + Math.ceil(left) + ' s', ty = y - pr - 38;
+    ctx.strokeText(txt, x, ty); ctx.fillText(txt, x, ty);
+  }
   // the jar lies on its side at the top of the board and tips forward while it pours; the chalk number is what is left
   function drawJar(s, ox, oy) {
     const J = s.jar;
     if (!J) return;
     const dir = J.left ? 1 : -1, tip = J.tip * J.tip, k = K();
     ctx.setTransform(k * dir, 0, 0, k, view.dpr * (view.offX + ox + J.x * view.scale), view.dpr * (oy + J.y * view.scale));
-    ctx.rotate(0.38 + 0.32 * tip);
+    const shake = s.flow && s.flow.kind === 'warn' && !reducedMotion() ? Math.sin(performance.now() / 22) * 0.12 : 0;
+    ctx.rotate(0.38 + 0.32 * tip + shake);
     ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.beginPath(); ctx.ellipse(6, 12, 38, 26, 0, 0, Math.PI * 2); ctx.fill();
     const g = ctx.createRadialGradient(-12, -14, 2, 0, 0, 44);
     g.addColorStop(0, '#8a6544'); g.addColorStop(0.5, '#56391f'); g.addColorStop(1, '#2a1a0e');
