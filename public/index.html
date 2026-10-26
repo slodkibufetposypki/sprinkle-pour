@@ -3768,12 +3768,13 @@ const GrainSim = (() => {
     const base = { slate: ['#353c44', '#262b31', '#1a1e23'], walnut: ['#3d2b1f', '#2d2017', '#1f160f'], iron: ['#323438', '#25272a', '#1b1c1f'], table: ['#9a6a41', '#83562f', '#663f20'],
       bamboo: ['#715a3b', '#523e26', '#332515'], clay: ['#231915', '#17100d', '#0e0907'], lacquer: ['#1d1517', '#130d0f', '#0b0708'],
       paper: ['#283d66', '#1c2c4c', '#111a31'], damascus: ['#3a3e45', '#2b2e33', '#1d1f23'], marble: ['#222226', '#18181b', '#0f0f11'],
-      cedar: ['#24201f', '#191615', '#0f0d0c'], obsidian: ['#18171d', '#100f14', '#09080c'], zen: ['#3b3833', '#2c2a26', '#1f1d1a'] }[id];
+      cedar: ['#24201f', '#191615', '#0f0d0c'], obsidian: ['#18171d', '#100f14', '#09080c'], zen: ['#3b3833', '#2c2a26', '#1f1d1a'],
+      porcelain: ['#5f777c', '#4b6267', '#384a4e'] }[id];
     const lg = c.createLinearGradient(bx, 0, bx + bw, H);
     lg.addColorStop(0, base[0]); lg.addColorStop(0.55, base[1]); lg.addColorStop(1, base[2]);
     c.fillStyle = lg; c.fillRect(bx, 0, bw, H);
     // the soft light pool on the left, as in the reference footage
-    const pool = { walnut: '255,214,170', table: '255,214,170', iron: '200,190,175', bamboo: '255,226,175', clay: '255,192,150', lacquer: '255,176,150', paper: '175,195,245', damascus: '210,220,235', marble: '220,220,235', cedar: '255,200,160', obsidian: '180,185,230', zen: '255,214,170' }[id] || '185,200,216';
+    const pool = { walnut: '255,214,170', table: '255,214,170', iron: '200,190,175', bamboo: '255,226,175', clay: '255,192,150', lacquer: '255,176,150', paper: '175,195,245', damascus: '210,220,235', marble: '220,220,235', cedar: '255,200,160', obsidian: '180,185,230', zen: '255,214,170', porcelain: '230,240,245' }[id] || '185,200,216';
     const rg = c.createRadialGradient(bx + bw * 0.1, H * 0.42, 0, bx + bw * 0.1, H * 0.42, bw * 0.95);
     rg.addColorStop(0, 'rgba(' + pool + ',' + (id === 'slate' ? 0.13 : 0.08) + ')'); rg.addColorStop(1, 'rgba(' + pool + ',0)');
     c.fillStyle = rg; c.fillRect(bx, 0, bw, H);
@@ -3953,6 +3954,78 @@ const GrainSim = (() => {
         grit(cx - rr, cy - rr, rr * 2, rr * 2, Math.round((rr * rr * 4) / (40 * d * d)));
         o.rings.forEach(furrow);
         c.restore();
+      }
+    } else if (id === 'porcelain') {
+      // a celadon glaze, flat to the edges: soft mottling where it ran thicker, iron specks, a fine crackle in the glaze,
+      // a painting under it (pale slip, the capybara in its own colours), one broad sheen, and seams mended with gold
+      for (let i = 0; i < 46; i++) {
+        const x = bx + rnd() * bw, y = rnd() * H, r = (60 + rnd() * 200) * d, g = c.createRadialGradient(x, y, 0, x, y, r);
+        const col = rnd() < 0.5 ? '205,225,228' : '20,32,36', a = 0.025 + rnd() * 0.04;
+        g.addColorStop(0, 'rgba(' + col + ',' + a + ')'); g.addColorStop(1, 'rgba(' + col + ',0)');
+        c.fillStyle = g; c.fillRect(x - r, y - r, r * 2, r * 2);
+      }
+      for (let i = 0; i < Math.round((bw * H) / (2600 * d * d)); i++) {
+        const x = bx + rnd() * bw, y = rnd() * H, z = (0.5 + rnd() * 1.3) * d;
+        c.fillStyle = rnd() < 0.7 ? 'rgba(48,32,20,' + (0.12 + rnd() * 0.2).toFixed(2) + ')' : 'rgba(235,245,245,' + (0.08 + rnd() * 0.12).toFixed(2) + ')';
+        c.beginPath(); c.arc(x, y, z, 0, Math.PI * 2); c.fill();
+      }
+      c.lineCap = 'round'; c.lineJoin = 'round';
+      for (let i = 0; i < 70; i++) {         // the crackle: short wandering hairlines that meet and part
+        let x = bx + rnd() * bw, y = rnd() * H, a = rnd() * Math.PI * 2;
+        const n = 3 + Math.floor(rnd() * 7);
+        c.beginPath(); c.moveTo(x, y);
+        for (let k = 0; k < n; k++) { a += (rnd() - 0.5) * 1.2; x += Math.cos(a) * (12 + rnd() * 20) * d; y += Math.sin(a) * (12 + rnd() * 20) * d; c.lineTo(x, y); }
+        c.strokeStyle = 'rgba(16,26,30,' + (0.1 + rnd() * 0.12).toFixed(2) + ')'; c.lineWidth = 0.6 * d; c.stroke();
+      }
+      const P = porcelainPaint();
+      if (P && P.naturalWidth) {
+        // the stream sits above the corner bowls, so the piles never cover the capybara
+        const w = bw * 0.9, h = (w * P.naturalHeight) / P.naturalWidth;
+        c.globalAlpha = flat ? 0.6 : 0.88;
+        c.drawImage(P, bx + bw - w, H - h - H * 0.13, w, h);
+        c.globalAlpha = 1;
+        c.fillStyle = 'rgba(75,98,103,0.12)'; c.fillRect(bx, 0, bw, H);       // the glaze over the painting
+      }
+      c.save(); c.translate(bx + bw * 0.25, H * 0.3); c.rotate(-0.55);
+      const sh = c.createLinearGradient(0, -90 * d, 0, 90 * d);
+      sh.addColorStop(0, 'rgba(235,248,250,0)'); sh.addColorStop(0.5, 'rgba(235,248,250,0.07)'); sh.addColorStop(1, 'rgba(235,248,250,0)');
+      c.fillStyle = sh; c.fillRect(-bw, -90 * d, bw * 2.6, 180 * d);
+      c.restore();
+      // the gold seams: a crack runs in straight-ish runs with sudden small turns, the way fired glaze breaks; one or
+      // two short branches each, and a wedge of gold where a branch leaves
+      const paths = [], pools = [];
+      const crack = (x, y, a, len, w, depth, branches) => {
+        const pts = [[x, y]];
+        let left = branches;
+        for (let sLen = 0; sLen < len;) {
+          const run = (18 + rnd() * 34) * d;
+          a += (rnd() - 0.5) * (rnd() < 0.2 ? 0.9 : 0.3);
+          x += Math.cos(a) * run; y += Math.sin(a) * run; sLen += run; pts.push([x, y]);
+          if (left > 0 && sLen > len * 0.25 && rnd() < 0.22) {
+            left--;
+            const b = a + (rnd() < 0.5 ? 1 : -1) * (0.55 + rnd() * 0.5);
+            crack(x, y, b, len * (0.18 + rnd() * 0.18), w * 0.65, depth + 1, 0);
+            pools.push([x, y, a, b, w]);
+          }
+        }
+        paths.push({ pts, w });
+      };
+      crack(bx + bw * 0.4, -10, 1.3, H * 0.5, 2.2 * d, 0, 2);
+      crack(bx - 10, H * 0.5, -0.2, bw * 1.1, 2 * d, 0, 1);
+      crack(bx + bw + 10, H * 0.2, 2.6, bw * 0.55, 1.8 * d, 0, 1);
+      for (const { pts, w } of paths) {
+        const line = (dx, dy) => { c.beginPath(); pts.forEach(([x, y], i) => (i ? c.lineTo(x + dx, y + dy) : c.moveTo(x + dx, y + dy))); c.stroke(); };
+        c.strokeStyle = 'rgba(30,18,4,0.5)'; c.lineWidth = w + 1.4 * d; line(0.8 * d, 1.2 * d);
+        const gg = c.createLinearGradient(bx, 0, bx + bw, H);
+        gg.addColorStop(0, '#b8862f'); gg.addColorStop(0.4, '#e9c06a'); gg.addColorStop(0.6, '#c99a3e'); gg.addColorStop(1, '#f1d48a');
+        c.strokeStyle = gg; c.lineWidth = w; line(0, 0);
+        c.strokeStyle = 'rgba(255,244,205,0.65)'; c.lineWidth = Math.max(0.6 * d, w * 0.3); line(-0.5 * d, -0.6 * d);
+      }
+      for (const [x, y, a, b, w] of pools) {        // gold filling the chip where the branch leaves
+        const r = w * 5.5;
+        c.fillStyle = '#dcae55'; c.beginPath(); c.moveTo(x - Math.cos(a) * w * 2, y - Math.sin(a) * w * 2);
+        c.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r); c.lineTo(x + Math.cos(b) * r, y + Math.sin(b) * r); c.closePath(); c.fill();
+        c.strokeStyle = 'rgba(255,244,205,0.6)'; c.lineWidth = 0.7 * d; c.stroke();
       }
     } else if (id === 'lacquer') {
       // black lacquer worn to red at the rims, smooth, one long soft sheen from the light
@@ -4154,6 +4227,17 @@ const GrainSim = (() => {
       }
     }
     ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+  }
+  // ?surface=porcelain shows a surface on every level, to look at one before it has a board of its own
+  const SURFACE_TRY = ['porcelain'].includes(new URLSearchParams(location.search).get('surface')) ? new URLSearchParams(location.search).get('surface') : null;
+  let porcImg = null;
+  function porcelainPaint() {
+    if (!porcImg) {
+      porcImg = new Image(); porcImg.decoding = 'async';
+      porcImg.onload = () => { bgCache.delete('porcelain'); swatches.delete('porcelain'); };
+      porcImg.src = 'zen-porcelain.webp';
+    }
+    return porcImg;
   }
   const bgCache = new Map();
   function backgroundFor(id) {
@@ -6026,7 +6110,7 @@ const GrainSim = (() => {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     if (overRoom()) { drawRoom(dt); return; }
     if (screen === 'table' || screen === 'sticks') { drawTableTop(dt); return; }
-    ctx.drawImage(backgroundFor(levelIndex < 0 ? 'zen' : GS.surfaceOf(levelIndex)), 0, 0);
+    ctx.drawImage(backgroundFor(levelIndex < 0 ? 'zen' : SURFACE_TRY || GS.surfaceOf(levelIndex)), 0, 0);
     if (sim && sim.zen) drawSandGlow(sim, dt);
     drawCandle();
     const s = sim;
