@@ -129,8 +129,17 @@
   /* zen: a quiet line with the best run under the multiplier, gold once this run is past it */
   /* zen: the Zen Zone filling with full rows (and running down while it lasts), and the bowls toward the capybara */
   #zone { display: flex; align-items: center; gap: 7px; margin-top: 4px; font: 400 var(--fs-13)/1 var(--hand); color: var(--chalk-2); white-space: nowrap; }
-  #zone .bar { display: block; width: 86px; height: 6px; border-radius: 3px; background: rgba(236, 232, 222, 0.16); overflow: hidden; }
-  #zone .bar b { display: block; height: 100%; width: 0; border-radius: inherit; background: var(--chalk-2); transition: width .25s ease; }
+  #zone .bar { display: block; width: 96px; height: 6px; border-radius: 3px; background: rgba(236, 232, 222, 0.16); overflow: hidden; }
+  #zone .bar b { display: block; height: 100%; width: 0; border-radius: inherit; background: rgba(246, 196, 83, 0.62); transition: width .25s ease, background-color .25s ease; }
+  #zone.tick .bar { animation: zonetick .4s ease-out; }
+  @keyframes zonetick { 25% { box-shadow: 0 0 10px 1px rgba(246, 196, 83, 0.85); } }
+  #zone.drain .bar b { background: #ff7a6b; transition: width .45s ease; }
+  #zone.drain .bar { animation: zonedrain .45s ease-out; }
+  @keyframes zonedrain { 20%, 60% { transform: translateX(-2px); } 40%, 80% { transform: translateX(2px); } }
+  /* a full row's charge flying up into the bar */
+  .zmote { position: fixed; left: 0; top: 0; z-index: 6; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; border-radius: 50%; pointer-events: none;
+    background: #ffe7a6; box-shadow: 0 0 8px 3px rgba(246, 196, 83, 0.75); }
+  .zmote.small { width: 5px; height: 5px; margin: -2.5px 0 0 -2.5px; box-shadow: 0 0 6px 2px rgba(246, 196, 83, 0.5); }
   #zone.on .lbl { color: var(--ember); }
   #zone.on .bar b { background: var(--ember); box-shadow: 0 0 8px rgba(246, 196, 83, 0.9); transition: none; }
   #zone.near .bar b { background: var(--ember); }
@@ -3486,7 +3495,7 @@ const GrainSim = (() => {
     stop: 0, heat: 0, quench: 0, beatT: 0, beat: 0, spill: null, shimmer: null, score: 0, settle: new Map(), prevSt: null,
     slow: 0, scoreRed: 0, saved: false, holdStuck: 0, stars: [], flash: null, lay: null, restRing: null,
     catUsed: false, hamUsed: false, ham: null, dialFrom: null, dialT: 0, lastTick: -1,
-    sand: 0, sandPulse: 0, sandWave: null, leaps: [],
+    sand: 0, sandPulse: 0, sandWave: null, zoneSeen: 0, zoneHold: 0, leaps: [],
   };
 
   function readSafe() {
@@ -4338,7 +4347,7 @@ const GrainSim = (() => {
     sim = GS.create(Object.assign({}, cfg, { perks: stickById(save.sticks.equipped).perks || null, extraTime: 0.12 * Math.min(3, failed) }), L, layout(), ((Date.now() >>> 0) ^ (levelIndex * 7919)) >>> 0);
     autoBot = null; pendingDone = null; levelUnlocks = [];
     fx.pops.clear(); fx.lands.clear(); fx.sparks = []; fx.steam = []; fx.floats = []; fx.rings = []; fx.wave = null; fx.bad = null; fx.shakeT = 0; fx.falls = []; fx.targetPulse = 1;
-    fx.sand = 0; fx.sandPulse = 0; fx.sandWave = null; fx.leaps = []; fx.bestSaid = false;
+    fx.sand = 0; fx.sandPulse = 0; fx.sandWave = null; fx.zoneSeen = 0; fx.zoneHold = 0; fx.leaps = []; fx.bestSaid = false;
     fx.stop = 0; fx.heat = 0; fx.quench = 0; fx.beat = 0; fx.beatT = 0; fx.shimmer = null; fx.score = 0; fx.settle.clear(); fx.prevSt = null;
     fx.slow = 0; fx.scoreRed = 0; fx.saved = false; fx.holdStuck = 0; fx.stars = []; fx.flash = null; fx.lay = null; fx.restRing = null;
     fx.catUsed = false; fx.hamUsed = false; fx.ham = null; fx.dialFrom = null; fx.lastTick = -1; pendingFail = 0; pendingZen = null; dialKey = '';
@@ -4407,7 +4416,15 @@ const GrainSim = (() => {
     fx.scoreRed = Math.max(0, fx.scoreRed - dt);
     scoreEl.classList.toggle('down', fx.scoreRed > 0);
     if (sim.zen) {
-      const zEl = $('zone'), on = sim.zoneT > 0, k = on ? sim.zoneT / GS.ZEN_ZONE.secs : sim.zone;
+      const zEl = $('zone'), on = sim.zoneT > 0;
+      // the bar takes a row's charge as its mote lands; a drop (a broken row, a missed order) shows in red
+      if (on) fx.zoneSeen = 0;
+      else if (performance.now() >= fx.zoneHold && Math.abs(sim.zone - fx.zoneSeen) > 0.004) {
+        restartAnim(zEl, sim.zone < fx.zoneSeen ? 'drain' : 'tick');
+        if (sim.zone > fx.zoneSeen) zEl.classList.remove('drain');
+        fx.zoneSeen = sim.zone;
+      }
+      const k = on ? sim.zoneT / GS.ZEN_ZONE.secs : fx.zoneSeen;
       zEl.hidden = false;
       zEl.classList.toggle('on', on); zEl.classList.toggle('near', !on && sim.zone >= 0.75);
       zEl.querySelector('.bar b').style.width = (100 * clamp(k, 0, 1)).toFixed(1) + '%';
@@ -5338,6 +5355,7 @@ const GrainSim = (() => {
             updateStreak(null);
           }
           fx.saved = false;
+          if (sim.zen && !e.zoneOn) zoneMote(at, e.kind !== 'short');
           if (sim.zen && e.kind !== 'short' && !e.zoneOn) zenTip('zone', 'Full rows charge the Zen Zone.');
           if (e.milestone) { Sound.fanfare(); Haptics.buzz([20, 30, 20, 30, 60]); banner(tr(e.milestone), tr('+{b} for {n} full rows in a row', { b: fmt(e.bonus), n: e.combo })); }
           const un = checkUnlocks();
@@ -5394,6 +5412,7 @@ const GrainSim = (() => {
           break;
         case 'order_done':
           Sound.fanfare(); Haptics.buzz([12, 30, 12, 30, 24]);
+          if (sim.zoneT <= 0 || sim.zoneT > GS.ZEN_ZONE.secs - 0.1) zoneMote({ x: e.x, y: e.y }, true);   // a filled order charges the Zen Zone too (unless it is already on)
           note('+' + fmt(e.bonus), tr('Order filled'), '#f6c453', '#f6c453', e.x + (e.x < W / 2 ? 120 : e.x > W / 2 ? -120 : 0), e.y - 170);
           updateHud(false);
           Analytics.emit('zen_order', { done: true, grain: e.grain, need: e.need, time: sim.clock });
@@ -5661,6 +5680,25 @@ const GrainSim = (() => {
     zsayPri = pri || 1; zsayAt = now;
     clearTimeout(zsayT); zsayT = setTimeout(() => { el.classList.remove('show'); zsayPri = 0; }, 1700);
   }
+  // zen: a row's charge flies from where the row was taken up into the Zen Zone bar, and the bar fills as it lands;
+  // a short row sends a smaller one
+  function zoneMote(at, full) {
+    const bar = $('zone').querySelector('.bar');
+    if (reducedMotion() || !bar.offsetWidth) return;
+    const r = bar.getBoundingClientRect(), x0 = view.offX + at.x * view.scale, y0 = at.y * view.scale;
+    const dx = r.left + r.width * clamp(fx.zoneSeen, 0.03, 1) - x0, dy = r.top + r.height / 2 - y0;
+    const m = document.createElement('i'); m.className = 'zmote' + (full ? '' : ' small');
+    m.style.left = x0 + 'px'; m.style.top = y0 + 'px';
+    document.body.appendChild(m);
+    const a = m.animate([
+      { transform: 'translate(0, 0) scale(0.4)', opacity: 0 },
+      { transform: 'translate(' + dx * 0.08 + 'px, ' + (dy * 0.04 - 14) + 'px) scale(1.15)', opacity: 1, offset: 0.2 },
+      { transform: 'translate(' + dx + 'px, ' + dy + 'px) scale(0.6)', opacity: 1 },
+    ], { duration: 560, easing: 'cubic-bezier(.5, 0, .7, .4)' });
+    a.onfinish = a.oncancel = () => m.remove();
+    fx.zoneHold = performance.now() + 540;
+  }
+  $('zone').addEventListener('animationend', (e) => { if (e.target.classList.contains('bar')) $('zone').classList.remove('tick', 'drain'); });
   function sparkRow() {
     const n = reducedMotion() ? 0 : 20;
     for (const id of sim.sticks.row) {
