@@ -4238,7 +4238,7 @@ const GrainSim = (() => {
     ctx.globalCompositeOperation = 'lighter';
     if (a >= 0.004) { ctx.globalAlpha = Math.min(1, a); ctx.drawImage(layer, 0, 0); }
     if (wave) {
-      // a new stage: a band of light runs up through the furrows, from the near edge to the far one
+      // the Zen Zone opening: a band of light runs up through the furrows, from the near edge to the far one
       const k = wave.t / 2.4, y = H * (1.15 - 1.5 * k), band = H * 0.2;
       for (let i = -3; i <= 3; i++) {
         const y0 = y + (i * band) / 7, al = 0.6 * (1 - Math.abs(i) / 4) * (1 - k * 0.6);
@@ -5407,15 +5407,12 @@ const GrainSim = (() => {
           if (!reducedMotion()) fx.rings.push({ x: e.x, y: e.y, t: 0, life: 0.5, sand: true });
           zenTip('stone', 'Stones sink into the sand after a while.');
           break;
-        case 'stage': {
-          // a new stage of the night: its name, what is coming, and a band of light running up the sand
-          const fresh = GS.ZEN_STAGES[e.stage].kinds.filter((k) => !sim.level.types.includes(k)).map((k) => tr(TYPES[k].label));
-          zenSay(tr(e.name) + (fresh.length ? ' · ' + fresh.join(', ') : ''), 3, 'gold');
-          Sound.gong(); Haptics.buzz([10, 40, 10]);
-          if (!reducedMotion()) { fx.sandWave = { t: 0 }; fx.sandPulse = 1; }
+        case 'stage':
+          // a new stage of the night says nothing and rings nothing: the sand settles a shade brighter over a few
+          // seconds (drawSandGlow), and each new kind says itself when its bowl comes (new_kind). The gong is kept for
+          // the end of a round, and the board lighting up for the Zen Zone.
           Analytics.emit('zen_stage', { stage: e.stage, time: sim.clock, score: sim.score });
           break;
-        }
         case 'new_kind': {
           const w = GS.ZEN_WORTH[e.grain] || 1;
           updateHud(true);
