@@ -343,16 +343,23 @@
   /* The menu in the room, after the first tap. Two ema, the wooden plaques hung at a shrine, on red cords from a
      bamboo rod: the levels and zen mode, written in ink, the same wood as the level tags. Under them, in chalk on the
      dark of the table, the quiet mode switch and the settings. They drop onto their cords and sway once. */
-  .mainmenu { position: absolute; z-index: 2; left: 0; right: 0; bottom: 0; padding: 54px 0 calc(env(safe-area-inset-bottom, 0px) + 12px);
+  .mainmenu { position: absolute; z-index: 2; left: 0; right: 0; bottom: 0; padding: 40px 0 calc(env(safe-area-inset-bottom, 0px) + 12px);
     background: linear-gradient(to bottom, rgba(14, 9, 5, 0), rgba(14, 9, 5, 0.72) 30%, rgba(14, 9, 5, 0.9)); }
-  .mainmenu .rod { position: relative; width: min(calc(100% - 28px), 400px); height: 11px; margin: 0 auto; border-radius: 6px;
-    background: linear-gradient(90deg, transparent 0 21%, rgba(60, 40, 10, .55) 21% 21.8%, transparent 21.8% 52%, rgba(60, 40, 10, .55) 52% 52.8%, transparent 52.8% 81%, rgba(60, 40, 10, .55) 81% 81.8%, transparent 81.8%),
-      linear-gradient(to bottom, #d8c27a, #a98f45 55%, #6f5a26); box-shadow: 0 4px 8px rgba(0, 0, 0, .5); }
+  /* a twisted straw rope strung across, sagging in the middle; the plaques hang under it on long cords */
+  .mainmenu .hang { position: relative; width: min(100%, 440px); margin: 0 auto; padding-top: 38px; }
+  .mainmenu .rope { position: absolute; z-index: 1; left: 0; top: 0; width: 100%; height: 60px; overflow: visible; pointer-events: none;
+    filter: drop-shadow(0 5px 4px rgba(0, 0, 0, .5)); }
+  .mainmenu .rope path { fill: none; vector-effect: non-scaling-stroke; stroke-linecap: round; }
+  .mainmenu .rope .r0 { stroke: #5a4320; stroke-width: 11px; }
+  .mainmenu .rope .r1 { stroke: #c9ab66; stroke-width: 8px; }
+  .mainmenu .rope .r2 { stroke: #8c6c34; stroke-width: 8px; stroke-dasharray: 2.5 5.5; }
+  .mainmenu .rope .r3 { stroke: rgba(255, 241, 205, .45); stroke-width: 1.6px; stroke-dasharray: 2.5 5.5; stroke-dashoffset: -3; }
   .mainmenu .plaques { width: min(calc(100% - 40px), 380px); margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  .ema { position: relative; height: 128px; margin-top: 30px; border: 0; padding: 40px 8px 12px; background: none; color: #2b1b0e;
-    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; transform-origin: 50% -30px;
-    filter: drop-shadow(0 8px 9px rgba(10, 5, 2, .6)); animation: hang .9s cubic-bezier(.3, .7, .25, 1) backwards; }
-  .ema + .ema { animation-delay: .08s; }
+  .ema { position: relative; height: 128px; margin-top: 46px; border: 0; padding: 40px 8px 12px; background: none; color: #2b1b0e;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; transform-origin: 50% -46px;
+    filter: drop-shadow(0 8px 9px rgba(10, 5, 2, .6));
+    animation: hang .9s cubic-bezier(.3, .7, .25, 1) backwards, sway 4.6s ease-in-out .9s infinite alternate; }
+  .ema + .ema { animation-delay: .08s, 1.4s; animation-duration: .9s, 5.3s; }
   .ema::before { content: ""; position: absolute; inset: 0; z-index: -1; clip-path: polygon(0 24%, 50% 0, 100% 24%, 100% 100%, 0 100%);
     background:
       radial-gradient(circle at 50% 16px, rgba(22, 12, 5, .92) 0 4px, rgba(110, 70, 34, .5) 4.5px 6px, transparent 6.5px),
@@ -361,18 +368,19 @@
       linear-gradient(172deg, #edcc94, #d2a466 58%, #b9874d); }
   .ema::after { content: ""; position: absolute; left: 7px; right: 7px; top: 24%; bottom: 7px; z-index: -1; border: 1px solid rgba(70, 40, 15, .22);
     border-top: 0; pointer-events: none; }
-  .ema .cord { position: absolute; left: 50%; top: -30px; width: 80px; height: 44px; transform: translateX(-50%); overflow: visible; }
-  .ema .cord path { fill: none; stroke: #b33a28; stroke-width: 2.4; stroke-linecap: round; }
+  .ema .cord { position: absolute; left: 50%; top: -46px; width: 12px; height: 62px; transform: translateX(-50%); overflow: visible; }
+  .ema .cord path { fill: none; stroke: #b33a28; stroke-width: 2.4px; vector-effect: non-scaling-stroke; }
   .ema .cord circle { fill: #8e2a1c; }
   .ema b { position: relative; font: 400 var(--fs-28)/1.15 var(--sketch); letter-spacing: var(--sketch-ls); }
   .ema small { position: relative; font: 400 var(--fs-15)/1.2 var(--hand); color: rgba(43, 27, 14, .68); text-align: center; }
   .ema .mark { position: absolute; left: 50%; top: 58%; width: 92px; height: 92px; transform: translate(-50%, -50%) rotate(-12deg); color: rgba(43, 27, 14, .16); stroke: none; }
   .ema .mark path { stroke-width: 3.4; }
-  .ema:active { transform: rotate(-1.6deg) translateY(2px); }
+  .ema:active { scale: 0.97; }
   .ema.locked::before { filter: saturate(.55) brightness(.72); }
   .ema.locked { color: #4a3826; }
   @keyframes hang { 0% { opacity: 0; transform: translateY(-26px) rotate(-5deg); } 45% { opacity: 1; transform: translateY(3px) rotate(3deg); }
     70% { transform: rotate(-1.4deg); } 100% { transform: none; } }
+  @keyframes sway { from { transform: rotate(-1.3deg); } to { transform: rotate(1.3deg); } }
   .menurow { width: min(calc(100% - 40px), 380px); margin: 16px auto 0; display: flex; align-items: center; justify-content: space-between; gap: 12px;
     text-shadow: var(--halo); }
   .menurow .toggle { font-size: var(--fs-20); }
@@ -488,10 +496,12 @@
   <h1 id="roomTitle" class="roomtitle" hidden>Zen Grain</h1>
   <p id="enterHint" class="note chalk off">Tap to begin</p>
   <nav id="mainMenu" class="mainmenu" hidden aria-label="Menu">
-    <div class="rod" aria-hidden="true"></div>
+    <div class="hang">
+    <svg class="rope" viewBox="0 0 100 60" preserveAspectRatio="none" aria-hidden="true"><path class="r0" d="M-4 4Q50 92 104 4"/><path class="r1" d="M-4 4Q50 92 104 4"/><path class="r2" d="M-4 4Q50 92 104 4"/><path class="r3" d="M-4 4Q50 92 104 4"/></svg>
     <div class="plaques">
-      <button id="menuLevels" class="ema"><svg class="cord" viewBox="0 0 80 44" aria-hidden="true"><path d="M40 40L14 2M40 40L66 2"/><circle cx="40" cy="40" r="3.2"/></svg><b>Levels</b><small id="menuNext"></small></button>
-      <button id="menuZen" class="ema zen"><svg class="cord" viewBox="0 0 80 44" aria-hidden="true"><path d="M40 40L14 2M40 40L66 2"/><circle cx="40" cy="40" r="3.2"/></svg><svg class="mark" viewBox="0 0 24 24" aria-hidden="true"><path d="M15.6 4.1C10.4 2.4 4.4 5.6 3.7 11.4c-.7 5.6 3.8 9.5 8.8 9.2 5-.3 8.6-4.6 7.8-9.6-.3-1.9-1.2-3.4-2.4-4.6" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/></svg><b>Zen mode</b><small id="menuZenNote"></small></button>
+      <button id="menuLevels" class="ema"><svg class="cord" viewBox="0 0 12 62" preserveAspectRatio="none" aria-hidden="true"><path d="M6 0V62"/><circle cx="6" cy="3" r="3.4"/></svg><b>Levels</b><small id="menuNext"></small></button>
+      <button id="menuZen" class="ema zen"><svg class="cord" viewBox="0 0 12 62" preserveAspectRatio="none" aria-hidden="true"><path d="M6 0V62"/><circle cx="6" cy="3" r="3.4"/></svg><svg class="mark" viewBox="0 0 24 24" aria-hidden="true"><path d="M15.6 4.1C10.4 2.4 4.4 5.6 3.7 11.4c-.7 5.6 3.8 9.5 8.8 9.2 5-.3 8.6-4.6 7.8-9.6-.3-1.9-1.2-3.4-2.4-4.6" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/></svg><b>Zen mode</b><small id="menuZenNote"></small></button>
+    </div>
     </div>
     <div class="menurow">
       <button id="menuQuiet" class="toggle" role="switch" aria-checked="false"><span>Quiet mode</span><i class="sw" aria-hidden="true"></i></button>
