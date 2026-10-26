@@ -3165,12 +3165,23 @@ const GrainSim = (() => {
     squeak() { if (this.ready()) { const t = this.ctx.currentTime; this.tone(t, 'sine', 2300, 2900, 0.07, 0.09, 0.05); this.tone(t + 0.11, 'sine', 2600, 3300, 0.05, 0.08, 0.05); } },
     nibble() { if (this.ready()) { const t = this.ctx.currentTime; this.noiseBurst(t, 'bandpass', 1400, 3, 0.18, 0.03); this.tone(t, 'sine', 700, 1100, 0.06, 0.06, 0.04); } },
     patter() { if (this.ready()) this.noiseBurst(this.ctx.currentTime, 'bandpass', 2600 + Math.random() * 1500, 5, 0.04, 0.012); },
-    // a full bowl rushing off the board: air going past, falling in pitch as it goes
+    // noise through a filter sliding from f0 to f1, swelling to its peak at rise of the way and gone by dur; the noise
+    // loops, so it can last longer than its buffer
+    air(t, type, f0, f1, peak, dur, q, rise) {
+      const c = this.ctx, src = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+      src.buffer = this.noise; src.loop = true; f.type = type; f.Q.value = q;
+      f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(f1, t + dur);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + dur * rise); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      src.connect(f).connect(g).connect(this.out); src.start(t, Math.random() * 0.4); src.stop(t + dur + 0.05);
+    },
+    // a full bowl rushing off the board: a big soft push of air, low and full, swelling and falling away as it goes,
+    // with the bowl's weight under it. The chopsticks' swish is short and bright; this is longer, lower and heavier.
     whoosh() {
       if (!this.ready()) return;
       const t = this.ctx.currentTime;
-      this.sweep(t + 0.04, 3400, 520, 0.26, 0.4, 0.8);
-      this.sweep(t + 0.06, 1200, 240, 0.12, 0.36, 1.6);
+      this.air(t, 'lowpass', 1600, 300, 0.75, 0.56, 0.9, 0.36);
+      this.air(t + 0.03, 'bandpass', 800, 260, 0.4, 0.5, 1.3, 0.42);
+      this.tone(t + 0.04, 'sine', 170, 72, 0.2, 0.34);
     },
     // and the empty one set down in its place: a small ceramic knock
     setDown() {
@@ -3225,7 +3236,13 @@ const GrainSim = (() => {
     swap() { if (this.ready()) this.noiseBurst(this.ctx.currentTime, 'bandpass', 2200, 4, 0.08, 0.02); },
     tick() { if (this.ready()) this.noiseBurst(this.ctx.currentTime, 'bandpass', 2400, 5, 0.05, 0.015); },
     saved() { if (this.ready()) this.tone(this.ctx.currentTime, 'sine', 1046.5, 1046.5, 0.04, 0.4); },
-    whoosh() { if (this.ready()) this.sweep(this.ctx.currentTime + 0.04, 1900, 420, 0.12, 0.42, 0.7); },
+    whoosh() {
+      if (!this.ready()) return;
+      const t = this.ctx.currentTime;
+      this.air(t, 'lowpass', 1200, 260, 0.45, 0.6, 0.8, 0.38);
+      this.air(t + 0.03, 'bandpass', 650, 240, 0.22, 0.52, 1.2, 0.42);
+      this.tone(t + 0.04, 'sine', 150, 66, 0.12, 0.34);
+    },
     setDown() { if (this.ready()) { const t = this.ctx.currentTime; this.noiseBurst(t, 'lowpass', 500, 1, 0.1, 0.05); this.tone(t, 'sine', 330, 300, 0.04, 0.1); } },
     stamp(i) {
       if (!this.ready()) return;
