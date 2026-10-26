@@ -24,6 +24,6 @@ if (!local) {
 }
 if (local) {
   const pub = new URL('../docs/zen-grain/', here);
-  for (const f of readdirSync(pub)) if (/\.(jpg|png|mp3|mp4|webm)$/.test(f)) copyFileSync(new URL(f, pub), new URL(f, here));
+  for (const f of readdirSync(pub)) if (/\.(jpg|png|webp|mp3|mp4|webm)$/.test(f)) copyFileSync(new URL(f, pub), new URL(f, here));
 }
 console.log('wrote', out.pathname, (page.length / 1024).toFixed(0) + ' kB');
