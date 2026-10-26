@@ -625,26 +625,45 @@ test('moving piles: a level can put the kinds in other corners, the same way eve
   assert.notEqual(spots(a), spots(plain), 'the first level with moving piles always moves them');
 });
 
-test('the jar: its grains are not on the board at first, pour in bursts once the clock runs, and the level waits for them', () => {
-  const L = level({ jar: { every: 3, burst: 4 }, piles: level().piles.concat([{ type: 'lentil', kind: 'scatter', x0: 0, x1: 1, y0: 0, y1: 1, count: 6, jar: true }, { type: 'rice', kind: 'scatter', x0: 0, x1: 1, y0: 0, y1: 1, count: 6, jar: true }]) });
+test('the jar: its grains are not on the board at first, pour a full row of one kind at a time, and come at once when the board is clear', () => {
+  const L = level({ jar: { every: 30 }, piles: level().piles.concat([{ type: 'lentil', kind: 'scatter', x0: 0, x1: 1, y0: 0, y1: 1, count: 13, jar: true }, { type: 'rice', kind: 'scatter', x0: 0, x1: 1, y0: 0, y1: 1, count: 9, jar: true }]) });
   assert.deepEqual(Array.from(GS.validateLevel(L)), []);
   const sim = GS.create({}, L, LAYOUT, 4);
-  assert.equal(sim.inJar(), 12);
-  assert.equal(sim.remaining('lentil'), 20, 'what is in the jar still counts as to sort');
+  assert.equal(sim.inJar(), 22);
+  assert.equal(sim.remaining('lentil'), 27, 'what is in the jar still counts as to sort');
   assert.equal(sim.available('lentil'), 14, 'but the sticks cannot get at it');
   run(sim, { down: false }, 4);
-  assert.equal(sim.inJar(), 12, 'nothing pours before the first touch');
+  assert.equal(sim.inJar(), 22, 'nothing pours before the first touch');
   run(sim, { down: true, x: 300, y: LAYOUT.H }, 0.2);                       // the first touch starts the clock
-  const ev = run(sim, { down: false }, 2.6);
-  assert.ok(ev.some((e) => e.type === 'jar'), 'a burst');
-  assert.equal(sim.inJar(), 8, 'of four');
-  const B = sim.bounds();
-  run(sim, { down: false }, 2);
-  for (const g of sim.grains) if (g.st === ST.REST || g.st === ST.SLIDE) assert.ok(g.x >= B.x0 && g.x <= B.x1 && g.y >= B.y0 && g.y <= B.y1, 'poured onto the board');
-  assert.ok(sim.par >= 2 + 2 * 3 + 10, 'the clock allows for the jar: ' + sim.par);
-  const bot = GS.makeBot(sim, 5);
-  for (let i = 0; i < 120 * 400 && !sim.done; i++) { sim.step(bot()); sim.drainEvents(); }
-  assert.ok(sim.done && sim.inJar() === 0, 'done only once the jar is empty');
+  let ev = run(sim, { down: false }, 3);
+  const first = ev.find((e) => e.type === 'jar');
+  assert.ok(first && first.n === sim.caps[first.grain], 'a scoop is a full row: ' + (first && first.n));
+  const landed = sim.grains.filter((g) => g.st === ST.SLIDE || g.st === ST.REST).filter((g) => g.type === first.grain).length;
+  assert.equal(landed, (first.grain === 'lentil' ? 14 : 12) + first.n, 'all of one kind');
+  // clear the board as a quick player would: the next scoop does not wait for the jar's own clock
+  for (const g of sim.grains) if (g.st === ST.REST || g.st === ST.SLIDE) g.st = ST.GONE;
+  const t0 = sim.clock;
+  ev = run(sim, { down: false }, 1.5);
+  assert.ok(ev.some((e) => e.type === 'jar' && e.early), 'poured as soon as the board was clear');
+  assert.ok(sim.clock - t0 < 2 && sim.jar.next > 20, 'long before its own clock');
+  assert.equal(sim.inJar(), 0);
+});
+
+test('jar levels: every kind on the board and in the jar comes in whole rows, so a perfect run can fill every row', () => {
+  let n = 0;
+  for (let i = 30; i < 60; i++) {
+    const L = GS.levelFor(i);
+    if (!L.jar) continue;
+    n++;
+    const sim = GS.create({}, L, LAYOUT, 1), board = {}, jar = {};
+    for (const p of L.piles) if (p.type !== 'stone') (p.jar ? jar : board)[p.type] = ((p.jar ? jar : board)[p.type] || 0) + p.count;
+    for (const t of L.types) {
+      assert.ok(board[t] >= sim.caps[t] && board[t] % sim.caps[t] === 0, `level ${i + 1}: ${board[t]} ${t} on the board, rows of ${sim.caps[t]}`);
+      assert.equal((jar[t] || 0) % sim.caps[t], 0, `level ${i + 1}: the jar holds whole rows of ${t}`);
+    }
+    for (const sc of sim.jar.scoops) { assert.equal(sc.length, sim.caps[sim.grains[sc[0]].type]); assert.ok(sc.every((id) => sim.grains[id].type === sim.grains[sc[0]].type)); }
+  }
+  assert.ok(n >= 15, n + ' jar levels checked');
 });
 
 test('a tilted tray: loose grains slide down it, the ones nobody catches fall off, and the level still ends', () => {
