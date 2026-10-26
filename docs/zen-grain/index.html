@@ -816,14 +816,51 @@ const GrainSim = (() => {
     const twists = i > 16 ? TWIST_ORDER_LONG : TWIST_ORDER;
     let twist = news ? (news.twist || null) : twists[(k - 1) % twists.length];
     if (tilt && twist === 'restless') twist = null;          // the tray already keeps everything moving
+    if (jar && twist === 'long') twist = null;              // whole rows of long sticks, scoop after scoop, are too many grains
+    // creep pressure (speed times how far out it reaches) climbs past level 26 of the old curve by about level 20
+    const tune = { zoneR: 155 - 35 * d, creepSpeed: 55 + 170 * d, channelLen: 330 + 50 * d, paceK: 1 - 0.35 * d };
+    tune.creepR = tune.zoneR * (0.68 + 0.28 * d);
+    if (twist === 'restless') tune.drift = 10 + 18 * d;
+    if (twist === 'short') { tune.zoneR *= 0.75; tune.creepR *= 0.75; }
+    if (twist === 'narrow') tune.fieldCone = 70 - 25 * d;
+    if (twist === 'long') tune.channelLen *= 1.4;
+    for (const key in tune) tune[key] = Math.round(tune[key] * (Math.abs(tune[key]) < 10 ? 100 : 10)) / (Math.abs(tune[key]) < 10 ? 100 : 10);
+    const capOf = (t) => capacity(t, Object.assign({}, DEFAULTS, tune));
     const total = Math.round(46 + 28 * d), pileSeed = 90001 + i * 7919 + 1;
-    const jarN = jar ? Math.round(total * (tilt ? 0.55 : 0.32 + 0.14 * d)) : 0;
+    // The jar pours one kind at a time, a full row's worth per scoop, so every row it brings can be a full one; the
+    // kinds take turns, starting with a different one each level.
+    const scoops = [];
+    if (jar) {
+      const share = total * (tilt ? 0.55 : 0.32 + 0.14 * d), mean = types.reduce((a, t) => a + capOf(t), 0) / types.length;
+      // never so many scoops that the jar holds more than the share it was meant to: one fewer if so
+      let n = Math.max(1, Math.round(share / mean));
+      if (n > 1 && n * mean > share * 1.25) n--;
+      const first = Math.floor(tr() * types.length);
+      for (let k = 0; k < n; k++) scoops.push(types[(first + k) % types.length]);
+    }
+    const jarN = scoops.reduce((a, t) => a + capOf(t), 0);
     // with part of the grains still in the jar the board starts thinner, so it can only be that much less mixed
     const want = mixTarget(d) * Math.min(1, (total - jarN) / total + 0.2);
     // sesame comes by the handful: nearly twice as many, and its rows are long
     const handful = tilt ? 1.3 : 1.8;
     const more = (ps) => ps.map((p) => (p.type === 'sesame' ? Object.assign({}, p, { count: Math.round(p.count * handful) }) : p));
-    const build = (a, m) => more((tilt ? squashed : (x) => x)(buildPiles(a, types, total - jarN, m, mulberry32(pileSeed))));
+    // with a jar, every kind starts on the board in whole rows too, at least one, so no row has to be a short one
+    const wholeRows = (ps) => {
+      if (!jar) return ps;
+      const out = ps.map((p) => Object.assign({}, p));
+      for (const t of types) {
+        const mine = out.filter((p) => p.type === t).sort((a, b) => b.count - a.count), cap = capOf(t);
+        if (!mine.length) continue;
+        const have = mine.reduce((a, p) => a + p.count, 0);
+        let diff = Math.max(1, Math.round(have / cap)) * cap - have;
+        for (let k = 0; diff !== 0 && k < 600; k++) {
+          const q = mine[k % mine.length];
+          if (diff > 0) { q.count++; diff--; } else if (q.count > 1) { q.count--; diff++; }
+        }
+      }
+      return out;
+    };
+    const build = (a, m) => wholeRows(more((tilt ? squashed : (x) => x)(buildPiles(a, types, Math.max(types.length * 8, total - jarN), m, mulberry32(pileSeed)))));
     // a layout that cannot be made as mixed as this level asks for (too mixed even at its calmest, or not mixed
     // enough even at its wildest) hands over to the next one
     const mixAt = (a, m) => mixOf(build(a, m), 1000 + i * 31);
@@ -850,21 +887,10 @@ const GrainSim = (() => {
       }
     }
     const piles = build(arch, bestMix);
-    // creep pressure (speed times how far out it reaches) climbs past level 26 of the old curve by about level 20
-    const tune = { zoneR: 155 - 35 * d, creepSpeed: 55 + 170 * d, channelLen: 330 + 50 * d, paceK: 1 - 0.35 * d };
-    tune.creepR = tune.zoneR * (0.68 + 0.28 * d);
-    if (twist === 'restless') tune.drift = 10 + 18 * d;
-    if (twist === 'short') { tune.zoneR *= 0.75; tune.creepR *= 0.75; }
-    if (twist === 'narrow') tune.fieldCone = 70 - 25 * d;
-    if (twist === 'long') tune.channelLen *= 1.4;
-    for (const key in tune) tune[key] = Math.round(tune[key] * (Math.abs(tune[key]) < 10 ? 100 : 10)) / (Math.abs(tune[key]) < 10 ? 100 : 10);
-    // the jar's grains, split between the kinds; it pours a few at a time, a little quicker as the climb goes on
-    if (jarN) {
-      const per = Math.floor(jarN / types.length);
-      types.forEach((t, j) => {
-        const n = Math.round((j === 0 ? jarN - per * (types.length - 1) : per) * (t === 'sesame' ? handful : 1));
-        if (n > 0) piles.push({ type: t, kind: 'scatter', x0: 0, x1: 1, y0: 0, y1: 1, count: n, jar: true });
-      });
+    // the jar's grains: its scoops, each a full row of one kind
+    for (const t of types) {
+      const n = scoops.filter((x) => x === t).length * capOf(t);
+      if (n > 0) piles.push({ type: t, kind: 'scatter', x0: 0, x1: 1, y0: 0, y1: 1, count: n, jar: true });
     }
     // stones last, so they move no other grain; a couple to meet them, more as the board goes on
     if (hasStones(i)) {
@@ -880,7 +906,7 @@ const GrainSim = (() => {
     if (shuffle) L.shuffle = shuffle;
     if (any) L.order = 'any';
     if (tilt) L.tilt = Math.round(10 + 8 * d);
-    if (jarN) L.jar = { every: Math.round((tilt ? 5 : 6.5 - 2.5 * d) * 10) / 10, burst: Math.round((tilt ? 6 : 5) + 3 * d), side: tr() < 0.5 ? 'left' : 'right', reach: tilt ? 0.6 : 1 };
+    if (jarN) L.jar = { every: Math.round((tilt ? 7 : 9 - 3 * d) * 10) / 10, order: scoops, side: tr() < 0.5 ? 'left' : 'right', reach: tilt ? 0.6 : 1 };
     genCache.set(i, L);
     return L;
   }
@@ -966,7 +992,7 @@ const GrainSim = (() => {
       counts[p.type] = (counts[p.type] || 0) + (p.count || 0);
     }
     for (const t of L.types || []) if (!counts[t]) errs.push(L.id + ': no grains of ' + t);
-    if (L.jar && !(L.jar.every > 0 && L.jar.burst >= 1 && (L.piles || []).some((p) => p.jar))) errs.push(L.id + ': a jar needs a pace, a burst and grains in it');
+    if (L.jar && !(L.jar.every > 0 && (L.piles || []).some((p) => p.jar))) errs.push(L.id + ': a jar needs a pace and grains in it');
     if ((L.piles || []).some((p) => p.jar) && !L.jar) errs.push(L.id + ': grains in a jar that never pours');
     if (L.tilt != null && !(L.tilt > 0 && L.tilt < 80)) errs.push(L.id + ': bad tilt');
     return errs;
@@ -1147,13 +1173,16 @@ const GrainSim = (() => {
     sim.par = parTime(level, sim.total, sim.caps, cfg);
     sim.stats0 = null;
     if (level.jar) {
-      // the jar pours its grains in bursts in a fixed shuffled order, from the clock's start; the clock allows for it
-      const jr = mulberry32(((level.seed * 13 + 9) >>> 0) || 1), ids = sim.grains.filter((g) => g.st === ST.JAR).map((g) => g.id);
-      for (let i = ids.length - 1; i > 0; i--) { const j = Math.floor(jr() * (i + 1)); const t = ids[i]; ids[i] = ids[j]; ids[j] = t; }
-      const J = level.jar, left = J.side !== 'right';
-      sim.jar = { ids, every: J.every, burst: J.burst, next: J.first == null ? 2 : J.first, pending: 0, gap: 0, left, x: left ? 62 : W - 62, y: sim.top + 34, tip: 0, reach: J.reach || 1 };
-      const bursts = Math.ceil(ids.length / J.burst), end = sim.jar.next + (bursts - 1) * J.every;
-      sim.par = Math.max(sim.par, Math.round(end + 10 + J.burst * 1.6));
+      // The jar pours a scoop at a time: one kind, a full row's worth, as one heap. The next comes on the jar's own
+      // clock, or as soon as there is nothing left on the board to gather, so a quick player never waits for it and a
+      // slow one gets buried. Scoops go in the level's order, else kind by kind; the clock allows for the pouring.
+      const J = level.jar, left = J.side !== 'right', byType = {};
+      for (const g of sim.grains) if (g.st === ST.JAR) (byType[g.type] = byType[g.type] || []).push(g.id);
+      const scoops = [], take = (t) => { const ids = byType[t]; if (ids && ids.length) scoops.push(ids.splice(0, sim.caps[t])); };
+      for (const t of J.order || []) take(t);
+      for (let more = true; more;) { more = false; for (const t of level.types) if (byType[t] && byType[t].length) { take(t); more = true; } }
+      sim.jar = { scoops, pour: [], every: J.every, next: J.first == null ? 2 : J.first, gap: 0, idle: 0, aim: 0, left, x: left ? 62 : W - 62, y: sim.top + 34, tip: 0, reach: J.reach || 1 };
+      sim.par += Math.round(scoops.length * 1.5);
     }
     sim.ideal = idealScore(level.types, sim.total, sim.caps, sim.par);
     // how quick the row being gathered is so far: below 0.75 a full row counts as Lightning, above 2 as Slow
@@ -1179,7 +1208,7 @@ const GrainSim = (() => {
       for (const g of sim.grains) if (g.type === type && g.st !== ST.GONE && g.st !== ST.POUR && g.st !== ST.LOST && g.st !== ST.JAR) n++;
       return n;
     };
-    sim.inJar = () => (sim.jar ? sim.jar.ids.length : 0);
+    sim.inJar = () => (sim.jar ? sim.jar.scoops.reduce((a, sc) => a + sc.length, 0) + sim.jar.pour.length : 0);
     sim.timeLeft = () => sim.par - sim.clock;
     sim.slotPos = (type, k) => slotPos(sim.stores[type], k);
     sim.setLayout = function (l) {
@@ -1677,26 +1706,34 @@ const GrainSim = (() => {
       }
     }
 
-    // the jar: from the first touch, a burst every few seconds, one grain at a time, out across the board
+    // the jar: from the first touch, a scoop at a time, one grain after another, landing as one heap
     function pourJar(dt) {
       const J = sim.jar;
       if (!J) return;
       J.tip = Math.max(0, J.tip - dt * 1.6);
       if (!sim.started || sim.done) return;
-      if (!J.pending && J.ids.length && sim.clock >= J.next) {
-        J.pending = Math.min(J.burst, J.ids.length); J.next += J.every;
-        emit('jar', { n: J.pending, left: J.ids.length - J.pending });
+      if (!J.pour.length && J.scoops.length) {
+        // nothing to gather on the board and nothing in the sticks: the next scoop comes after a breath
+        let clear = !S.row.length && !S.trail.length;
+        if (clear) for (const g of sim.grains) if ((g.st === ST.REST || g.st === ST.SLIDE || g.st === ST.WALK) && !TYPES[g.type].stone) { clear = false; break; }
+        J.idle = clear ? J.idle + dt : 0;
+        if (sim.clock >= J.next || J.idle >= 0.5) {
+          J.pour = J.scoops.shift(); J.next = sim.clock + J.every; J.idle = 0; J.aim = (rng() - 0.5) * 0.5; J.early = clear;
+          emit('jar', { n: J.pour.length, grain: sim.grains[J.pour[0]].type, left: sim.inJar() - J.pour.length, early: clear });
+        }
       }
-      if (!J.pending) return;
+      if (!J.pour.length) return;
       J.tip = 1; J.gap -= dt;
       if (J.gap > 0) return;
-      J.gap = 0.075; J.pending--;
-      const g = sim.grains[J.ids.shift()], T = TYPES[g.type], B = bounds(), dir = J.left ? 1 : -1;
-      const a = (0.25 + rng() * 1.0), dist = (90 + rng() * 300) * J.reach, v = dist * cfg.friction * (T.slide || 1);
+      J.gap = 0.06;
+      const g = sim.grains[J.pour.shift()], T = TYPES[g.type], B = bounds(), dir = J.left ? 1 : -1;
+      const a = 0.6 + J.aim + (rng() - 0.5) * 0.45, dist = (150 + rng() * 130) * J.reach, v = dist * cfg.friction * (T.slide || 1);
       g.x = clamp(J.x + dir * 40, B.x0, B.x1); g.y = clamp(J.y + 14 + rng() * 10, B.y0, B.y1);
       g.vx = Math.cos(a) * v * dir; g.vy = Math.sin(a) * v; g.w = (rng() - 0.5) * 20;
       g.st = ST.SLIDE; g.px = NaN;
       emit('jar_grain', { id: g.id, grain: g.type });
+      // waiting on a scoop with the board cleared is the jar's time, not yours: the next row's pace starts now
+      if (!J.pour.length && J.early && !S.row.length) sim.lastPull = sim.clock;
     }
 
     // input: { down, x, y } with x, y the finger in board units
@@ -4049,7 +4086,7 @@ const GrainSim = (() => {
     ctx.strokeStyle = 'rgba(255,235,200,0.28)'; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
     ctx.beginPath(); ctx.ellipse(-4, -2, 26, 18, 0, Math.PI * 1.1, Math.PI * 1.45); ctx.stroke();
     ctx.lineCap = 'butt';
-    const n = J.ids.length;
+    const n = s.inJar();
     if (!n) return;
     ctx.setTransform(k, 0, 0, k, view.dpr * (view.offX + ox + J.x * view.scale), view.dpr * (oy + J.y * view.scale));
     ctx.font = '26px ' + HAND; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';

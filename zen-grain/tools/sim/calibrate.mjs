@@ -1,10 +1,14 @@
 // Plays levels with the bot and prints how each went: cleared, stars, time against the clock, breaks, wrong piles,
-// grains that fell off. node zen-grain/tools/sim/calibrate.mjs 10 60 [seeds]
+// grains that fell off. node zen-grain/tools/sim/calibrate.mjs 10 60 [seeds] [--clean]
+// --clean: wrong grains never creep in, so no row breaks; stands in for a player who never lets one in, to see
+// whether the stars a level asks for can be reached at all.
 import { GS, LAYOUT } from './load.mjs';
-const [from = 10, to = 60, seeds = 2] = process.argv.slice(2).map(Number);
+const args = process.argv.slice(2), clean = args.includes('--clean');
+const [from = 10, to = 60, seeds = 2] = args.filter((a) => !a.startsWith('--')).map(Number);
 const ST = GS.ST;
 for (let i = from; i < to; i++) {
-  const L = GS.levelFor(i), out = [];
+  const L0 = GS.levelFor(i), out = [];
+  const L = clean ? Object.assign({}, L0, { tune: Object.assign({}, L0.tune, { creepSpeed: 0 }) }) : L0;
   for (let seed = 1; seed <= seeds; seed++) {
     const sim = GS.create({}, L, LAYOUT, seed), bot = GS.makeBot(sim, seed * 13 + 1);
     const max = 900 * sim.cfg.stepHz;
