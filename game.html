@@ -373,6 +373,7 @@
       <button id="restartBtn" class="ghost"><svg viewBox="0 0 22 22" aria-hidden="true"><path d="M18.6 13.4a7.8 7.8 0 1 1-1.9-8L20 8.6"/><path d="M20.3 3.6v5.2h-5.1"/></svg>Restart level</button>
       <div class="vol"><label for="sfxVol">Game sounds</label><input type="range" id="sfxVol" min="0" max="100" step="5"></div>
       <div class="vol"><label for="ambVol">Ambience</label><input type="range" id="ambVol" min="0" max="100" step="5"></div>
+      <button id="styleBtn" class="ghost"></button>
       <div class="pair">
         <button id="langBtn" class="ghost"><svg viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="8.2"/><path d="M2.8 11h16.4M11 2.8c-2.6 2.6-2.6 13.8 0 16.4M11 2.8c2.6 2.6 2.6 13.8 0 16.4"/></svg><span>English</span></button>
         <button id="tuneBtn" class="ghost">Tune feel</button>
@@ -445,6 +446,7 @@ const GrainSim = (() => {
     catchUp: 1.7,        // followers move faster to close gaps in the file
     creepSpeed: 55,      // how fast a wrong grain creeps toward the tips (units/s)
     loseDist: 2.4,       // a walking grain stops when the tips are this many reaches away
+    rearmTime: 0.55,     // after a row closes by itself, a finger still down brings the sticks back this soon (s)
     channelLen: 330,     // how much row fits between the sticks
     enterTime: 0.16,
     enterDist: 900,
@@ -1158,7 +1160,7 @@ const GrainSim = (() => {
     const rng = mulberry32((seed >>> 0) || 1);
     const sim = {
       cfg, level, W, H: layout.H, top: layout.top, bottom: layout.bottom,
-      t: 0, steps: 0, events: [], done: false, waitLift: false, result: null,
+      t: 0, steps: 0, events: [], done: false, waitLift: false, rearm: 0, result: null,
       score: 0, mult: 1, combo: 0, bestCombo: 0, bestMult: 1, lastPull: 0, clock: 0, started: false,
     };
     // loose grains stay out of a bottom strip deep enough that the tips can always come at them from below,
@@ -1171,6 +1173,8 @@ const GrainSim = (() => {
     // what this level does differently: carry rows yourself, piles that change places, a jar pouring more in, a tilted
     // tray grains slide off, the sticks asking for any kind next
     sim.manual = !!level.manual; sim.tilt = level.tilt || 0; sim.order = level.order || 'turns';
+    // the hand-made first board teaches: a broken row costs the row and the multiplier there, never points
+    sim.gentle = !level.generated;
     const orderRng = mulberry32(((level.seed * 7 + 3) >>> 0) || 1);
     let spots = null;
     if (level.shuffle) {
@@ -1201,11 +1205,11 @@ const GrainSim = (() => {
     // how quick the row being gathered is so far: below 0.75 a full row counts as Lightning, above 2 as Slow
     sim.paceRatio = () => (sim.clock - sim.lastPull) / paceFor(Math.max(1, S.need || sim.caps[sim.target]), cfg);
     sim.target = level.types.find((t) => sim.total[t] > 0);
-    sim.stats = { rows: 0, fullRows: 0, breaks: 0, penalty: 0, rowPts: 0, comboPts: 0, taken: {}, spills: 0, lost: 0 };
+    sim.stats = { rows: 0, fullRows: 0, breaks: 0, penalty: 0, rowPts: 0, comboPts: 0, taken: {}, spills: 0, lost: 0, short: 0, slow: 0, saved: 0, stoneBreaks: 0 };
     const S = sim.sticks = {
       phase: 'away', pt: 0, tx: W / 2, ty: sim.H * 0.6, vx: 0, vy: 0, carry: cfg.enterDist, carryTo: 1600,
       gap: 3, row: [], trail: [], callT: 0, kind: 'short', rowType: sim.target, need: 0, cap: 0, lifted: false, drop: null, dest: null,
-      cx0: 0, cy0: 0, cdx: 0, cdy: 0, pushN: 0, pushT: 0, clackV: 0, clackT: 0,
+      cx0: 0, cy0: 0, cdx: 0, cdy: 0, pushN: 0, pushT: 0, clackV: 0, clackT: 0, danger: 0,
     };
 
     function emit(type, data) { sim.events.push(Object.assign({ type, t: sim.t }, data || {})); }
@@ -1300,18 +1304,25 @@ const GrainSim = (() => {
     function beginEnter(ax, ay) {
       S.phase = 'enter'; S.pt = 0; S.tx = ax; S.ty = ay; S.vx = 0; S.vy = 0; S.carry = cfg.enterDist;
       if (sim.available(sim.target) === 0) switchTarget();
-      S.gap = 3; S.row = []; S.trail = []; S.callT = 0; S.kind = 'short'; S.rowType = sim.target; S.dest = null; S.drop = null;
+      S.gap = 3; S.row = []; S.trail = []; S.callT = 0; S.kind = 'short'; S.rowType = sim.target; S.dest = null; S.drop = null; S.danger = 0;
       S.cap = sim.caps[sim.target];
       S.need = Math.min(S.cap, sim.available(sim.target));
       if (!sim.started) { sim.started = true; emit('clock_start', { par: sim.par }); }
       emit('sticks_in', { grain: sim.target });
     }
     // lifted: the finger let go to close it. Carrying it yourself, a row closed that way waits where it is.
+    // A row that closed by itself while the finger stays down: the sticks come back for the next one after a breath.
+    // Let go early with a wrong grain close to the tips and the row was saved in time.
     function startClose(lifted) {
       const n = S.row.length;
       S.kind = n >= S.cap ? 'full' : n >= S.need ? 'clear' : 'short';
-      S.phase = 'close'; S.pt = 0; dropTrail(); sim.waitLift = !sim.manual; S.lifted = !!lifted;
-      emit('close', { n, kind: S.kind, full: S.kind !== 'short', grain: S.rowType });
+      S.phase = 'close'; S.pt = 0; dropTrail(); S.lifted = !!lifted;
+      if (!sim.manual) sim.rearm = cfg.rearmTime;
+      const saved = !!lifted && n > 0 && S.kind === 'short' && S.danger > 0.5;
+      if (saved) sim.stats.saved++;
+      // the last grains of the level going in: nothing left on the board, in the jar or still walking
+      const last = n > 0 && sim.remaining() === n && !sim.inJar();
+      emit('close', { n, kind: S.kind, full: S.kind !== 'short', grain: S.rowType, saved, last });
     }
     function startRetract() {
       dropTrail(); S.phase = 'retract'; S.pt = 0; computeCarryTo();
@@ -1362,7 +1373,9 @@ const GrainSim = (() => {
         const ms = MILESTONES[sim.combo];
         if (ms) { milestone = ms.name; bonus = ms.bonus; points += bonus; }
         sim.stats.fullRows++;
+        if (kind === 'full' && (speed === 'Slow' || speed === 'Steady')) sim.stats.slow++;
       } else {
+        sim.stats.short++;
         points = rowPoints(n, kind, sim.mult);
         sim.combo = 0;
         sim.mult = Math.max(1, sim.mult * SCORE.shortDecay);
@@ -1412,7 +1425,7 @@ const GrainSim = (() => {
       st.n = 0; st.ids = [];
       sim.stats.taken[st.type] = (sim.stats.taken[st.type] || 0) - back;
       const comboLost = sim.combo, multLost = sim.mult;
-      const penalty = Math.min(sim.score, Math.round((SCORE.breakPenalty + SCORE.spillPerGrain * back) * sim.mult));
+      const penalty = sim.gentle ? 0 : Math.min(sim.score, Math.round((SCORE.breakPenalty + SCORE.spillPerGrain * back) * sim.mult));
       sim.combo = 0; sim.mult = 1; sim.score -= penalty; sim.lastPull = sim.clock;
       sim.stats.rows++; sim.stats.breaks++; sim.stats.spills++; sim.stats.penalty += penalty;
       S.phase = 'snap'; S.pt = 0; sim.waitLift = true;
@@ -1430,7 +1443,8 @@ const GrainSim = (() => {
         g.st = ST.SLIDE; g.vx = Math.cos(ang) * v; g.vy = Math.sin(ang) * v; g.w = (rng() - 0.5) * 18; g.warn = 0;
       }
       const inRow = S.row.length, comboLost = sim.combo, multLost = sim.mult;
-      const penalty = Math.min(sim.score, Math.round(SCORE.breakPenalty * sim.mult));
+      const penalty = sim.gentle ? 0 : Math.min(sim.score, Math.round(SCORE.breakPenalty * sim.mult));
+      if (TYPES[bad.type].stone) sim.stats.stoneBreaks++;
       S.row = []; S.trail = [];
       sim.combo = 0; sim.mult = 1; sim.score -= penalty; sim.lastPull = sim.clock;
       sim.stats.rows++; sim.stats.breaks++; sim.stats.penalty += penalty;
@@ -1469,6 +1483,8 @@ const GrainSim = (() => {
     function gather(dt) {
       const G = sim.geom(), mx = G.mx, my = G.my, R = cfg.zoneR;
       const type = S.rowType;
+      // how close the nearest wrong grain has come lately, so letting go just before it gets in counts as saved
+      S.danger *= Math.exp(-5 * dt);
       // 1) grains of another kind in the creep field drift toward the tips; one reaching them breaks the row
       for (const g of sim.grains) {
         if (g.st !== ST.REST || g.type === type) continue;
@@ -1476,6 +1492,7 @@ const GrainSim = (() => {
         if (!inField(g.x, g.y, G, CR)) continue;
         const dx = mx - g.x, dy = my - g.y, d = Math.hypot(dx, dy) || 1e-6, close = clamp(1 - d / span, 0, 1);
         g.warn = Math.max(0.15, close); g.cw = true;
+        if (close > S.danger) S.danger = close;
         if (d < T.ry * 0.5 + 9) { breakRow(g, G); return; }
         // on a tilted tray wrong grains creep slower: the tray already brings them down toward you
         const base = cfg.creepSpeed * (sim.tilt ? 0.7 : 1);
@@ -1756,13 +1773,13 @@ const GrainSim = (() => {
       const dt = 1 / cfg.stepHz;
       sim.t += dt; sim.steps++;
       const down = !!(input && input.down) && !sim.done;
-      if (!down) sim.waitLift = false;
+      if (!down) { sim.waitLift = false; sim.rearm = 0; } else if (sim.rearm > 0) sim.rearm -= dt;
       const ix = input && Number.isFinite(input.x) ? input.x : W / 2;
       const iy = input && Number.isFinite(input.y) ? input.y : sim.H * 0.7;
       const ax = clamp(ix, 24, W - 24), ay = clamp(iy - cfg.fingerOffset, sim.top - 40, sim.H - 90);
       switch (S.phase) {
         case 'away':
-          if (down && !sim.waitLift) beginEnter(ax, ay);
+          if (down && !sim.waitLift && sim.rearm <= 0) beginEnter(ax, ay);
           break;
         case 'enter': {
           follow(ax, ay, dt); S.pt += dt;
@@ -1821,7 +1838,7 @@ const GrainSim = (() => {
           break;
         case 'retract':
           S.carry += cfg.retractSpeed * dt;
-          if (down && !sim.waitLift) beginEnter(ax, ay);
+          if (down && !sim.waitLift && sim.rearm <= 0) beginEnter(ax, ay);
           else if (S.carry >= S.carryTo) S.phase = 'away';
           break;
         case 'snap':
@@ -1994,7 +2011,9 @@ const GrainSim = (() => {
   const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
   // ---------- language: English, or Polish on a phone set to Polish; switched in the pause menu ----------
   // Every text keeps its English wording as its key; tr() swaps in the Polish one and fills {names}.
-  const PL = { "Tap to sit at the table": "Dotknij, by usiąść przy stole", "Sit down at the table": "Usiądź przy stole", "Back to the room": "Wróć do pokoju", "Boards": "Plansze", "Change chopsticks": "Zmień pałeczki", "Game board": "Plansza gry", "Pause": "Pauza", "Start the level again": "Zacznij poziom od nowa", "Back to the boards": "Wróć do plansz", "Chopsticks": "Pałeczki", "Each pair is earned by playing well.": "Każdą parę zdobywasz dobrą grą.", "Back": "Wstecz", "Paused": "Pauza", "Resume": "Wznów", "Restart level": "Zacznij od nowa", "Tune feel": "Dostrój", "Score": "Wynik", "Next level": "Następny poziom", "Retry": "Powtórz", "Choose a level": "Wybierz poziom", "On to {board}": "Dalej: {board}", "Changes apply right away and stay on this device. Row length applies from the next level. A level with its own rule keeps it.": "Zmiany działają od razu i zostają na tym urządzeniu. Długość rzędu zmienia się od następnego poziomu. Poziom z własną zasadą ją zachowuje.", "Show how far the sticks reach": "Pokaż zasięg pałeczek", "Vibrate": "Wibracje", "Solid grains": "Twarde ziarna", "Reset": "Przywróć", "Copy values": "Kopiuj wartości", "Done": "Gotowe", "Game sounds": "Dźwięki gry", "Ambience": "Otoczenie", "Slate": "Łupek", "Walnut": "Orzech", "Bamboo": "Bambus", "Clay": "Glina", "Lacquer": "Laka", "Cast iron": "Żeliwo", "Walnut is open": "Orzech otwarty", "Bamboo is open": "Bambus otwarty", "Clay is open": "Glina otwarta", "Lacquer is open": "Laka otwarta", "Cast iron is open": "Żeliwo otwarte", "Tenmoku": "Tenmoku", "Damascus steel": "Stal damasceńska", "Black marble": "Czarny marmur", "Charred cedar": "Opalany cedr", "Obsidian": "Obsydian", "{board} is open": "Otwarte: {board}", "Tenmoku is open": "Tenmoku otwarte", "Damascus steel is open": "Stal damasceńska otwarta", "Black marble is open": "Czarny marmur otwarty", "Charred cedar is open": "Opalany cedr otwarty", "Obsidian is open": "Obsydian otwarty", "Paper": "Papier", "Paper is open": "Papier otwarty", "Old paper": "Stary papier", "Everything you have met so far comes back here, two at a time.": "Wszystko, co już znasz, wraca tu po dwa naraz.", "Lentils": "Soczewica", "Rice": "Ryż", "Mung beans": "Fasola mung", "Chickpeas": "Ciecierzyca", "Sesame": "Sezam", "Kidney beans": "Fasola czerwona", "Stones": "Kamyki", "First row": "Pierwszy rząd", "Two heaps": "Dwie kupki", "Touching": "Stykają się", "Strays": "Zabłąkane", "The slate": "Łupek", "Short reach": "Krótki zasięg", "Mixed heap": "Pomieszana kupka", "Restless": "Niespokojne", "Pantry spill": "Rozsypana spiżarnia", "Heaps": "Kupki", "Spill": "Rozsypka", "Edges": "Brzegi", "Stripes": "Pasy", "Clusters": "Skupiska", "Pushy rice": "Natrętny ryż", "Rice creeps in from further away. Sweep the heap apart, then gather.": "Ryż wkrada się z daleka. Rozgarnij kupkę, potem zbieraj.", "Short reach, restless": "Krótki zasięg, niespokojne", "Close reach and wandering grains, all three kinds.": "Bliski zasięg i wędrujące ziarna, wszystkie trzy rodzaje.", "Restless grains": "Niespokojne ziarna", "They wander and mix again. Sort them before they spread.": "Wędrują i znów się mieszają. Posortuj je, zanim się rozejdą.", "The sticks pull from close by. Drive the tips through the grains.": "Pałeczki ciągną z bliska. Prowadź końcówki przez ziarna.", "Narrow reach": "Wąski zasięg", "The sticks only pull from straight ahead. Come at grains from below.": "Pałeczki ciągną tylko na wprost. Podchodź do ziaren od dołu.", "Long sticks": "Długie pałeczki", "They hold a longer row: more points, and more to lose.": "Mieszczą dłuższy rząd: więcej punktów i więcej do stracenia.", "They can’t be picked, and they go for the tips. Push them aside.": "Nie da się ich zebrać, a pchają się do końcówek. Odsuwaj je.", "Carry it yourself": "Nieś sam", "Take each row to its pile and let go. The wrong pile spills back onto the board.": "Zanieś każdy rząd na jego kupkę i puść. Zła kupka rozsypie się z powrotem na planszę.", "The jar": "Słoik", "It pours more grains in as you go. Keep up with it.": "Dosypuje ziaren w trakcie gry. Nadążaj za nim.", "The tray tilts": "Taca się przechyla", "Grains slide down it. Catch them before they fall off the edge.": "Ziarna zsuwają się w dół. Złap je, zanim spadną z krawędzi.", "Round and heavy. A quick sweep sends them rolling.": "Okrągła i ciężka. Po szybkim machnięciu toczy się daleko.", "Piles move": "Kupki się przesuwają", "The piles change places from level to level. Look before you let go.": "Kupki zmieniają miejsca z poziomu na poziom. Spójrz, zanim puścisz.", "Tiny and light. Long rows, and a sweep scatters it.": "Malutki i lekki. Długie rzędy, a machnięcie go rozsypuje.", "Any order": "Dowolna kolejność", "The sticks can ask for any kind next. Watch the top of the board.": "Pałeczki mogą poprosić o dowolny rodzaj. Patrz na górę planszy.", "Long and heavy. Push one and it swings round.": "Długa i ciężka. Pchnięta obraca się.", "Touch and hold. The lentils walk into the sticks.": "Dotknij i przytrzymaj. Soczewica sama wchodzi między pałeczki.", "Fill the row to grow your multiplier.": "Wypełnij rząd, a mnożnik urośnie.", "After every row the sticks switch to the other kind.": "Po każdym rzędzie pałeczki przechodzą na drugi rodzaj.", "Rice next to the tips creeps in. Push it aside with the side of the sticks.": "Ryż przy końcówkach wkrada się do środka. Odsuń go bokiem pałeczek.", "The line under the multiplier wears away. Fill the row before it is gone.": "Kreska pod mnożnikiem się ściera. Wypełnij rząd, zanim zniknie.", "A short row keeps the multiplier but shrinks it.": "Krótki rząd zachowuje mnożnik, ale go zmniejsza.", "A third kind, with its own pile in the middle.": "Trzeci rodzaj, z własną kupką na środku.", "{n} left": "{n}", "Lightning": "Błyskawica", "Quick": "Szybko", "Steady": "Równo", "Slow": "Wolno", "Short row {m}": "Krótki rząd {m}", "{kind} cleared {m}": "Koniec: {kind} {m}", "Steady hands": "Pewne ręce", "Grain master": "Mistrz ziaren", "Zen hands": "Ręce zen", "+{b} for {n} full rows in a row": "+{b} za {n} pełnych rzędów z rzędu", "New chopsticks": "Nowe pałeczki", "Multiplier {m}, {n} full rows in a row": "Mnożnik {m}, pełne rzędy z rzędu: {n}", "A lentil got in": "Wpadła soczewica", "Rice got in": "Wpadł ryż", "A mung bean got in": "Wpadła fasola mung", "A stone got in": "Wpadł kamyk", "A chickpea got in": "Wpadła ciecierzyca", "Sesame got in": "Wpadł sezam", "A kidney bean got in": "Wpadła fasola", "A wrong grain got in": "Wpadło złe ziarno", ", back to ×1": ", z powrotem ×1", "Broken": "Przerwany", "Wrong pile": "Zła kupka", "Touch the board to pick the row up again.": "Dotknij planszy, by znów podnieść rząd.", "Tap the arrow again to leave this level.": "Dotknij strzałki jeszcze raz, by wyjść z poziomu.", "Tap again to start this level over.": "Dotknij jeszcze raz, by zacząć od nowa.", "{n} more open {board}": "{n} do otwarcia: {board}", "Every board is open": "Wszystkie plansze otwarte", "{board}, {n} stars": "{board}, gwiazdki: {n}", "{board}, opens with {n} stars": "{board}, otwiera się przy gwiazdkach: {n}", "{n} more {star} to open": "jeszcze {n} {star} do otwarcia", "{board} levels": "Poziomy: {board}", "{level}, {n} of 5 stars": "{level}, {n} z 5 gwiazdek", "{level}, locked": "{level}, zablokowany", "Clear {level} to open this one.": "Najpierw ukończ: {level}.", "{level} cleared": "Ukończono: {level}", "{n} of 5 stars": "{n} z 5 gwiazdek", "Combo prizes": "Nagrody za serie", "Time {t} of {par}": "Czas {t} z {par}", "No row broken": "Bez przerwanego rzędu", "New best": "Rekord", "Next star at {s}": "Następna gwiazdka przy {s}", "New chopsticks: <b>{names}</b>. Pick them under Chopsticks.": "Nowe pałeczki: <b>{names}</b>. Wybierzesz je w menu Pałeczki.", "Cherry lacquer": "Wiśniowa laka", "Ebony": "Hebanowe", "Jade": "Jadeitowe", "Steel": "Stalowe", "Gold leaf": "Złocone", "Reach a ×3 multiplier": "Osiągnij mnożnik ×3", "Make 7 full rows in a row": "Zrób 7 pełnych rzędów z rzędu", "Sort 1,000 grains": "Posortuj 1000 ziaren", "Collect 20 stars": "Zbierz 20 gwiazdek", "Reach a ×6 multiplier": "Osiągnij mnożnik ×6", "Your first pair": "Twoja pierwsza para", "In use": "W użyciu", "Use": "Użyj", "{req} to earn these.": "{req}, żeby je zdobyć.", "Control: drag anywhere": "Sterowanie: przeciąganie", "Control: above the finger": "Sterowanie: nad palcem", "Drag anywhere: the sticks move with your drag, your thumb can stay low.": "Przeciągaj gdziekolwiek: pałeczki idą za ruchem, kciuk może zostać nisko.", "The tips sit above your finger.": "Końcówki są nad twoim palcem.", "Sound on": "Dźwięk: tak", "Sound off": "Dźwięk: nie", "Music on": "Muzyka: tak", "Music off": "Muzyka: nie", "Back to the default feel.": "Przywrócono domyślne ustawienia.", "Select the values and copy them.": "Zaznacz wartości i skopiuj.", "Values copied.": "Skopiowano.", "Tips above the finger": "Końcówki nad palcem", "How tightly the sticks follow": "Jak ciasno pałeczki podążają", "Reach of the open sticks": "Zasięg otwartych pałeczek", "How far ahead of the tips they pull": "Jak daleko przed końcówkami ciągną", "Wrong grains creep from": "Złe ziarna wkradają się z", "Wrong grain creep speed": "Szybkość wkradania się złych ziaren", "How far a sweep flicks grains": "Jak daleko machnięcie odrzuca ziarna", "Next grain joins every (s)": "Kolejne ziarno dołącza co (s)", "Walking speed": "Szybkość marszu", "Pace (higher is more forgiving)": "Tempo (więcej = łagodniej)", "Row length": "Długość rzędu" };
+  const PL = { "Tap to sit at the table": "Dotknij, by usiąść przy stole", "Sit down at the table": "Usiądź przy stole", "Back to the room": "Wróć do pokoju", "Boards": "Plansze", "Change chopsticks": "Zmień pałeczki", "Game board": "Plansza gry", "Pause": "Pauza", "Start the level again": "Zacznij poziom od nowa", "Back to the boards": "Wróć do plansz", "Chopsticks": "Pałeczki", "Each pair is earned by playing well.": "Każdą parę zdobywasz dobrą grą.", "Back": "Wstecz", "Paused": "Pauza", "Resume": "Wznów", "Restart level": "Zacznij od nowa", "Tune feel": "Dostrój", "Score": "Wynik", "Next level": "Następny poziom", "Retry": "Powtórz", "Choose a level": "Wybierz poziom", "On to {board}": "Dalej: {board}", "Changes apply right away and stay on this device. Row length applies from the next level. A level with its own rule keeps it.": "Zmiany działają od razu i zostają na tym urządzeniu. Długość rzędu zmienia się od następnego poziomu. Poziom z własną zasadą ją zachowuje.", "Show how far the sticks reach": "Pokaż zasięg pałeczek", "Vibrate": "Wibracje", "Solid grains": "Twarde ziarna", "Reset": "Przywróć", "Copy values": "Kopiuj wartości", "Done": "Gotowe", "Game sounds": "Dźwięki gry", "Ambience": "Otoczenie", "Slate": "Łupek", "Walnut": "Orzech", "Bamboo": "Bambus", "Clay": "Glina", "Lacquer": "Laka", "Cast iron": "Żeliwo", "Walnut is open": "Orzech otwarty", "Bamboo is open": "Bambus otwarty", "Clay is open": "Glina otwarta", "Lacquer is open": "Laka otwarta", "Cast iron is open": "Żeliwo otwarte", "Tenmoku": "Tenmoku", "Damascus steel": "Stal damasceńska", "Black marble": "Czarny marmur", "Charred cedar": "Opalany cedr", "Obsidian": "Obsydian", "{board} is open": "Otwarte: {board}", "Tenmoku is open": "Tenmoku otwarte", "Damascus steel is open": "Stal damasceńska otwarta", "Black marble is open": "Czarny marmur otwarty", "Charred cedar is open": "Opalany cedr otwarty", "Obsidian is open": "Obsydian otwarty", "Paper": "Papier", "Paper is open": "Papier otwarty", "Old paper": "Stary papier", "Everything you have met so far comes back here, two at a time.": "Wszystko, co już znasz, wraca tu po dwa naraz.", "Lentils": "Soczewica", "Rice": "Ryż", "Mung beans": "Fasola mung", "Chickpeas": "Ciecierzyca", "Sesame": "Sezam", "Kidney beans": "Fasola czerwona", "Stones": "Kamyki", "First row": "Pierwszy rząd", "Two heaps": "Dwie kupki", "Touching": "Stykają się", "Strays": "Zabłąkane", "The slate": "Łupek", "Short reach": "Krótki zasięg", "Mixed heap": "Pomieszana kupka", "Restless": "Niespokojne", "Pantry spill": "Rozsypana spiżarnia", "Heaps": "Kupki", "Spill": "Rozsypka", "Edges": "Brzegi", "Stripes": "Pasy", "Clusters": "Skupiska", "Pushy rice": "Natrętny ryż", "Rice creeps in from further away. Sweep the heap apart, then gather.": "Ryż wkrada się z daleka. Rozgarnij kupkę, potem zbieraj.", "Short reach, restless": "Krótki zasięg, niespokojne", "Close reach and wandering grains, all three kinds.": "Bliski zasięg i wędrujące ziarna, wszystkie trzy rodzaje.", "Restless grains": "Niespokojne ziarna", "They wander and mix again. Sort them before they spread.": "Wędrują i znów się mieszają. Posortuj je, zanim się rozejdą.", "The sticks pull from close by. Drive the tips through the grains.": "Pałeczki ciągną z bliska. Prowadź końcówki przez ziarna.", "Narrow reach": "Wąski zasięg", "The sticks only pull from straight ahead. Come at grains from below.": "Pałeczki ciągną tylko na wprost. Podchodź do ziaren od dołu.", "Long sticks": "Długie pałeczki", "They hold a longer row: more points, and more to lose.": "Mieszczą dłuższy rząd: więcej punktów i więcej do stracenia.", "They can’t be picked, and they go for the tips. Push them aside.": "Nie da się ich zebrać, a pchają się do końcówek. Odsuwaj je.", "Carry it yourself": "Nieś sam", "Take each row to its pile and let go. The wrong pile spills back onto the board.": "Zanieś każdy rząd na jego kupkę i puść. Zła kupka rozsypie się z powrotem na planszę.", "The jar": "Słoik", "It pours more grains in as you go. Keep up with it.": "Dosypuje ziaren w trakcie gry. Nadążaj za nim.", "The tray tilts": "Taca się przechyla", "Grains slide down it. Catch them before they fall off the edge.": "Ziarna zsuwają się w dół. Złap je, zanim spadną z krawędzi.", "Round and heavy. A quick sweep sends them rolling.": "Okrągła i ciężka. Po szybkim machnięciu toczy się daleko.", "Piles move": "Kupki się przesuwają", "The piles change places from level to level. Look before you let go.": "Kupki zmieniają miejsca z poziomu na poziom. Spójrz, zanim puścisz.", "Tiny and light. Long rows, and a sweep scatters it.": "Malutki i lekki. Długie rzędy, a machnięcie go rozsypuje.", "Any order": "Dowolna kolejność", "The sticks can ask for any kind next. Watch the top of the board.": "Pałeczki mogą poprosić o dowolny rodzaj. Patrz na górę planszy.", "Long and heavy. Push one and it swings round.": "Długa i ciężka. Pchnięta obraca się.", "Touch and hold. The lentils walk into the sticks.": "Dotknij i przytrzymaj. Soczewica sama wchodzi między pałeczki.", "Fill the row to grow your multiplier.": "Wypełnij rząd, a mnożnik urośnie.", "After every row the sticks switch to the other kind.": "Po każdym rzędzie pałeczki przechodzą na drugi rodzaj.", "Rice next to the tips creeps in. Push it aside with the side of the sticks.": "Ryż przy końcówkach wkrada się do środka. Odsuń go bokiem pałeczek.", "The line under the multiplier wears away. Fill the row before it is gone.": "Kreska pod mnożnikiem się ściera. Wypełnij rząd, zanim zniknie.", "A short row keeps the multiplier but shrinks it.": "Krótki rząd zachowuje mnożnik, ale go zmniejsza.", "A third kind, with its own pile in the middle.": "Trzeci rodzaj, z własną kupką na środku.", "{n} left": "{n}", "Lightning": "Błyskawica", "Quick": "Szybko", "Steady": "Równo", "Slow": "Wolno", "Short row {m}": "Krótki rząd {m}", "{kind} cleared {m}": "Koniec: {kind} {m}", "Steady hands": "Pewne ręce", "Grain master": "Mistrz ziaren", "Zen hands": "Ręce zen", "+{b} for {n} full rows in a row": "+{b} za {n} pełnych rzędów z rzędu", "New chopsticks": "Nowe pałeczki", "Multiplier {m}, {n} full rows in a row": "Mnożnik {m}, pełne rzędy z rzędu: {n}", "A lentil got in": "Wpadła soczewica", "Rice got in": "Wpadł ryż", "A mung bean got in": "Wpadła fasola mung", "A stone got in": "Wpadł kamyk", "A chickpea got in": "Wpadła ciecierzyca", "Sesame got in": "Wpadł sezam", "A kidney bean got in": "Wpadła fasola", "A wrong grain got in": "Wpadło złe ziarno", ", back to ×1": ", z powrotem ×1", "Broken": "Przerwany", "Wrong pile": "Zła kupka", "Touch the board to pick the row up again.": "Dotknij planszy, by znów podnieść rząd.", "Tap the arrow again to leave this level.": "Dotknij strzałki jeszcze raz, by wyjść z poziomu.", "Tap again to start this level over.": "Dotknij jeszcze raz, by zacząć od nowa.", "{n} more open {board}": "{n} do otwarcia: {board}", "Every board is open": "Wszystkie plansze otwarte", "{board}, {n} stars": "{board}, gwiazdki: {n}", "{board}, opens with {n} stars": "{board}, otwiera się przy gwiazdkach: {n}", "{n} more {star} to open": "jeszcze {n} {star} do otwarcia", "{board} levels": "Poziomy: {board}", "{level}, {n} of 5 stars": "{level}, {n} z 5 gwiazdek", "{level}, locked": "{level}, zablokowany", "Clear {level} to open this one.": "Najpierw ukończ: {level}.", "{level} cleared": "Ukończono: {level}", "{n} of 5 stars": "{n} z 5 gwiazdek", "Combo prizes": "Nagrody za serie", "Time {t} of {par}": "Czas {t} z {par}", "No row broken": "Bez przerwanego rzędu", "New best": "Rekord", "Next star at {s}": "Następna gwiazdka przy {s}", "New chopsticks: <b>{names}</b>. Pick them under Chopsticks.": "Nowe pałeczki: <b>{names}</b>. Wybierzesz je w menu Pałeczki.", "Cherry lacquer": "Wiśniowa laka", "Ebony": "Hebanowe", "Jade": "Jadeitowe", "Steel": "Stalowe", "Gold leaf": "Złocone", "Reach a ×3 multiplier": "Osiągnij mnożnik ×3", "Make 7 full rows in a row": "Zrób 7 pełnych rzędów z rzędu", "Sort 1,000 grains": "Posortuj 1000 ziaren", "Collect 20 stars": "Zbierz 20 gwiazdek", "Reach a ×6 multiplier": "Osiągnij mnożnik ×6", "Your first pair": "Twoja pierwsza para", "In use": "W użyciu", "Use": "Użyj", "{req} to earn these.": "{req}, żeby je zdobyć.", "Control: drag anywhere": "Sterowanie: przeciąganie", "Control: above the finger": "Sterowanie: nad palcem", "Drag anywhere: the sticks move with your drag, your thumb can stay low.": "Przeciągaj gdziekolwiek: pałeczki idą za ruchem, kciuk może zostać nisko.", "The tips sit above your finger.": "Końcówki są nad twoim palcem.", "Sound on": "Dźwięk: tak", "Sound off": "Dźwięk: nie", "Music on": "Muzyka: tak", "Music off": "Muzyka: nie", "Back to the default feel.": "Przywrócono domyślne ustawienia.", "Select the values and copy them.": "Zaznacz wartości i skopiuj.", "Values copied.": "Skopiowano.", "Tips above the finger": "Końcówki nad palcem", "How tightly the sticks follow": "Jak ciasno pałeczki podążają", "Reach of the open sticks": "Zasięg otwartych pałeczek", "How far ahead of the tips they pull": "Jak daleko przed końcówkami ciągną", "Wrong grains creep from": "Złe ziarna wkradają się z", "Wrong grain creep speed": "Szybkość wkradania się złych ziaren", "How far a sweep flicks grains": "Jak daleko machnięcie odrzuca ziarna", "Next grain joins every (s)": "Kolejne ziarno dołącza co (s)", "Walking speed": "Szybkość marszu", "Pace (higher is more forgiving)": "Tempo (więcej = łagodniej)", "Row length": "Długość rzędu",
+    "Lift your finger, then touch again.": "Podnieś palec i dotknij znowu.", "Just in time {m}": "W porę {m}",
+    "Sounds: game": "Dźwięki: zwykłe", "Sounds: quiet": "Dźwięki: ciche zen", "Soft clicks and taps instead of game sounds.": "Ciche kliknięcia i stuknięcia zamiast dźwięków z gier.", "The usual game sounds.": "Zwykłe dźwięki gry." };
   let lang = 'en';
   function tr(en, v) {
     let t = lang === 'pl' && PL[en] != null ? PL[en] : en;
@@ -2040,13 +2059,14 @@ const GrainSim = (() => {
     const fresh = {
       saveVersion: SAVE_VERSION, levels: {}, reached: 0, sound: true, music: true, haptics: true, showReach: true, control: 'direct',
       totals: { grains: 0, bestCombo: 0, bestMult: 1 }, sticks: { owned: ['bamboo'], equipped: 'bamboo' }, seen: ['slate'], lang: null,
-      sfxVol: 1, ambVol: 1,
+      sfxVol: 1, ambVol: 1, soundStyle: 'game',
     };
     const s = Store.get(SAVE_KEY);
     if (!s || typeof s !== 'object' || ![1, 2, 3, 4].includes(s.saveVersion)) return fresh;
     fresh.sound = s.sound !== false; fresh.music = s.music !== false; fresh.haptics = s.haptics !== false; fresh.showReach = s.showReach !== false;
     if (s.control === 'drag') fresh.control = 'drag';
     if (s.lang === 'en' || s.lang === 'pl') fresh.lang = s.lang;
+    if (s.soundStyle === 'quiet') fresh.soundStyle = 'quiet';
     const vol = (v, d) => (Number.isFinite(v) ? clamp(v, 0, 1) : d);
     fresh.sfxVol = vol(s.sfxVol, fresh.sound ? 1 : 0); fresh.ambVol = vol(s.ambVol, fresh.sound ? 1 : 0);
     fresh.sound = fresh.sfxVol > 0 || fresh.ambVol > 0;
@@ -2171,7 +2191,11 @@ const GrainSim = (() => {
       const comp = ctx.createDynamicsCompressor();
       comp.threshold.value = -14; comp.knee.value = 10; comp.ratio.value = 4; comp.attack.value = 0.002; comp.release.value = 0.12;
       const master = ctx.createGain(); master.connect(comp).connect(ctx.destination);
-      const out = ctx.createGain(); out.gain.value = 0.8 * save.sfxVol; out.connect(master);
+      // the quiet style: every game sound through a soft low-pass, so taps stay taps and nothing rings bright
+      const soft = ctx.createBiquadFilter(); soft.type = 'lowpass'; soft.Q.value = 0.4; soft.frequency.value = save.soundStyle === 'quiet' ? 2600 : 20000;
+      soft.connect(master);
+      const out = ctx.createGain(); out.gain.value = 0.8 * save.sfxVol; out.connect(soft);
+      this.soft = soft;
       const amb = ctx.createGain(); amb.gain.value = save.ambVol; amb.connect(master);
       const len = Math.floor(ctx.sampleRate * 0.6), buf = ctx.createBuffer(1, len, ctx.sampleRate), ch = buf.getChannelData(0);
       for (let i = 0; i < len; i++) ch[i] = Math.random() * 2 - 1;
@@ -2212,6 +2236,7 @@ const GrainSim = (() => {
       if (!this.ctx) return;
       const t = this.ctx.currentTime;
       this.out.gain.setTargetAtTime(0.8 * save.sfxVol, t, 0.04); this.amb.gain.setTargetAtTime(save.ambVol, t, 0.04);
+      this.soft.frequency.setTargetAtTime(save.soundStyle === 'quiet' ? 2600 : 20000, t, 0.05);
     },
     // Older iPhones mute Web Audio with the silent switch unless a media element is playing. A looping,
     // silent clip moves the page into the "playback" audio category, as games and video do.
@@ -2376,6 +2401,35 @@ const GrainSim = (() => {
     },
     // hot tips quenched by a wrong grain
     hiss() { if (this.ready()) this.sweep(this.ctx.currentTime, 7000, 2500, 0.12, 0.5, 0.8); },
+    // let go just before a wrong grain got in: two soft notes, up
+    saved() {
+      if (!this.ready()) return;
+      const t = this.ctx.currentTime;
+      this.tone(t, 'sine', 783.99, 783.99, 0.07, 0.18); this.tone(t + 0.07, 'sine', 1046.5, 1046.5, 0.07, 0.3);
+    },
+    // a temple bowl struck once: a low hum with the bowl's own inharmonic partials, beating slowly as it dies away
+    bowl(t, f, peak, dur) {
+      const c = this.ctx;
+      for (const [r, a, d] of [[1, 1, 1], [2.71, 0.42, 0.62], [5.02, 0.16, 0.38], [8.2, 0.05, 0.22]]) {
+        for (const det of [-0.6, 0.6]) {
+          const o = c.createOscillator(), g = c.createGain();
+          o.type = 'sine'; o.frequency.value = f * r + det * (r > 1 ? 1.4 : 0.35);
+          g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak * a * 0.5, t + 0.012);
+          g.gain.exponentialRampToValueAtTime(0.0001, t + dur * d);
+          o.connect(g).connect(this.out); o.start(t); o.stop(t + dur * d + 0.05);
+        }
+      }
+      this.noiseBurst(t, 'lowpass', 700, 0.8, peak * 0.5, 0.05);     // the soft mallet
+    },
+    // the end of a round: a gong, low and long
+    gong() { if (this.ready()) this.bowl(this.ctx.currentTime, 98, 0.55, 5.5); },
+    // the last grains going in: a run of high glass notes, like light off the tips
+    finale() {
+      if (!this.ready()) return;
+      const t = this.ctx.currentTime;
+      [1318.5, 1568, 1975.5, 2349.3, 2637, 3136].forEach((f, i) => { this.tone(t + i * 0.05, 'sine', f, f, 0.06, 0.7); });
+      this.sweep(t, 4000, 9000, 0.05, 0.6, 0.7);
+    },
     // a star stamped on the end screen, each one a step up the chord
     stamp(i) {
       if (!this.ready()) return;
@@ -2384,6 +2438,59 @@ const GrainSim = (() => {
       this.tone(t, 'triangle', f, f, 0.16, 0.3); this.tone(t, 'sine', f * 2, f * 2, 0.05, 0.25);
     },
   };
+
+  // The quiet style: soft wooden clicks and taps in place of the game's chimes, chords and alarms. Everything still
+  // answers what you do, just the way a real board and real chopsticks would.
+  const QUIET = {
+    slot(index, type, full) {
+      if (!this.ready()) return;
+      const t = this.ctx.currentTime, f = 900 * (TYPE_PITCH[type] || 1) * Math.pow(2, Math.min(index, 12) / 24);
+      this.noiseBurst(t, 'bandpass', f * 2, 4, 0.2, 0.016);
+      this.tone(t, 'sine', f * 0.5, f * 0.48, 0.05, 0.04);
+      if (full) this.tone(t + 0.02, 'sine', 1318.5, 1318.5, 0.04, 0.7);
+    },
+    swish() { if (this.ready()) this.sweep(this.ctx.currentTime, 1600, 900, 0.035, 0.14, 1.2); },
+    clack() {
+      if (!this.ready()) return;
+      const t = this.ctx.currentTime;
+      this.noiseBurst(t, 'bandpass', 1700, 3, 0.22, 0.025); this.tone(t, 'sine', 300, 240, 0.08, 0.05);
+    },
+    fullRow() { if (this.ready()) this.tone(this.ctx.currentTime, 'sine', 1975.5, 1975.5, 0.035, 0.9); },
+    multUp() {},
+    lost() {},
+    hiss() {},
+    fanfare() { if (this.ready()) this.bowl(this.ctx.currentTime, 196, 0.22, 3); },
+    chime() { if (this.ready()) this.bowl(this.ctx.currentTime, 262, 0.16, 2.6); },
+    finale() { if (this.ready()) [1568, 2093, 2637].forEach((f, i) => this.tone(this.ctx.currentTime + i * 0.09, 'sine', f, f, 0.03, 0.9)); },
+    gong() { if (this.ready()) this.bowl(this.ctx.currentTime, 130.8, 0.32, 4.5); },
+    thud() {
+      if (!this.ready()) return;
+      const t = this.ctx.currentTime;
+      this.tone(t, 'sine', 120, 60, 0.22, 0.14, 0.12); this.noiseBurst(t, 'lowpass', 400, 1, 0.12, 0.06);
+    },
+    scatter(n) {
+      if (!this.ready()) return;
+      const t0 = this.ctx.currentTime;
+      for (let i = 0; i < Math.min(n, 8); i++) this.noiseBurst(t0 + 0.02 + Math.random() * 0.3, 'bandpass', 1400 + Math.random() * 1200, 4, 0.06, 0.018);
+    },
+    swap() { if (this.ready()) this.noiseBurst(this.ctx.currentTime, 'bandpass', 2200, 4, 0.08, 0.02); },
+    tick() { if (this.ready()) this.noiseBurst(this.ctx.currentTime, 'bandpass', 2400, 5, 0.05, 0.015); },
+    saved() { if (this.ready()) this.tone(this.ctx.currentTime, 'sine', 1046.5, 1046.5, 0.04, 0.4); },
+    stamp(i) {
+      if (!this.ready()) return;
+      const t = this.ctx.currentTime;
+      this.noiseBurst(t, 'bandpass', 1200 + i * 160, 3, 0.2, 0.03); this.tone(t, 'sine', 523.25 * Math.pow(2, [0, 2, 4, 7, 9][i] / 12), 523.25 * Math.pow(2, [0, 2, 4, 7, 9][i] / 12), 0.035, 0.5);
+    },
+    beat(w) {
+      if (!this.ready()) return;
+      const t = this.ctx.currentTime;
+      this.tone(t, 'sine', 80, 50, 0.16 * (0.25 + 0.5 * w), 0.12, 0.1);
+    },
+  };
+  for (const k of Object.keys(QUIET)) {
+    const loud = Sound[k];
+    Sound[k] = function (...a) { return (save.soundStyle === 'quiet' ? QUIET[k] : loud).apply(Sound, a); };
+  }
 
   // ---------- the room: ambience by time of day, and a soft felt piano ----------
   // The room sounds like the hour in its painting: morning birdsong and a breeze, a wind chime in the day, the last
@@ -2640,6 +2747,7 @@ const GrainSim = (() => {
   const fx = {
     pops: new Map(), lands: new Map(), sparks: [], steam: [], floats: [], rings: [], wave: null, shakeT: 0, bad: null, falls: [], tickT: 0, targetPulse: 1,
     stop: 0, heat: 0, quench: 0, beatT: 0, beat: 0, spill: null, shimmer: null, score: 0, settle: new Map(), prevSt: null,
+    slow: 0, scoreRed: 0, saved: false, holdStuck: 0,
   };
 
   function readSafe() {
@@ -3214,6 +3322,8 @@ const GrainSim = (() => {
     autoBot = null; pendingDone = null; levelUnlocks = [];
     fx.pops.clear(); fx.lands.clear(); fx.sparks = []; fx.steam = []; fx.floats = []; fx.rings = []; fx.wave = null; fx.bad = null; fx.shakeT = 0; fx.falls = []; fx.targetPulse = 1;
     fx.stop = 0; fx.heat = 0; fx.quench = 0; fx.beat = 0; fx.beatT = 0; fx.shimmer = null; fx.score = 0; fx.settle.clear(); fx.prevSt = null;
+    fx.slow = 0; fx.scoreRed = 0; fx.saved = false; fx.holdStuck = 0;
+    scoreEl.querySelector('b').textContent = fmt(0); scoreEl.classList.remove('down');
     if (reducedMotion()) fx.spill = null;
     else {
       // the grains drop onto the board from the middle of the spill outward
@@ -3254,11 +3364,14 @@ const GrainSim = (() => {
   function updateClocks(dt) {
     if (!sim) return;
     if (fx.score !== sim.score) {
-      const d = sim.score - fx.score;
-      fx.score = Math.abs(d) < 2 || reducedMotion() ? sim.score : fx.score + d * Math.min(1, dt * 10) + Math.sign(d);
+      // counts toward the score and stops on it; red for a moment only when it went down
+      const d = sim.score - fx.score, step = d * Math.min(1, dt * 10) + Math.sign(d);
+      fx.score = Math.abs(d) < 2 || reducedMotion() || Math.abs(step) >= Math.abs(d) ? sim.score : fx.score + step;
+      if (d < 0) fx.scoreRed = 0.8;
       scoreEl.querySelector('b').textContent = fmt(fx.score);
-      scoreEl.classList.toggle('down', d < 0);
     }
+    fx.scoreRed = Math.max(0, fx.scoreRed - dt);
+    scoreEl.classList.toggle('down', fx.scoreRed > 0);
     const left = sim.timeLeft();
     clockEl.textContent = (left < 0 ? '+' : '') + mmss(left);
     clockEl.classList.toggle('over', left < 0);
@@ -3830,7 +3943,7 @@ const GrainSim = (() => {
     const broken = res.breaks - (res.spills || 0), bits = [];
     if (broken) bits.push(pl ? 'przerwane rzędy: ' + broken : nn(broken, 'row') + ' broken');
     if (res.spills) bits.push(nn(res.spills, 'pile'));
-    if (bits.length) lines.push([bits.join(', '), -res.penalty]);
+    if (bits.length) lines.push([bits.join(', '), res.penalty ? -res.penalty : null]);
     if (res.lost) lines.push([pl ? 'spadło z tacy: ' + res.lost : res.lost + ' fell off the tray', null]);
     const ol = $('doneTally'); ol.innerHTML = '';
     lines.forEach(([label, v], i) => {
@@ -3897,7 +4010,7 @@ const GrainSim = (() => {
       virt.y = clamp(drag.y0 + ((e.clientY - drag.sy) / view.scale) * DRAG_GAIN, view.top - 40, view.H - 90);
       input.x = virt.x; input.y = virt.y + offset();
     } else {
-      input.x = (e.clientX - view.offX) / view.scale; input.y = e.clientY / view.scale;
+      input.x = (e.clientX - view.offX) / view.scale; input.y = e.clientY / view.scale + (e.pointerType === 'mouse' ? offset() : 0);
     }
   }
   function releaseInput() { input.down = false; input.id = null; }
@@ -3939,7 +4052,8 @@ const GrainSim = (() => {
   const MULT_COLOR = { 1: '#ece8de', 2: '#ffd9ae', 3: '#ffb877', 4: '#ef8a40', 5: '#f6c453' };
   const SPEED_COLOR = { Lightning: '#f6c453', Quick: '#ffb877', Steady: '#ece8de', Slow: '#9aa0a8' };
   const heatFor = (m) => clamp((m - 1) / 4, 0, 1);    // the sticks are fully hot from ×5
-  let parkedHints = 0;
+  let parkedHints = 0, liftHints = 0;
+  const SLOW = 0.55;
   function handleEvents(evts) {
     const L = levelAt(levelIndex);
     for (const e of evts) {
@@ -3955,6 +4069,8 @@ const GrainSim = (() => {
           break;
         case 'close': {
           Sound.clack();
+          fx.saved = !!e.saved;
+          if (e.saved) Sound.saved();
           { const G = sim.geom(); fx.closeAt = { x: G.mx, y: G.my }; }
           if (e.kind === 'full') {
             Sound.fullRow(); Haptics.buzz([15, 30, 15]);
@@ -3980,10 +4096,14 @@ const GrainSim = (() => {
             note(pts, line, MULT_COLOR[tier], e.cleared ? '#ece8de' : SPEED_COLOR[e.speed], at.x, at.y);
             if (e.speed === 'Lightning' || e.speed === 'Quick') { Sound.multUp(Math.min(5, 1 + Math.floor(e.mult))); Haptics.buzz(e.speed === 'Lightning' ? [12, 30, 12, 30, 12] : [12, 30, 12]); }
             updateStreak('up');
+          } else if (fx.saved) {
+            note(pts, tr('Just in time {m}', { m: multText(e.mult) }), '#ece8de', '#a9d9b5', at.x, at.y);
+            updateStreak(null);
           } else {
             note(pts, tr('Short row {m}', { m: multText(e.mult) }), '#ece8de', '#9aa0a8', at.x, at.y);
             updateStreak(null);
           }
+          fx.saved = false;
           if (e.milestone) { Sound.fanfare(); Haptics.buzz([20, 30, 20, 30, 60]); banner(tr(e.milestone), tr('+{b} for {n} full rows in a row', { b: fmt(e.bonus), n: e.combo })); }
           const un = checkUnlocks();
           if (un.length) { levelUnlocks.push(...un); if (!e.milestone) banner(tr('New chopsticks'), un.map((k) => tr(k.name)).join(', ')); }
@@ -4008,7 +4128,7 @@ const GrainSim = (() => {
           break;
         case 'spill_pile': {
           Sound.thud(); Sound.scatter(Math.min(24, e.back + e.inRow)); Haptics.buzz([40, 40, 40]);
-          if (!reducedMotion()) { fx.shakeT = 0.3; fx.stop = 0.1; }
+          if (!reducedMotion()) { fx.shakeT = 0.3; fx.stop = 0.1; fx.slow = SLOW; }
           if (fx.heat > 0.05) { fx.quench = 1; Sound.hiss(); }
           fx.heat = 0;
           if (e.multLost > 1.05) Sound.lost();
@@ -4022,7 +4142,7 @@ const GrainSim = (() => {
         }
         case 'break': {
           Sound.thud(); Sound.scatter(e.lost); Haptics.buzz([30, 40, 30]);
-          if (!reducedMotion()) { fx.shakeT = 0.25; fx.stop = 0.09; }
+          if (!reducedMotion()) { fx.shakeT = 0.25; fx.stop = 0.09; fx.slow = SLOW; }
           if (fx.heat > 0.05) { fx.quench = 1; Sound.hiss(); steam(); }
           fx.heat = 0;
           fx.bad = { id: e.id, t: 1.4 };
@@ -4335,11 +4455,26 @@ const GrainSim = (() => {
     ctx.beginPath(); ctx.moveTo(virt.x - 26, virt.y); ctx.lineTo(virt.x - 10, virt.y); ctx.moveTo(virt.x + 10, virt.y); ctx.lineTo(virt.x + 26, virt.y);
     ctx.moveTo(virt.x, virt.y - 26); ctx.lineTo(virt.x, virt.y - 10); ctx.moveTo(virt.x, virt.y + 10); ctx.lineTo(virt.x, virt.y + 26); ctx.stroke();
   }
+  // The candle from the room is still burning just past the left edge of the board: its warm light breathes over the
+  // board's left side, the way it flickers in the film. Faint, so it never competes with the grains.
+  function drawCandle() {
+    const t = performance.now() / 1000, d = view.dpr, bw = W * view.scale * d, x0 = view.offX * d;
+    const fl = reducedMotion() ? 0.9 : 0.86 + 0.08 * Math.sin(t * 7.3) * Math.sin(t * 2.3 + 1) + 0.06 * Math.sin(t * 13.1 + Math.sin(t * 3.7));
+    const cx = x0 - bw * 0.08, cy = canvas.height * 0.44, r = bw * 1.05;
+    const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+    g.addColorStop(0, 'rgba(255,170,95,' + (0.11 * fl).toFixed(3) + ')');
+    g.addColorStop(0.45, 'rgba(255,150,80,' + (0.045 * fl).toFixed(3) + ')');
+    g.addColorStop(1, 'rgba(255,140,70,0)');
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = g; ctx.fillRect(x0, 0, bw, canvas.height);
+    ctx.globalCompositeOperation = 'source-over';
+  }
   function render(dt) {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     if (screen === 'title') { drawRoom(dt); return; }
     if (screen === 'table' || screen === 'sticks') { drawTableTop(dt); return; }
     ctx.drawImage(backgroundFor(GS.surfaceOf(levelIndex)), 0, 0);
+    drawCandle();
     const s = sim;
     if (!s || !sprites) return;
     ctx.save();                                  // nothing draws past the board on a wide screen
@@ -4497,7 +4632,10 @@ const GrainSim = (() => {
         if (keys.has('ArrowUp')) input.y -= v; if (keys.has('ArrowDown')) input.y += v;
         input.x = clamp(input.x, 0, W); input.y = clamp(input.y, 0, view.H + 200);
       }
-      if (fx.stop > 0) fx.stop = Math.max(0, fx.stop - dt); else acc += dt;    // hit-stop: the board holds still for a beat
+      // hit-stop: the board holds still for a beat; after a break it runs slow for a moment, then back to speed
+      if (fx.stop > 0) fx.stop = Math.max(0, fx.stop - dt);
+      else if (fx.slow > 0) { const k = fx.slow / SLOW; acc += dt * (1 - 0.75 * k * k); fx.slow = Math.max(0, fx.slow - dt); }
+      else acc += dt;
       let n = 0;
       while (acc >= step && n < 24) {
         const inp = autoBot ? autoBot() : input;
@@ -4511,6 +4649,11 @@ const GrainSim = (() => {
         fx.beatT += dt;
         if (fx.beatT >= 0.8 - 0.58 * clamp((w - 0.15) / 0.85, 0, 1)) { fx.beatT = 0; fx.beat = 1; Sound.beat(w); if (w > 0.55) Haptics.buzz(6); }
       } else fx.beatT = 10;
+      // still holding after a break: the sticks wait for the finger to lift; say so once
+      if (sim.waitLift && input.down && !sim.done) {
+        fx.holdStuck += dt;
+        if (fx.holdStuck > 0.9 && liftHints < 2) { liftHints++; fx.holdStuck = -99; toast(tr('Lift your finger, then touch again.')); }
+      } else if (fx.holdStuck > 0) fx.holdStuck = 0;
       updateClocks(dt);
       if (pendingDone && now >= pendingDone.at) { const p = pendingDone; pendingDone = null; showDone(p.res, p.prev, p.unlocks, p.opened); }
     } else acc = 0;
@@ -4611,7 +4754,13 @@ const GrainSim = (() => {
   const syncSound = () => {
     for (const [id, key] of [['sfxVol', 'sfxVol'], ['ambVol', 'ambVol']]) { const el = $(id); el.value = Math.round(save[key] * 100); el.style.setProperty('--v', el.value + '%'); }
     $('musicBtn').textContent = tr(save.music ? 'Music on' : 'Music off');
+    $('styleBtn').textContent = tr(save.soundStyle === 'quiet' ? 'Sounds: quiet' : 'Sounds: game');
   };
+  $('styleBtn').addEventListener('click', () => {
+    save.soundStyle = save.soundStyle === 'quiet' ? 'game' : 'quiet'; persist(); syncSound(); Sound.volumes();
+    toast(tr(save.soundStyle === 'quiet' ? 'Soft clicks and taps instead of game sounds.' : 'The usual game sounds.'));
+    Sound.slot(4, 'lentil', true);
+  });
   // each slider sets its own volume at once; game sounds play a tick so you hear the level, the night is already playing
   let tickAt = 0;
   for (const [id, key] of [['sfxVol', 'sfxVol'], ['ambVol', 'ambVol']]) {

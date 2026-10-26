@@ -395,7 +395,7 @@ test('a narrow reach only pulls from straight ahead', () => {
   assert.equal(sim.inReach(side), false);
 });
 
-test('a full row closes by itself, grows the combo and multiplier, and needs a new touch', () => {
+test('a full row closes by itself, grows the combo and multiplier, and the sticks come back while you hold', () => {
   const sim = GS.create({}, AUTHORED[0], LAYOUT, 5);
   const cap = sim.caps.lentil;
   for (let i = 0; i < cap; i++) sim.debugPut('lentil', 300 + (i % 5) * 4, 760 + i * 3);
@@ -406,10 +406,12 @@ test('a full row closes by itself, grows the combo and multiplier, and needs a n
   assert.equal(taken.kind, 'full'); assert.equal(taken.combo, 1);
   assert.ok(taken.mult > 1 && Math.abs(taken.mult - (1 + taken.gain)) < 1e-9);
   assert.equal(taken.points, GS.rowPoints(taken.n, 'full', taken.mult));
-  assert.equal(ev.filter((e) => e.type === 'sticks_in').length, 1, 'no new cycle while the finger stays down');
+  const ins = ev.filter((e) => e.type === 'sticks_in');
+  assert.ok(ins.length >= 2, 'the finger stayed down: the sticks came back for the next row');
+  assert.ok(ins[1].t - close.t >= sim.cfg.rearmTime - 1e-9, 'after a breath, not at once');
   sim.step({ down: false, x: 300, y: 1000 });
   sim.step({ down: true, x: 300, y: 1000 });
-  assert.ok(sim.drainEvents().some((e) => e.type === 'sticks_in'), 'a new touch brings the sticks back');
+  assert.equal(sim.rearm, 0, 'a new touch never waits');
 });
 
 test('the last few grains of a kind count as "cleared", not as a full row', () => {
@@ -470,24 +472,50 @@ test('the level clock starts at the first touch and pays for time left', () => {
   assert.equal(done.result.timeBonus, Math.ceil(done.par - done.result.time) * GS.SCORE.perSecond);
 });
 
-test('a wrong grain reaching the tips breaks the row, drops the multiplier to ×1 and costs points', () => {
+test('a wrong grain reaching the tips breaks the row and drops the multiplier to ×1; past the first board it costs points', () => {
+  const breakOn = (L) => {
+    const sim = GS.create({}, L, LAYOUT, 10);
+    sim.score = 1000; sim.mult = 3; sim.combo = 4;
+    const lentil = sim.grains.find((g) => g.type === 'lentil');
+    holdAt(sim, lentil.x, lentil.y + 60, 0.33);
+    const G = sim.geom();
+    const rice = sim.debugPut('rice', G.mx + G.ux * 30, G.my + G.uy * 30);
+    const ev = holdAt(sim, lentil.x, lentil.y + 60, 2);
+    const br = ev.find((e) => e.type === 'break');
+    assert.ok(br, 'broke');
+    assert.equal(br.id, rice.id);
+    assert.equal(br.comboLost, 4); assert.equal(br.multLost, 3);
+    assert.equal(sim.mult, 1); assert.equal(sim.combo, 0);
+    assert.equal(sim.stats.breaks, 1);
+    return { sim, br };
+  };
+  const first = breakOn(byId('touching'));
+  assert.equal(first.br.penalty, 0, 'the first board teaches: no points taken');
+  assert.equal(first.sim.score, 1000);
+  const later = breakOn(Object.assign({}, byId('touching'), { generated: true }));
+  assert.equal(later.br.penalty, 150, 'penalty grows with the multiplier you had');
+  assert.equal(later.sim.score, 850);
+  release(later.sim, 2);
+  assert.ok(later.sim.grains.every((g) => g.st === ST.REST), 'scattered grains come to rest');
+});
+
+test('letting go just before a wrong grain gets in saves the row, and says so', () => {
   const sim = GS.create({}, byId('touching'), LAYOUT, 10);
-  sim.score = 1000; sim.mult = 3; sim.combo = 4;
-  const lentil = sim.grains.find((g) => g.type === 'lentil');
-  holdAt(sim, lentil.x, lentil.y + 60, 0.33);
+  const lentil = sim.grains.find((g) => g.type === 'lentil'), hold = { down: true, x: lentil.x, y: lentil.y + 60 + sim.cfg.fingerOffset };
+  holdAt(sim, lentil.x, lentil.y + 60, 0.4);
+  assert.ok(sim.sticks.row.length > 0, 'a few lentils are in');
   const G = sim.geom();
-  const rice = sim.debugPut('rice', G.mx + G.ux * 30, G.my + G.uy * 30);
-  const ev = holdAt(sim, lentil.x, lentil.y + 60, 2);
-  const br = ev.find((e) => e.type === 'break');
-  assert.ok(br, 'broke');
-  assert.equal(br.id, rice.id);
-  assert.equal(br.comboLost, 4); assert.equal(br.multLost, 3);
-  assert.equal(br.penalty, 150, 'penalty grows with the multiplier you had');
-  assert.equal(sim.score, 850);
-  assert.equal(sim.mult, 1); assert.equal(sim.combo, 0);
-  assert.equal(sim.stats.breaks, 1);
-  release(sim, 2);
-  assert.ok(sim.grains.every((g) => g.st === ST.REST), 'scattered grains come to rest');
+  sim.debugPut('rice', G.mx + G.ux * 70, G.my + G.uy * 70);
+  let ev = [];
+  for (let i = 0; i < 120 && !ev.some((e) => e.type === 'break'); i++) {
+    sim.step(hold); ev.push(...sim.drainEvents());
+    if (sim.sticks.danger > 0.6) break;
+  }
+  assert.ok(!ev.some((e) => e.type === 'break') && sim.sticks.danger > 0.6, 'the rice is close');
+  ev = release(sim, 1);
+  const close = ev.find((e) => e.type === 'close');
+  assert.ok(close && close.saved && close.kind === 'short', 'saved in time');
+  assert.equal(sim.stats.saved, 1);
 });
 
 test('the sides of the sticks push loose grains aside', () => {
@@ -587,7 +615,7 @@ test('each new bean moves its own way: chickpeas roll on, sesame is light and co
 });
 
 test('carrying rows yourself: let go over its pile and it pours there; away from the piles it waits; over another pile that pile spills back', () => {
-  const L = level({ manual: true });
+  const L = level({ manual: true, generated: true });      // carrying comes after the first board, where mistakes cost points
   const sim = GS.create({}, L, LAYOUT, 3);
   const lentils = sim.grains.filter((g) => g.type === 'lentil'), c = centroid(lentils);
   // gather until the row is full: the sticks close and stay on the finger
