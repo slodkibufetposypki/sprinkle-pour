@@ -16,7 +16,10 @@ const out = local ? new URL('local.html', here) : new URL('../docs/zen-grain/ind
 writeFileSync(out, page);
 // the offline worker carries a version taken from the page, so every new build replaces what phones have kept
 if (!local) {
-  const sw = readFileSync(new URL('offline-worker.js', here), 'utf8').replace('__VERSION__', createHash('sha1').update(page).digest('hex').slice(0, 10));
+  // the page and every file next to it: a new room video or sound replaces the kept one too
+  const h = createHash('sha1').update(page), pub = new URL('../docs/zen-grain/', here);
+  for (const f of readdirSync(pub).sort()) if (f !== 'sw.js' && f !== 'index.html') h.update(f).update(readFileSync(new URL(f, pub)));
+  const sw = readFileSync(new URL('offline-worker.js', here), 'utf8').replace('__VERSION__', h.digest('hex').slice(0, 10));
   writeFileSync(new URL('../docs/zen-grain/sw.js', here), sw);
 }
 if (local) {
