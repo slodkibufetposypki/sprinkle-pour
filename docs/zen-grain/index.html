@@ -3214,6 +3214,18 @@ const GrainSim = (() => {
       this.noiseBurst(t, 'lowpass', 700, 1, 0.16, 0.05);
       this.tone(t, 'sine', 392, 360, 0.07, 0.12); this.tone(t, 'sine', 1568, 1568, 0.02, 0.3);
     },
+    // ×10 in zen: time slows and rose petals fall. A breath of air rising and a soft chord opening under it, in the
+    // middle of the range and with nothing struck, so it is never taken for the gong
+    bloom(k) {
+      if (!this.ready()) return;
+      const c = this.ctx, t = c.currentTime, v = k || 1;
+      this.air(t, 'bandpass', 350, 2400, 0.16 * v, 1.1, 0.9, 0.75);
+      for (const [f, a] of [[261.63, 0.07], [392, 0.055], [659.25, 0.04], [1046.5, 0.02]]) {
+        const o = c.createOscillator(), g = c.createGain(); o.type = 'sine'; o.frequency.value = f;
+        g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(a * v, t + 0.5); g.gain.exponentialRampToValueAtTime(0.0001, t + 2.2);
+        o.connect(g).connect(this.out); o.start(t); o.stop(t + 2.3);
+      }
+    },
     // a star stamped on the end screen, each one a step up the chord
     stamp(i) {
       if (!this.ready()) return;
@@ -3274,6 +3286,7 @@ const GrainSim = (() => {
       this.tone(t + 0.04, 'sine', 150, 66, 0.12, 0.34);
     },
     setDown() { if (this.ready()) { const t = this.ctx.currentTime; this.noiseBurst(t, 'lowpass', 500, 1, 0.1, 0.05); this.tone(t, 'sine', 330, 300, 0.04, 0.1); } },
+    bloom() { QUIET.bloom.base.call(this, 0.6); },
     stamp(i) {
       if (!this.ready()) return;
       const t = this.ctx.currentTime;
@@ -3285,6 +3298,7 @@ const GrainSim = (() => {
       this.tone(t, 'sine', 80, 50, 0.16 * (0.25 + 0.5 * w), 0.12, 0.1);
     },
   };
+  QUIET.bloom.base = Sound.bloom;
   for (const k of Object.keys(QUIET)) {
     const loud = Sound[k];
     Sound[k] = function (...a) { return (save.soundStyle === 'quiet' ? QUIET[k] : loud).apply(Sound, a); };
@@ -3548,6 +3562,7 @@ const GrainSim = (() => {
     slow: 0, scoreRed: 0, saved: false, holdStuck: 0, stars: [], flash: null, lay: null, restRing: null,
     catUsed: false, hamUsed: false, ham: null, dialFrom: null, dialT: 0, lastTick: -1,
     sand: 0, sandPulse: 0, sandWave: null, zoneSeen: 0, zoneHold: 0, swaps: new Map(), capySeen: 0, capyHold: 0, capyFive: 0, leaps: [],
+    runeLv: [0, 0, 0, 0, 0, 0, 0], runeFlare: [0, 0, 0, 0, 0, 0, 0], runeLit: [], runePos: [[], []], runeBurn: 0, petals: [], slowmo: null, peakArmed: true, peakAt: -99, scoreGlow: 0,
   };
 
   function readSafe() {
@@ -4400,6 +4415,8 @@ const GrainSim = (() => {
     autoBot = null; pendingDone = null; levelUnlocks = [];
     fx.pops.clear(); fx.lands.clear(); fx.sparks = []; fx.steam = []; fx.floats = []; fx.rings = []; fx.wave = null; fx.bad = null; fx.shakeT = 0; fx.falls = []; fx.targetPulse = 1;
     fx.sand = 0; fx.sandPulse = 0; fx.sandWave = null; fx.zoneSeen = 0; fx.zoneHold = 0; fx.swaps.clear(); fx.capySeen = 0; fx.capyHold = 0; fx.capyFive = 0; fx.leaps = []; fx.bestSaid = false;
+    fx.runeLv.fill(0); fx.runeFlare.fill(0); fx.runeLit = []; fx.runeBurn = 0; fx.petals = []; fx.slowmo = null; fx.peakArmed = true; fx.peakAt = -99; fx.scoreGlow = 0;
+    scoreEl.querySelector('b').style.textShadow = ''; scoreEl.querySelector('b').style.color = '';
     fx.stop = 0; fx.heat = 0; fx.quench = 0; fx.beat = 0; fx.beatT = 0; fx.shimmer = null; fx.score = 0; fx.settle.clear(); fx.prevSt = null;
     fx.slow = 0; fx.scoreRed = 0; fx.saved = false; fx.holdStuck = 0; fx.stars = []; fx.flash = null; fx.lay = null; fx.restRing = null;
     fx.catUsed = false; fx.hamUsed = false; fx.ham = null; fx.dialFrom = null; fx.lastTick = -1; pendingFail = 0; pendingZen = null; dialKey = '';
@@ -4467,6 +4484,13 @@ const GrainSim = (() => {
     }
     fx.scoreRed = Math.max(0, fx.scoreRed - dt);
     scoreEl.classList.toggle('down', fx.scoreRed > 0);
+    if (sim.zen) {
+      // zen: the score glows warmer and brighter as the multiplier climbs, and breathes while the runes burn
+      fx.scoreGlow += (clamp((sim.mult - 1) / 9, 0, 1) - fx.scoreGlow) * Math.min(1, dt * 3);
+      const b = scoreEl.querySelector('b'), q = fx.scoreGlow * (fx.runeBurn > 0.05 && !reducedMotion() ? 0.8 + 0.2 * Math.sin(performance.now() / 160) : 1);
+      b.style.textShadow = q > 0.02 ? '0 0 ' + (4 + 16 * q).toFixed(1) + 'px rgba(246,196,83,' + (0.12 + 0.6 * q).toFixed(2) + ')' : '';
+      b.style.color = q > 0.02 && fx.scoreRed <= 0 ? 'rgb(' + Math.round(236 + 19 * q) + ',' + Math.round(232 - 15 * q) + ',' + Math.round(222 - 84 * q) + ')' : '';
+    }
     if (sim.zen) {
       const zEl = $('zone'), on = sim.zoneT > 0;
       // the bar takes a row's charge as its mote lands; a drop (a broken row, a missed order) shows in red
@@ -5966,11 +5990,44 @@ const GrainSim = (() => {
     c.moveTo(-tipW / 2, 0);
     c.quadraticCurveTo(0, -tipW * 1.1, tipW / 2, 0);
     c.lineTo(baseW / 2, len); c.lineTo(-baseW / 2, len); c.closePath();
-    return { len, baseW, tipW };
+    return { len, baseW, tipW, x0, ang };
+  }
+  // zen: runes of our own carved down each stick from the tips toward the hand. They kindle one by one as the
+  // multiplier grows, the seventh at ×10, when they all burn; a broken row puts them out
+  const RUNES = [
+    [[0, -0.5, 0, 0.5], [0, -0.2, 0.45, -0.5], [0, 0.1, 0.45, -0.2]],
+    [[0, -0.5, 0.4, 0], [0.4, 0, 0, 0.5], [0, 0.5, -0.4, 0], [-0.4, 0, 0, -0.5]],
+    [[0, -0.5, 0, 0.5], [-0.4, -0.1, 0, 0.2], [0, 0.2, 0.4, -0.1]],
+    [[-0.3, -0.5, -0.3, 0.5], [0.3, -0.5, 0.3, 0.5], [-0.3, -0.3, 0.3, 0.3]],
+    [[0, -0.5, 0, 0.5], [-0.4, -0.15, 0, -0.5], [0, -0.5, 0.4, -0.15]],
+    [[-0.4, -0.5, 0.4, 0.5], [0.4, -0.5, -0.4, 0.5], [-0.4, -0.5, 0.4, -0.5]],
+    [[0, -0.5, 0, 0.5], [0, -0.5, 0.4, -0.3], [0.4, -0.3, 0, -0.1], [0, 0.1, -0.4, 0.35]],
+  ];
+  const runeY = (j) => 120 + j * 82;                      // from the tip, along the stick
+  const runeWant = (j, m) => clamp(((m - 1) / (GS.SCORE.maxMult - 1)) * RUNES.length - j, 0, 1);
+  // in the stick's own frame (tip at y = 0); the left stick reads them in order, the right one from the fourth
+  function drawRunes(side, len) {
+    const n = RUNES.length, t = performance.now() / 1000, burn = fx.runeBurn, still = reducedMotion();
+    ctx.lineCap = 'round';
+    for (let j = 0; j < n; j++) {
+      const glyph = RUNES[side < 0 ? j : (j + 3) % n], y = runeY(j);
+      const w = Math.min(11, (GS.STICK.tipW + ((GS.STICK.baseW - GS.STICK.tipW) * y) / len) * 0.62), h = 19;
+      const path = () => { ctx.beginPath(); for (const [x0, y0, x1, y1] of glyph) { ctx.moveTo(x0 * w, y + y0 * h); ctx.lineTo(x1 * w, y + y1 * h); } };
+      const lv = fx.runeLv[j], fl = fx.runeFlare[j];
+      path(); ctx.strokeStyle = 'rgba(28,14,4,' + (0.42 * (1 - 0.7 * lv)).toFixed(3) + ')'; ctx.lineWidth = 1.5; ctx.stroke();   // carved
+      if (lv < 0.02 && fl < 0.02) continue;
+      const flick = burn > 0.01 && !still ? 1 - 0.3 * burn * (0.5 + 0.5 * Math.sin(t * 19 + j * 2.3) * Math.sin(t * 7.7 + j)) : 1;
+      const a = Math.min(1, lv * flick + fl * 0.6);
+      ctx.globalCompositeOperation = 'lighter';
+      path(); ctx.strokeStyle = 'rgba(255,140,50,' + (0.42 * a).toFixed(3) + ')'; ctx.lineWidth = 5 + 4 * fl + 2.5 * burn; ctx.stroke();
+      path(); ctx.strokeStyle = 'rgba(255,238,190,' + (0.95 * a).toFixed(3) + ')'; ctx.lineWidth = 1.5 + 0.8 * fl; ctx.stroke();
+      ctx.globalCompositeOperation = 'source-over';
+    }
+    ctx.lineCap = 'butt';
   }
   function drawSticks(s, ox, oy, pose) {
     const G = pose || s.geom(), L = GS.STICK.len, skin = stickById(save.sticks.equipped);
-    const hot = s === sim && !pose ? fx.heat : 0, cold = s === sim && !pose ? fx.quench : 0;
+    const hot = s === sim && !pose ? fx.heat : 0, cold = s === sim && !pose ? fx.quench : 0, runes = s === sim && !pose && s.zen;
     const th = Math.atan2(G.ux, -G.uy), k = K(), cs = Math.cos(th) * k, sn = Math.sin(th) * k;
     const at = (wx, wy) => ctx.setTransform(cs, sn, -sn, cs, view.dpr * (view.offX + ox + wx * view.scale), view.dpr * (oy + wy * view.scale));
     // shadows first, cast down and to the right; lifted sticks cast them further and softer
@@ -6010,6 +6067,15 @@ const GrainSim = (() => {
       }
       ctx.strokeStyle = 'rgba(40,20,5,0.2)'; ctx.lineWidth = 0.8;
       ctx.beginPath(); ctx.moveTo(-1.2, 30); ctx.lineTo(-4, m.len); ctx.moveTo(1.6, 60); ctx.lineTo(3.5, m.len); ctx.stroke();
+      if (runes) {
+        drawRunes(side, m.len);
+        // where each rune is on the board, for the sparks that come off it
+        const P = fx.runePos[side < 0 ? 0 : 1], c = Math.cos(th), sn2 = Math.sin(th);
+        for (let j = 0; j < RUNES.length; j++) {
+          const y = runeY(j), a = m.x0 + y * Math.sin(m.ang), b = y * Math.cos(m.ang);
+          P[j] = { x: G.Tx + a * c - b * sn2, y: G.Ty + a * sn2 + b * c };
+        }
+      }
       ctx.restore();
     }
     if (hot > 0.05) {                     // a flickering glow around the hot tips
@@ -6547,6 +6613,22 @@ const GrainSim = (() => {
       }
       ctx.globalCompositeOperation = 'source-over';
     }
+    // rose petals, tumbling as they fall: pale at the rim, deep at the base, darker on their backs
+    for (const p of fx.petals) {
+      const k = p.t / p.life, a = p.t < 0.4 ? p.t / 0.4 : k > 0.75 ? (1 - k) / 0.25 : 1;
+      if (a <= 0 || p.y < -30) continue;
+      const fl = Math.cos(p.flip), L = p.l, w = L * 0.62, back = fl < 0;
+      ctx.save(); ctx.translate(p.x + Math.sin(p.ph) * p.sway, p.y); ctx.rotate(p.rot); ctx.scale(0.25 + 0.75 * Math.abs(fl), 1);
+      ctx.globalAlpha = 0.92 * a;
+      const g = ctx.createLinearGradient(0, -L / 2, 0, L / 2), C = p.deep ? ['#f6c6cf', '#d9506d', '#8e1f38'] : ['#fde6ec', '#f29ab3', '#c4466a'];
+      g.addColorStop(0, back ? C[1] : C[0]); g.addColorStop(0.55, C[1]); g.addColorStop(1, C[2]);
+      ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(0, L / 2);
+      ctx.bezierCurveTo(w * 0.9, L * 0.25, w, -L * 0.35, w * 0.35, -L / 2);
+      ctx.quadraticCurveTo(0, -L * 0.38, -w * 0.35, -L / 2);
+      ctx.bezierCurveTo(-w, -L * 0.35, -w * 0.9, L * 0.25, 0, L / 2);
+      ctx.fill(); ctx.restore();
+    }
+    ctx.globalAlpha = 1;
     for (const p of fx.steam) {
       const k = p.t / p.life;
       ctx.fillStyle = 'rgba(214,224,232,' + 0.3 * (1 - k) + ')';
@@ -6564,6 +6646,44 @@ const GrainSim = (() => {
     }
     ctx.globalAlpha = 1; ctx.shadowBlur = 0; ctx.shadowColor = 'transparent';
   }
+  // zen: the runes kindle toward the multiplier (a flare and a few sparks as each one catches); at ×10 they burn, and
+  // the first time a run gets there (again, after falling back below ×8, and not twice in 20 s) time slows for a
+  // moment and rose petals fall over the board
+  function zenGlow(dt) {
+    const m = sim.mult, max = GS.SCORE.maxMult, still = reducedMotion();
+    for (let j = 0; j < RUNES.length; j++) {
+      const want = runeWant(j, m), lv = fx.runeLv[j];
+      fx.runeLv[j] = lv + (want - lv) * Math.min(1, dt * (want > lv ? 5 : 8));
+      if (want >= 1 && !fx.runeLit[j]) { fx.runeLit[j] = true; fx.runeFlare[j] = 1; runeSparks(j, 5); }
+      else if (want < 0.6) fx.runeLit[j] = false;
+      fx.runeFlare[j] = Math.max(0, fx.runeFlare[j] - dt / 0.4);
+    }
+    fx.runeBurn += ((m >= max - 0.01 ? 1 : 0) - fx.runeBurn) * Math.min(1, dt * 3);
+    if (fx.runeBurn > 0.3 && !still && Math.random() < 14 * fx.runeBurn * dt) runeSparks(Math.floor(Math.random() * RUNES.length), 1);
+    if (m >= max - 0.01 && fx.peakArmed && sim.clock - fx.peakAt > 20) { fx.peakArmed = false; fx.peakAt = sim.clock; peakMoment(); }
+    else if (m < max - 2) fx.peakArmed = true;
+  }
+  function runeSparks(j, n) {
+    if (reducedMotion()) return;
+    for (const P of fx.runePos) {
+      const q = P[j];
+      if (!q) continue;
+      for (let i = 0; i < n; i++) fx.sparks.push({ x: q.x + (Math.random() - 0.5) * 8, y: q.y, vx: (Math.random() - 0.5) * 70, vy: -50 - Math.random() * 80, t: 0, life: 0.45 + Math.random() * 0.4, warm: true });
+    }
+  }
+  // time runs at a third for a moment, then comes back up to speed
+  const slowmoRate = (t) => (t < 0.4 ? 0.3 : t < 1.6 ? 0.3 + 0.7 * (0.5 - 0.5 * Math.cos(((t - 0.4) / 1.2) * Math.PI)) : 1);
+  function peakMoment() {
+    Sound.bloom(); Haptics.buzz([8, 40, 8, 40, 16]);
+    Analytics.emit('zen_peak', { time: sim.clock, score: sim.score });
+    if (reducedMotion()) return;
+    fx.slowmo = { t: 0 };
+    for (let i = 0; i < 34; i++) {
+      fx.petals.push({ x: 20 + Math.random() * (W - 40), y: -20 - Math.random() * 420, vy: 110 + Math.random() * 80, sway: 16 + Math.random() * 34,
+        sf: 0.5 + Math.random() * 0.8, ph: Math.random() * 6.283, rot: Math.random() * 6.283, vr: (Math.random() - 0.5) * 2.4,
+        flip: Math.random() * 6.283, vf: 2 + Math.random() * 3, l: 18 + Math.random() * 10, t: 0, life: 6 + Math.random() * 1.5, deep: Math.random() < 0.4 });
+    }
+  }
   function updateFx(dt) {
     for (const [id, p] of fx.pops) { const v = p - dt / 0.16; if (v <= 0) fx.pops.delete(id); else fx.pops.set(id, v); }
     for (const [id, p] of fx.lands) { const v = p - dt / 0.18; if (v <= 0) fx.lands.delete(id); else fx.lands.set(id, v); }
@@ -6578,6 +6698,10 @@ const GrainSim = (() => {
         fx.sparks.push({ x: G.Tx + (Math.random() - 0.5) * 16, y: G.Ty, vx: (Math.random() - 0.5) * 60, vy: -40 - Math.random() * 70, t: 0, life: 0.5 + Math.random() * 0.4, warm: true });
       }
     }
+    if (sim && screen === 'play' && sim.zen) zenGlow(dt);
+    const pdt = dt * (fx.slowmo ? slowmoRate(fx.slowmo.t) : 1);
+    for (const p of fx.petals) { p.t += pdt; p.y += p.vy * pdt; p.ph += p.sf * pdt * 6.283; p.rot += p.vr * pdt; p.flip += p.vf * pdt; }
+    fx.petals = fx.petals.filter((p) => p.t < p.life && p.y < view.H + 40);
     fx.quench = Math.max(0, fx.quench - dt / 0.8);
     fx.beat = Math.max(0, fx.beat - dt * 5);
     if (fx.spill) { fx.spill.t += dt; if (fx.spill.t > 0.95) fx.spill = null; }
@@ -6642,6 +6766,7 @@ const GrainSim = (() => {
       // hit-stop: the board holds still for a beat; after a break it runs slow for a moment, then back to speed
       if (fx.stop > 0) fx.stop = Math.max(0, fx.stop - dt);
       else if (fx.slow > 0) { const k = fx.slow / SLOW; acc += dt * (1 - 0.75 * k * k); fx.slow = Math.max(0, fx.slow - dt); }
+      else if (fx.slowmo) { acc += dt * slowmoRate(fx.slowmo.t); fx.slowmo.t += dt; if (fx.slowmo.t >= 1.6) fx.slowmo = null; }
       else acc += dt;
       let n = 0;
       while (acc >= step && n < 24) {
