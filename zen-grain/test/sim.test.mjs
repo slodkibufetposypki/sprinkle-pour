@@ -898,7 +898,8 @@ test('zen: the night goes on in stages, the kinds change and get grander, worth 
   const fullRow = (t) => ev.some((e) => e.type === 'row_taken' && e.grain === t && e.kind === 'full');
   play(25, () => fullRow('lentil'));
   sim.clock = GS.ZEN_STAGE_S - 0.01; play(1);
-  sim.clock = 2 * GS.ZEN_STAGE_S - 0.01; play(70, () => fullRow('chickpea'));
+  const anyRow = (t) => ev.some((e) => e.type === 'row_taken' && e.grain === t && e.kind !== 'short');
+  sim.clock = 2 * GS.ZEN_STAGE_S - 0.01; play(70, () => anyRow('chickpea'));
   sim.clock = 3 * GS.ZEN_STAGE_S - 0.01; play(1);
   const stages = ev.filter((e) => e.type === 'stage').map((e) => e.id);
   assert.deepEqual(stages.slice(0, 3), ['night', 'deep', 'moon'], 'stages ' + stages.join(','));
@@ -907,7 +908,11 @@ test('zen: the night goes on in stages, the kinds change and get grander, worth 
   assert.ok(sim.level.types.length === 3 && new Set(sim.level.types).size === 3, 'three corners, three kinds');
   assert.equal(GS.ZEN.types.join(), 'lentil,rice,mung', 'the shared zen level is not changed by a run');
   const rows = ev.filter((e) => e.type === 'row_taken');
-  const per = (t) => { const r = rows.filter((e) => e.grain === t && e.kind === 'full'); return r.length ? r.reduce((a, e) => a + e.points / e.n / e.mult, 0) / r.length : 0; };
+  // what a grain of the kind is worth: a row's points without the multiplier and the row's own bonus
+  const per = (t) => {
+    const r = rows.filter((e) => e.grain === t && e.kind !== 'short' && !e.zoneOn);
+    return r.length ? r.reduce((a, e) => a + e.points / e.mult / (e.n * GS.SCORE.grain + (e.kind === 'full' ? GS.SCORE.full : GS.SCORE.clear)), 0) / r.length : 0;
+  };
   assert.ok(per('chickpea') > per('lentil') * 1.6, 'grander kinds pay more: ' + per('lentil').toFixed(1) + ' vs ' + per('chickpea').toFixed(1));
   for (const t in sim.stores) assert.ok(sim.level.types.includes(t), 'every corner belongs to a kind in play');
   assert.ok(sim.level.types.includes(sim.target), 'the sticks are after a kind in play');
@@ -1012,13 +1017,19 @@ test('zen: full rows charge the Zen Zone; in it the jar pours more, a wrong grai
   const on = ev.find((e) => e.type === 'zone');
   assert.ok(on && on.on, 'the zone came on with a full row');
   assert.ok(sim.zoneT > GS.ZEN_ZONE.secs - 1 && sim.zone === 0);
-  // what the jar pours now is the zone's: marked, and not counted toward a full board
-  release(sim, 3);
+  // what the jar pours now is the zone's: marked, and not counted toward a full board. (The rhythm's own stones are
+  // taken off as it goes, so the only stones at the tips are the ones put there below.)
+  const noStones = () => {
+    for (const g of sim.grains) if (TYPES[g.type].stone && g.st !== ST.LOST) g.st = ST.LOST;
+    sim.jar.pour = sim.jar.pour.filter((id) => !TYPES[sim.grains[id].type].stone);
+    sim.jar.scoops = sim.jar.scoops.map((sc) => sc.filter((id) => !TYPES[sim.grains[id].type].stone));
+  };
+  for (let i = 0; i < 3 * sim.cfg.stepHz; i++) { noStones(); sim.step({ down: false, x: W / 2, y: 1200 }); sim.drainEvents(); }
   const extra = sim.grains.filter((g) => g.frenzy && (g.st === ST.REST || g.st === ST.SLIDE));
   assert.ok(extra.length > 0, 'the jar poured in the zone');
   // in the zone wrong grains and stones lie still: one near the tips does not creep in
   const l = sim.grains.find((g) => g.type === sim.target && g.st === ST.REST && !g.frenzy) || sim.debugPut(sim.target, 300, 700);
-  holdAt(sim, l.x, l.y + 60, 0.3);
+  noStones(); holdAt(sim, l.x, l.y + 60, 0.3);
   let G = sim.geom();
   const near = sim.debugPut('stone', G.mx + G.ux * 40, G.my + G.uy * 40), tips = () => { const g2 = sim.geom(); return Math.hypot(near.x - g2.mx, near.y - g2.my); };
   const d0 = tips(), evS = holdAt(sim, l.x, l.y + 60, 0.6);
@@ -1027,13 +1038,14 @@ test('zen: full rows charge the Zen Zone; in it the jar pours more, a wrong grai
   const ev2 = [], inp = { down: true, x: l.x, y: l.y + 60 + sim.cfg.fingerOffset };
   let put = false;
   for (let i = 0; i < 4 * sim.cfg.stepHz && !ev2.some((e) => e.type === 'zone'); i++) {
+    if (!put) noStones();
     if (!put && sim.sticks.phase === 'open' && sim.sticks.pt > 0.25) { G = sim.geom(); sim.debugPut('stone', G.mx, G.my); put = true; }
     sim.step(inp); ev2.push(...sim.drainEvents());
     if (put && sim.sticks.phase !== 'open' && !ev2.some((e) => e.type === 'break')) put = false;
   }
   assert.ok(ev2.some((e) => e.type === 'break'), 'the row broke');
   const off = ev2.find((e) => e.type === 'zone' && !e.on);
-  assert.ok(off && off.broken && sim.zoneT === 0 && sim.zone === 0, 'and the zone ended');
+  assert.ok(off && off.broken && sim.zoneT === 0 && sim.zone === 0, 'and the zone ended: ' + JSON.stringify(off && { broken: off.broken }) + ' zoneT ' + sim.zoneT + ' zone ' + sim.zone + ' events ' + ev2.filter((e) => ['break', 'zone', 'life_lost'].includes(e.type)).map((e) => e.type + (e.wrong ? ':' + e.wrong : '')).join(','));
   assert.ok(off.sunk.length > 0 && !sim.grains.some((g) => g.frenzy), 'what it poured sank: ' + off.sunk.length);
   invariants(sim);
 });
@@ -1135,6 +1147,21 @@ test('zen: the jar keeps a rhythm: waves with a calm after, spills, orders, neve
   assert.ok(new Set(picks).size === 3, 'all three came: ' + picks.join(','));
   const flow = ev.filter((e) => e.type === 'flow').map((e) => e.kind);
   flow.forEach((k, i) => { if (k === 'warn') assert.equal(flow[i + 1] || 'rush', 'rush'); if (k === 'rush' || k === 'spill') assert.equal(flow[i + 1] || 'calm', 'calm'); });
+});
+
+test('zen: the rhythm goes round: order, peak (a wave, then a spill, by turns), and stones go 1, 2, 3 and back', () => {
+  const sim = GS.create({}, GS.ZEN, LAYOUT, 15), bot = GS.makeBot(sim, 9), ev = [], stones = [];
+  for (let i = 0; i < 330 * 120 && !sim.done; i++) {
+    sim.step(bot()); ev.push(...sim.drainEvents()); if (sim.lives < 2) sim.lives = 3;
+    if (i % 120 === 0 && sim.clock > 2 * GS.ZEN_STAGE_S / 2 + 20) stones.push(sim.grains.filter((g) => TYPES[g.type].stone && (g.st === ST.REST || g.st === ST.SLIDE)).length);
+  }
+  const picks = ev.filter((e) => e.type === 'order' || (e.type === 'flow' && (e.kind === 'warn' || e.kind === 'spill')))
+    .map((e) => (e.type === 'order' ? 'order' : e.kind === 'warn' ? 'wave' : 'spill'));
+  assert.ok(picks.length >= 7, 'events: ' + picks.join(','));
+  picks.forEach((k, i) => assert.equal(k === 'order', i % 2 === 0, 'order and peak by turns: ' + picks.join(',')));
+  const peaks = picks.filter((k) => k !== 'order').slice(1);
+  peaks.forEach((k, i) => assert.equal(k, i % 2 === 0 ? 'spill' : 'wave', 'the peaks by turns once spills may come: ' + picks.join(',')));
+  assert.ok(Math.max(...stones) <= 3 && Math.max(...stones) === 3 && Math.min(...stones) <= 1, 'stones on the board, each second: ' + stones.join(''));
 });
 
 test('zen: an order counts rows of its kind; filled in time it pays and charges the Zen Zone, missed it takes some back', () => {
