@@ -1095,6 +1095,27 @@ test('zen: a thumb kept down gathers grains that came after the sticks did', () 
   invariants(sim);
 });
 
+test('zen: a stone in a row costs a life; a wrong grain only breaks it', () => {
+  const run = (bad) => {
+    const sim = GS.create({}, GS.ZEN, LAYOUT, 9);
+    sim.flow.next = 1e9;
+    const l = sim.grains.find((g) => g.type === sim.target && g.st === ST.REST);
+    const inp = { down: true, x: l.x, y: l.y + 60 + sim.cfg.fingerOffset }, ev = [];
+    let put = false;
+    for (let i = 0; i < 4 * sim.cfg.stepHz && !ev.some((e) => e.type === 'break'); i++) {
+      if (!put && sim.sticks.phase === 'open' && sim.sticks.pt > 0.25) { const G = sim.geom(); sim.debugPut(bad(sim), G.mx, G.my); put = true; }
+      sim.step(inp); ev.push(...sim.drainEvents());
+    }
+    return { sim, ev };
+  };
+  const a = run(() => 'stone');
+  assert.ok(a.ev.some((e) => e.type === 'break'), 'the stone broke the row');
+  assert.ok(a.ev.some((e) => e.type === 'life_lost' && e.why === 'stone') && a.sim.lives === 2, 'and took a life');
+  const b = run((sim) => sim.level.types.find((t) => t !== sim.sticks.rowType));
+  assert.ok(b.ev.some((e) => e.type === 'break'), 'the wrong grain broke the row');
+  assert.ok(!b.ev.some((e) => e.type === 'life_lost') && b.sim.lives === 3, 'but took no life');
+});
+
 test('zen: a stone sinks into the sand after a while', () => {
   const sim = GS.create({}, GS.ZEN, LAYOUT, 14);
   sim.started = true;
