@@ -1006,7 +1006,8 @@ test('zen: a kind hands its corner on only once none of it is left in the jar ei
 test('zen: full rows charge the Zen Zone; in it the jar pours more, a wrong grain breaks the row and ends it', () => {
   const sim = GS.create({}, GS.ZEN, LAYOUT, 13);
   const bot = GS.makeBot(sim, 9), ev = [];
-  sim.zone = 1 - GS.ZEN_ZONE.full / 2;
+  sim.clock = GS.ZEN_ZONE.from + 1; sim.flow.next = 1e9;
+  sim.zone = 0.995;
   for (let i = 0; i < 60 * 120 && !ev.some((e) => e.type === 'zone'); i++) { sim.step(bot()); ev.push(...sim.drainEvents()); }
   const on = ev.find((e) => e.type === 'zone');
   assert.ok(on && on.on, 'the zone came on with a full row');
@@ -1015,18 +1016,18 @@ test('zen: full rows charge the Zen Zone; in it the jar pours more, a wrong grai
   release(sim, 3);
   const extra = sim.grains.filter((g) => g.frenzy && (g.st === ST.REST || g.st === ST.SLIDE));
   assert.ok(extra.length > 0, 'the jar poured in the zone');
-  // in the zone wrong grains lie still: one near the tips does not creep in
+  // in the zone wrong grains and stones lie still: one near the tips does not creep in
   const l = sim.grains.find((g) => g.type === sim.target && g.st === ST.REST && !g.frenzy) || sim.debugPut(sim.target, 300, 700);
   holdAt(sim, l.x, l.y + 60, 0.3);
   let G = sim.geom();
-  const near = sim.debugPut(level0Other(sim), G.mx + G.ux * 40, G.my + G.uy * 40), tips = () => { const g2 = sim.geom(); return Math.hypot(near.x - g2.mx, near.y - g2.my); };
+  const near = sim.debugPut('stone', G.mx + G.ux * 40, G.my + G.uy * 40), tips = () => { const g2 = sim.geom(); return Math.hypot(near.x - g2.mx, near.y - g2.my); };
   const d0 = tips(), evS = holdAt(sim, l.x, l.y + 60, 0.6);
   assert.ok(!evS.some((e) => e.type === 'break') && tips() > d0 - 4, 'a wrong grain near the tips did not creep in: ' + d0.toFixed(1) + ' then ' + tips().toFixed(1));
   // driving the tips onto one: the row breaks and the zone is over; what it poured sinks
   const ev2 = [], inp = { down: true, x: l.x, y: l.y + 60 + sim.cfg.fingerOffset };
   let put = false;
   for (let i = 0; i < 4 * sim.cfg.stepHz && !ev2.some((e) => e.type === 'zone'); i++) {
-    if (!put && sim.sticks.phase === 'open') { G = sim.geom(); sim.debugPut(level0Other(sim), G.mx, G.my); put = true; }
+    if (!put && sim.sticks.phase === 'open' && sim.sticks.pt > 0.25) { G = sim.geom(); sim.debugPut('stone', G.mx, G.my); put = true; }
     sim.step(inp); ev2.push(...sim.drainEvents());
     if (put && sim.sticks.phase !== 'open' && !ev2.some((e) => e.type === 'break')) put = false;
   }
@@ -1036,32 +1037,26 @@ test('zen: full rows charge the Zen Zone; in it the jar pours more, a wrong grai
   assert.ok(off.sunk.length > 0 && !sim.grains.some((g) => g.frenzy), 'what it poured sank: ' + off.sunk.length);
   invariants(sim);
 });
-const level0Other = (sim) => sim.level.types.find((t) => t !== sim.sticks.rowType && t !== sim.target) || sim.level.types.find((t) => t !== sim.sticks.rowType);
 
-test('zen: the Zen Zone fills in steps; the multiplier grows faster from the first, holds longer from the second', () => {
-  const sim = GS.create({}, GS.ZEN, LAYOUT, 3);
-  for (const [z, k] of [[0, 0], [0.3, 1], [0.5, 2], [0.8, 3]]) { sim.zone = z; assert.equal(sim.zenStep(), k, 'step at ' + z); }
-  sim.zoneT = 1; assert.equal(sim.zenStep(), 4, 'step while it lasts'); sim.zoneT = 0;
-  // six seconds without a row cools the multiplier at the first step; at the second it holds
-  const cool = (z) => {
-    const s2 = GS.create({}, GS.ZEN, LAYOUT, 3);
-    s2.started = true; s2.zone = z; s2.mult = 3; s2.lastPull = s2.clock - 6;
-    const ev = release(s2, 1);
-    return { mult: s2.mult, ev };
-  };
-  const a = cool(0.3), b = cool(0.55);
-  assert.ok(a.mult < 3, 'cooled at the first step: ' + a.mult);
-  assert.equal(b.mult, 3, 'held at the second step');
-  assert.ok(b.ev.some((e) => e.type === 'zen_step' && e.step === 2 && e.up), 'the step is said');
-  // the same first row grows the multiplier a quarter more at the first step
-  const firstGain = (z) => {
-    const s3 = GS.create({}, GS.ZEN, LAYOUT, 21), bot = GS.makeBot(s3, 7);
-    s3.zone = z;
-    for (let i = 0; i < 40 * 120; i++) { s3.step(bot()); const e = s3.drainEvents().find((x) => x.type === 'row_taken' && x.full); if (e) return e.gain; }
-    return null;
-  };
-  const g0 = firstGain(0), g1 = firstGain(0.3);
-  assert.ok(g0 > 0 && Math.abs(g1 / g0 - GS.ZEN_ZONE.gainK[1]) < 1e-9, 'gain ' + g0 + ' then ' + g1);
+test('zen: the Zen Zone meter opens after a while, fills with full rows, and drains with none', () => {
+  // before it opens, full rows put nothing in it
+  const a = GS.create({}, GS.ZEN, LAYOUT, 21), botA = GS.makeBot(a, 7);
+  a.flow.next = 1e9;
+  let rows = 0;
+  for (let i = 0; i < 40 * 120 && a.clock < GS.ZEN_ZONE.from - 1; i++) { a.step(botA()); for (const e of a.drainEvents()) if (e.type === 'row_taken' && e.full) rows++; }
+  assert.ok(rows > 3 && a.zone === 0, rows + ' full rows before it opened, meter ' + a.zone);
+  // after it opens they do, a quick row more than a slow one
+  const b = GS.create({}, GS.ZEN, LAYOUT, 21), botB = GS.makeBot(b, 7);
+  b.clock = GS.ZEN_ZONE.from + 1; b.flow.next = 1e9;
+  let seen = null;
+  for (let i = 0; i < 40 * 120 && !seen; i++) { b.step(botB()); seen = b.drainEvents().find((e) => e.type === 'row_taken' && e.full); }
+  assert.ok(seen && Math.abs(b.zone - GS.ZEN_ZONE.speed[seen.speed]) < 1e-9, seen && seen.speed + ' row put ' + b.zone);
+  assert.ok(GS.ZEN_ZONE.speed.Lightning > GS.ZEN_ZONE.speed.Quick && GS.ZEN_ZONE.speed.Quick > GS.ZEN_ZONE.speed.Steady && GS.ZEN_ZONE.speed.Steady > GS.ZEN_ZONE.speed.Slow);
+  // with no row for a while it drains
+  const c = GS.create({}, GS.ZEN, LAYOUT, 3);
+  c.started = true; c.clock = GS.ZEN_ZONE.from + 1; c.flow.next = 1e9; c.zone = 0.5; c.lastPull = c.clock - 10;
+  release(c, 1);
+  assert.ok(c.zone < 0.5 && c.zone > 0.5 - 2 * GS.ZEN_ZONE.drain, 'drained to ' + c.zone);
 });
 
 test('zen: in the Zen Zone a closed row flies to its bowl by itself and the sticks stay on the board', () => {
@@ -1123,14 +1118,14 @@ test('zen: the jar keeps a rhythm: waves with a calm after, spills, orders, neve
 
 test('zen: an order counts rows of its kind; filled in time it pays and charges the Zen Zone, missed it takes some back', () => {
   const sim = GS.create({}, GS.ZEN, LAYOUT, 16), bot = GS.makeBot(sim, 9), ev = [];
-  sim.flow.next = 1e9;
-  sim.order = { type: 'lentil', need: 5, got: 0, until: 22, secs: 22 };
+  sim.flow.next = 1e9; sim.clock = GS.ZEN_ZONE.from + 1;
+  sim.order = { type: 'lentil', need: 5, got: 0, until: sim.clock + 22, secs: 22 };
   for (let i = 0; i < 25 * 120 && !ev.some((e) => e.type.startsWith('order_')); i++) { sim.step(bot()); ev.push(...sim.drainEvents()); }
   const done = ev.find((e) => e.type === 'order_done');
   assert.ok(done && done.bonus > 0, 'the order was filled');
   assert.ok(sim.zone >= GS.ZEN_FLOW.orderGain || sim.zoneT > 0, 'and charged the zone');
   assert.equal(sim.order, null);
-  sim.zone = 0.5; sim.flow.next = 1e9;
+  sim.zone = 0.5; sim.flow.next = 1e9; sim.lastPull = sim.clock;
   sim.order = { type: 'rice', need: 999, got: 0, until: sim.clock + 1, secs: 1 };
   const ev2 = release(sim, 1.5);
   assert.ok(ev2.some((e) => e.type === 'order_failed'));
