@@ -1084,6 +1084,22 @@ test('zen: in the Zen Zone a closed row flies to its bowl by itself and the stic
   invariants(sim);
 });
 
+test('zen: a thumb kept down gathers grains that came after the sticks did', () => {
+  const sim = GS.create({}, GS.ZEN, LAYOUT, 9);
+  for (const g of sim.grains) if (g.st === ST.REST) g.st = ST.LOST;          // an empty board
+  sim.flow.next = 1e9;
+  const inp = { down: true, x: 300, y: 760 + sim.cfg.fingerOffset };
+  for (let i = 0; i < sim.cfg.stepHz && sim.sticks.phase !== 'open'; i++) { sim.step(inp); sim.drainEvents(); }
+  assert.equal(sim.sticks.phase, 'open', 'the sticks came in over an empty board');
+  // grains of the row's kind land in front of the tips only now; the thumb has not moved
+  const G = sim.geom(), type = sim.sticks.rowType;
+  for (let i = 0; i < 6; i++) sim.debugPut(type, G.mx + (i - 2.5) * 16, G.my - 60 - (i % 2) * 14);
+  let closed = 0;
+  for (let i = 0; i < 1.5 * sim.cfg.stepHz && !closed; i++) { sim.step(inp); for (const e of sim.drainEvents()) if (e.type === 'close') closed++; }
+  assert.ok(closed > 0 || sim.sticks.row.length >= 2, 'the new grains were gathered: row ' + sim.sticks.row.length);
+  invariants(sim);
+});
+
 test('zen: a stone sinks into the sand after a while', () => {
   const sim = GS.create({}, GS.ZEN, LAYOUT, 14);
   sim.started = true;
