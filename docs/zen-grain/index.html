@@ -1702,6 +1702,16 @@ const GrainSim = (() => {
       if (!sim.started) { sim.started = true; emit('clock_start', { par: sim.par }); }
       emit('sticks_in', { grain: sim.target, quick: !!quick });
     }
+    // zen: a thumb kept down keeps gathering. How many the row takes is counted again all the time, not only when the
+    // sticks came in, so grains poured since are called too; empty sticks with none of their kind left turn to a kind
+    // that is there.
+    function keepGathering() {
+      if (!S.row.length && !S.trail.length && sim.available(S.rowType) === 0) {
+        if (sim.available(sim.target) === 0) switchTarget();
+        if (sim.target !== S.rowType && sim.available(sim.target) > 0) { S.rowType = sim.target; S.cap = sim.caps[S.rowType]; }
+      }
+      S.need = Math.min(S.cap, sim.available(S.rowType));          // what is on the board, in the row and walking to it
+    }
     // lifted: the finger let go to close it. Carrying it yourself, a row closed that way waits where it is.
     // A row that closed by itself while the finger stays down: the sticks come back for the next one after a breath.
     // Let go early with a wrong grain close to the tips and the row was saved in time.
@@ -2475,6 +2485,7 @@ const GrainSim = (() => {
         }
         case 'open': {
           follow(ax, ay, dt); approachGap(openGap(), 20, dt); S.pt += dt;
+          if (sim.zen) keepGathering();
           S.pushN += pushGrains(sim.geom());
           if (S.pushN && sim.t - S.pushT > 0.06) { emit('push', { n: S.pushN, speed: Math.hypot(S.vx, S.vy) }); S.pushN = 0; S.pushT = sim.t; }
           gather(dt);
