@@ -1023,6 +1023,52 @@ test('zen: full rows charge the Zen Zone; in it wrong grains break nothing and r
   assert.ok(ev3.some((e) => e.type === 'zone' && !e.on) && sim.zoneT === 0, 'the zone ended');
 });
 
+test('zen: the Zen Zone fills in steps; the multiplier grows faster from the first, holds longer from the second', () => {
+  const sim = GS.create({}, GS.ZEN, LAYOUT, 3);
+  for (const [z, k] of [[0, 0], [0.3, 1], [0.5, 2], [0.8, 3]]) { sim.zone = z; assert.equal(sim.zenStep(), k, 'step at ' + z); }
+  sim.zoneT = 1; assert.equal(sim.zenStep(), 4, 'step while it lasts'); sim.zoneT = 0;
+  // six seconds without a row cools the multiplier at the first step; at the second it holds
+  const cool = (z) => {
+    const s2 = GS.create({}, GS.ZEN, LAYOUT, 3);
+    s2.started = true; s2.zone = z; s2.mult = 3; s2.lastPull = s2.clock - 6;
+    const ev = release(s2, 1);
+    return { mult: s2.mult, ev };
+  };
+  const a = cool(0.3), b = cool(0.55);
+  assert.ok(a.mult < 3, 'cooled at the first step: ' + a.mult);
+  assert.equal(b.mult, 3, 'held at the second step');
+  assert.ok(b.ev.some((e) => e.type === 'zen_step' && e.step === 2 && e.up), 'the step is said');
+  // the same first row grows the multiplier a quarter more at the first step
+  const firstGain = (z) => {
+    const s3 = GS.create({}, GS.ZEN, LAYOUT, 21), bot = GS.makeBot(s3, 7);
+    s3.zone = z;
+    for (let i = 0; i < 40 * 120; i++) { s3.step(bot()); const e = s3.drainEvents().find((x) => x.type === 'row_taken' && x.full); if (e) return e.gain; }
+    return null;
+  };
+  const g0 = firstGain(0), g1 = firstGain(0.3);
+  assert.ok(g0 > 0 && Math.abs(g1 / g0 - GS.ZEN_ZONE.gainK[1]) < 1e-9, 'gain ' + g0 + ' then ' + g1);
+});
+
+test('zen: in the Zen Zone a closed row flies to its bowl by itself and the sticks stay on the board', () => {
+  const sim = GS.create({}, GS.ZEN, LAYOUT, 5);
+  sim.zoneT = GS.ZEN_ZONE.secs;
+  const ls = sim.grains.filter((g) => g.type === sim.target && g.st === ST.REST), c = centroid(ls);
+  // a finger held still under the heap, as a player keeps it down while the rows close by themselves
+  const inp = { down: true, x: c.x, y: c.y + 60 + sim.cfg.fingerOffset };
+  let carried = false, rows = 0, quick = 0, pour = 0;
+  for (let i = 0; i < 3 * sim.cfg.stepHz; i++) {
+    sim.step(inp);
+    if (sim.sticks.phase === 'carry') carried = true;
+    for (const e of sim.drainEvents()) { if (e.type === 'row_taken') rows++; if (e.type === 'sticks_in' && e.quick) quick++; }
+    pour = Math.max(pour, sim.grains.filter((g) => g.st === ST.POUR).length);
+  }
+  assert.ok(rows >= 1, 'a row was taken: ' + rows);
+  assert.ok(pour >= 1, 'its grains flew to the bowl');
+  assert.ok(!carried, 'no trip to the bowl and back');
+  assert.ok(quick >= 1, 'the sticks opened again where they were');
+  invariants(sim);
+});
+
 test('zen: a stone sinks into the sand after a while', () => {
   const sim = GS.create({}, GS.ZEN, LAYOUT, 14);
   sim.started = true;

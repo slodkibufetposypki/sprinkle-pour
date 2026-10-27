@@ -2,7 +2,7 @@
 // The page itself is asked for fresh each time (so an update shows up at once) and falls back to the kept copy;
 // pictures, sound and fonts come from the kept copy. The room video is left to the network: phones fetch it in
 // pieces, which a kept whole file cannot answer, and without it the room shows its still picture instead.
-const VERSION = '3bf11335f3';
+const VERSION = '6caf522f3b';
 const CACHE = 'zen-grain-' + VERSION;
 const CORE = ['./', 'index.html', 'zen-room.jpg', 'zen-room.mp3', 'zen-night.jpg', 'zen-flame.png', 'zen-chime.png', 'zen-lantern.png',
   'icon-192.png', 'icon-512.png', 'icon-180.png', 'manifest.webmanifest'];
