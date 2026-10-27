@@ -1003,7 +1003,7 @@ test('zen: a kind hands its corner on only once none of it is left in the jar ei
   assert.ok(sim.stores.lentil, 'and their corner waits for them');
 });
 
-test('zen: full rows charge the Zen Zone; in it wrong grains break nothing and rows pay double', () => {
+test('zen: full rows charge the Zen Zone; in it the jar pours more, a wrong grain breaks the row and ends it', () => {
   const sim = GS.create({}, GS.ZEN, LAYOUT, 13);
   const bot = GS.makeBot(sim, 9), ev = [];
   sim.zone = 1 - GS.ZEN_ZONE.full / 2;
@@ -1011,17 +1011,32 @@ test('zen: full rows charge the Zen Zone; in it wrong grains break nothing and r
   const on = ev.find((e) => e.type === 'zone');
   assert.ok(on && on.on, 'the zone came on with a full row');
   assert.ok(sim.zoneT > GS.ZEN_ZONE.secs - 1 && sim.zone === 0);
-  // a wrong grain at the tips while the zone lasts: no break
-  const l = sim.grains.find((g) => g.type === 'lentil' && g.st === ST.REST) || sim.debugPut('lentil', 300, 700);
+  // what the jar pours now is the zone's: marked, and not counted toward a full board
+  release(sim, 3);
+  const extra = sim.grains.filter((g) => g.frenzy && (g.st === ST.REST || g.st === ST.SLIDE));
+  assert.ok(extra.length > 0, 'the jar poured in the zone');
+  // in the zone wrong grains lie still: one near the tips does not creep in
+  const l = sim.grains.find((g) => g.type === sim.target && g.st === ST.REST && !g.frenzy) || sim.debugPut(sim.target, 300, 700);
   holdAt(sim, l.x, l.y + 60, 0.3);
-  const G = sim.geom();
-  sim.debugPut('rice', G.mx + G.ux * 25, G.my + G.uy * 25);
-  const ev2 = holdAt(sim, l.x, l.y + 60, 1);
-  assert.ok(!ev2.some((e) => e.type === 'break'), 'nothing broke in the zone');
-  // and it runs out
-  const ev3 = release(sim, GS.ZEN_ZONE.secs + 1);
-  assert.ok(ev3.some((e) => e.type === 'zone' && !e.on) && sim.zoneT === 0, 'the zone ended');
+  let G = sim.geom();
+  const near = sim.debugPut(level0Other(sim), G.mx + G.ux * 40, G.my + G.uy * 40), tips = () => { const g2 = sim.geom(); return Math.hypot(near.x - g2.mx, near.y - g2.my); };
+  const d0 = tips(), evS = holdAt(sim, l.x, l.y + 60, 0.6);
+  assert.ok(!evS.some((e) => e.type === 'break') && tips() > d0 - 4, 'a wrong grain near the tips did not creep in: ' + d0.toFixed(1) + ' then ' + tips().toFixed(1));
+  // driving the tips onto one: the row breaks and the zone is over; what it poured sinks
+  const ev2 = [], inp = { down: true, x: l.x, y: l.y + 60 + sim.cfg.fingerOffset };
+  let put = false;
+  for (let i = 0; i < 4 * sim.cfg.stepHz && !ev2.some((e) => e.type === 'zone'); i++) {
+    if (!put && sim.sticks.phase === 'open') { G = sim.geom(); sim.debugPut(level0Other(sim), G.mx, G.my); put = true; }
+    sim.step(inp); ev2.push(...sim.drainEvents());
+    if (put && sim.sticks.phase !== 'open' && !ev2.some((e) => e.type === 'break')) put = false;
+  }
+  assert.ok(ev2.some((e) => e.type === 'break'), 'the row broke');
+  const off = ev2.find((e) => e.type === 'zone' && !e.on);
+  assert.ok(off && off.broken && sim.zoneT === 0 && sim.zone === 0, 'and the zone ended');
+  assert.ok(off.sunk.length > 0 && !sim.grains.some((g) => g.frenzy), 'what it poured sank: ' + off.sunk.length);
+  invariants(sim);
 });
+const level0Other = (sim) => sim.level.types.find((t) => t !== sim.sticks.rowType && t !== sim.target) || sim.level.types.find((t) => t !== sim.sticks.rowType);
 
 test('zen: the Zen Zone fills in steps; the multiplier grows faster from the first, holds longer from the second', () => {
   const sim = GS.create({}, GS.ZEN, LAYOUT, 3);
