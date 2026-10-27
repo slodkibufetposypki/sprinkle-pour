@@ -3183,6 +3183,12 @@ const GrainSim = (() => {
     squeak() { if (this.ready()) { const t = this.ctx.currentTime; this.tone(t, 'sine', 2300, 2900, 0.07, 0.09, 0.05); this.tone(t + 0.11, 'sine', 2600, 3300, 0.05, 0.08, 0.05); } },
     nibble() { if (this.ready()) { const t = this.ctx.currentTime; this.noiseBurst(t, 'bandpass', 1400, 3, 0.18, 0.03); this.tone(t, 'sine', 700, 1100, 0.06, 0.06, 0.04); } },
     patter() { if (this.ready()) this.noiseBurst(this.ctx.currentTime, 'bandpass', 2600 + Math.random() * 1500, 5, 0.04, 0.012); },
+    // a kalimba tine: a soft sine with a brief metal overtone and a tiny click, plucked and gone in half a second
+    pluck(t, f, peak) {
+      this.tone(t, 'sine', f, f, peak, 0.55);
+      this.tone(t, 'sine', f * 4.1, f * 4.1, peak * 0.16, 0.07);
+      this.noiseBurst(t, 'bandpass', f * 3, 2, peak * 0.35, 0.012);
+    },
     // noise through a filter sliding from f0 to f1, swelling to its peak at rise of the way and gone by dur; the noise
     // loops, so it can last longer than its buffer
     air(t, type, f0, f1, peak, dur, q, rise) {
@@ -3237,7 +3243,13 @@ const GrainSim = (() => {
     multUp() {},
     lost() {},
     hiss() {},
-    fanfare() { if (this.ready()) this.bowl(this.ctx.currentTime, 196, 0.22, 3); },
+    // a reward: three soft kalimba notes going up. Not the struck bowl: that rings like a gong, and the gong is kept
+    // for the end of a round
+    fanfare() {
+      if (!this.ready()) return;
+      const t = this.ctx.currentTime;
+      [587.33, 739.99, 880].forEach((f, i) => this.pluck(t + i * 0.085, f, 0.09));
+    },
     chime() { if (this.ready()) this.bowl(this.ctx.currentTime, 262, 0.16, 2.6); },
     finale() { if (this.ready()) [1568, 2093, 2637].forEach((f, i) => this.tone(this.ctx.currentTime + i * 0.09, 'sine', f, f, 0.03, 0.9)); },
     gong() { if (this.ready()) this.bowl(this.ctx.currentTime, 130.8, 0.32, 4.5); },
