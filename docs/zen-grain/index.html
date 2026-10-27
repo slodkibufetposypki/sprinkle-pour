@@ -3250,10 +3250,11 @@ const GrainSim = (() => {
     whoosh(k) {
       if (!this.ready()) return;
       const t = this.ctx.currentTime, v = k || 1;
-      this.air(t, 'lowpass', 2400, 340, 1.2 * v, 0.62, 0.8, 0.3);
-      this.air(t + 0.02, 'bandpass', 1100, 300, 0.7 * v, 0.55, 0.9, 0.38);      // the middle a phone's speaker plays well
-      this.tone(t + 0.03, 'sine', 190, 70, 0.32 * v, 0.38);
-      this.tone(t + 0.03, 'triangle', 380, 140, 0.08 * v, 0.3);              // its overtone, so the weight is heard on a phone too
+      // soft: it swells rather than strikes, and the middle stays under the low air
+      this.air(t, 'lowpass', 1900, 320, 0.8 * v, 0.66, 0.7, 0.46);
+      this.air(t + 0.03, 'bandpass', 950, 300, 0.32 * v, 0.6, 0.8, 0.5);       // the middle a phone's speaker plays well
+      this.tone(t + 0.05, 'sine', 180, 72, 0.2 * v, 0.4);
+      this.tone(t + 0.05, 'triangle', 360, 144, 0.04 * v, 0.32);             // its overtone, so the weight is heard on a phone too
     },
     // and the empty one set down in its place: a small ceramic knock
     setDown() {
@@ -4375,12 +4376,13 @@ const GrainSim = (() => {
     }
     // a row into its bowl: a ring of light runs out from the bowl through the furrows, across the whole board
     for (const R of fx.sandRings) {
-      const d = view.dpr, cx = d * (view.offX + R.x * view.scale), cy = d * R.y * view.scale, k = R.r / 1700, band = 90 * view.scale * d;
-      const r0 = R.r * view.scale * d;
-      for (let i = -2; i <= 2; i++) {
-        const rr = r0 + (i * band) / 5, al = 0.85 * (1 - Math.abs(i) / 3) * (1 - k) * (1 - k);
-        if (al <= 0.003 || rr <= 0) continue;
-        ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, rr + band / 10, 0, Math.PI * 2); ctx.arc(cx, cy, Math.max(0, rr - band / 10), 0, Math.PI * 2, true); ctx.clip();
+      // a wide band with a soft rise and fall across it, coming in gently at the bowl and fading as it spreads
+      const d = view.dpr, cx = d * (view.offX + R.x * view.scale), cy = d * R.y * view.scale, k = R.r / 1700, band = 150 * view.scale * d, n = 9;
+      const r0 = R.r * view.scale * d, fade = Math.min(1, R.r / 160) * Math.pow(1 - k, 1.5), sw = band / n;
+      for (let i = 0; i < n; i++) {
+        const w = (i + 0.5) / n * 2 - 1, al = 0.7 * Math.pow(1 - w * w, 2) * fade, rr = r0 + w * band / 2;
+        if (al <= 0.003 || rr + sw / 2 <= 0) continue;
+        ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, rr + sw / 2 + 0.5, 0, Math.PI * 2); ctx.arc(cx, cy, Math.max(0, rr - sw / 2), 0, Math.PI * 2, true); ctx.clip();
         ctx.globalAlpha = Math.min(1, al); ctx.drawImage(layer, 0, 0); ctx.restore();
       }
     }
@@ -5503,7 +5505,7 @@ const GrainSim = (() => {
           }
           fx.saved = false;
           if (sim.zen && !e.zoneOn) zoneMote(at, e.kind !== 'short');
-          if (sim.zen && !reducedMotion()) fx.sandRings.push({ x: e.x, y: e.y, r: 0, v: e.zoneOn ? 2600 : 1200 });
+          if (sim.zen && !reducedMotion()) fx.sandRings.push({ x: e.x, y: e.y, r: 0, v: e.zoneOn ? 1000 : 620 });
           if (sim.zen && e.kind !== 'short' && !e.zoneOn) zenTip('zone', 'Full rows charge the Zen Zone.');
           if (e.milestone) { Sound.fanfare(); Haptics.buzz([20, 30, 20, 30, 60]); banner(tr(e.milestone), tr('+{b} for {n} full rows in a row', { b: fmt(e.bonus), n: e.combo })); }
           const un = checkUnlocks();
@@ -6804,7 +6806,7 @@ const GrainSim = (() => {
     if (sim && screen === 'play' && sim.zen) zenGlow(dt);
     for (const p of fx.petals) { p.t += dt; p.y += p.vy * dt; p.ph += p.sf * dt * 6.283; p.rot += p.vr * dt; p.flip += p.vf * dt; }
     for (const p of fx.weld) { p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 1500 * dt; }
-    for (const r of fx.sandRings) r.r += r.v * dt;
+    for (const r of fx.sandRings) r.r += r.v * (1 - 0.35 * (r.r / 1700)) * dt;     // easing off as it spreads
     fx.sandRings = fx.sandRings.filter((r) => r.r < 1700);
     fx.weld = fx.weld.filter((p) => p.t < p.life);
     fx.petals = fx.petals.filter((p) => p.t < p.life && p.y < view.H + 40);
