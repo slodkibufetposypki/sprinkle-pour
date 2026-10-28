@@ -231,6 +231,39 @@ function sweepRight(sim, gy, x0, steps) {
   assert.equal(sim.sticks.phase, 'open', 'the sticks stayed open for the whole sweep');
 }
 
+test('grains pressed against a wall are squeezed out: they leap off it and land well away from it', () => {
+  const sim = pushBoard(2), B = sim.bounds();
+  const rs = [];
+  for (let i = 0; i < 5; i++) rs.push(sim.debugPut('rice', W - 60 - i * 24, 760));
+  const ev = [], y = 760 - 110 + sim.cfg.fingerOffset;
+  for (let k = 0; k < 40; k++) sim.step({ down: true, x: 300, y });
+  let flew = false;
+  for (let k = 0; k < 900; k++) {
+    sim.step({ down: true, x: Math.min(W - 10, 300 + k * 0.5), y }); ev.push(...sim.drainEvents());
+    if (rs.some((g) => g.fly > 0)) flew = true;
+  }
+  ev.push(...release(sim, 2));
+  assert.ok(ev.filter((e) => e.type === 'squeeze').length >= 3, 'squeezed out');
+  assert.ok(flew, 'in the air for a moment');
+  const left = rs.filter((g) => g.x > B.x1 - 60).length;
+  assert.ok(left <= 1, left + ' still against the wall: ' + rs.map((g) => g.x.toFixed(0)).join(' '));
+  for (const g of rs) assert.ok(g.x >= B.x0 && g.x <= B.x1 && g.y >= B.y0 && g.y <= B.y1, 'still on the board');
+});
+
+test('Pełnia: full rows grow the multiplier by a quarter of what they do in a level, and less the higher it stands', () => {
+  const sim = GS.create({}, GS.ZEN, LAYOUT, 9), bot = GS.makeBot(sim, 5);
+  sim.flow.next = 1e9;
+  const rows = [];
+  for (let i = 0; i < 90 * sim.cfg.stepHz && !sim.done; i++) { sim.step(bot()); for (const e of sim.drainEvents()) if (e.type === 'row_taken' && e.full) rows.push(e); }
+  assert.ok(rows.length > 5, rows.length + ' full rows');
+  for (const e of rows) {
+    const level = GS.multGain(e.combo, e.rowTime / GS.paceFor(e.n, sim.cfg), e.kind);
+    const want = level * GS.ZEN_MULT * (GS.SCORE.maxMult - e.multBefore) / (GS.SCORE.maxMult - 1);
+    assert.ok(Math.abs(e.gain - want) < 1e-9, 'gain ' + e.gain + ' against ' + want);
+  }
+  assert.ok(GS.ZEN_MULT <= 0.3);
+});
+
 test('the sticks shove one grain into another and both move', () => {
   const sim = pushBoard(2);
   const a = sim.debugPut('rice', 300, 760), b = sim.debugPut('rice', 300 + 22, 760);
