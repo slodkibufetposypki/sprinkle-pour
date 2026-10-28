@@ -4194,7 +4194,7 @@ const GrainSim = (() => {
       };
       grit(bx, 0, bw, H, Math.round((bw * H) / (40 * d * d)));
       const furrow = (pts) => {
-        for (const [dy, col, lw] of [[1.6 * d, 'rgba(0,0,0,0.22)', 2.4], [0, 'rgba(255,244,228,0.07)', 1.4]]) {
+        for (const [dy, col, lw] of [[1.2 * d, 'rgba(0,0,0,0.26)', 3.4], [-0.6 * d, 'rgba(255,240,220,0.1)', 1.2]]) {      // a valley, then its lit ridge
           c.strokeStyle = col; c.lineWidth = lw * d; c.beginPath();
           pts.forEach(([x, y], i) => (i ? c.lineTo(x, y + dy) : c.moveTo(x, y + dy))); c.stroke();
         }
@@ -4386,8 +4386,9 @@ const GrainSim = (() => {
   }
   // the zen sand's furrows: long waves across the board, and rings round two places where a stone stood
   function zenRake(bx, bw, H, d) {
-    const step = 13 * d, wave = (x, y) => Math.sin(x / (bw * 0.21) + y / (H * 0.9)) * 7 * d, lines = [], rounds = [];
-    for (let y = -step; y < H + step; y += step) {
+    const step = 15 * d, wave = (x, y) => Math.sin(x / (bw * 0.21) + y / (H * 0.9)) * 7 * d, lines = [], rounds = [];
+    let n = 0;
+    for (let y = -step; y < H + step; y += step * (0.85 + 0.3 * ((n++ * 0.618034) % 1))) {      // a hand's rake: never quite even
       const pts = [];
       for (let x = bx - 10; x <= bx + bw + 10; x += 12 * d) pts.push([x, y + wave(x - bx, y)]);
       lines.push(pts);
@@ -4414,9 +4415,9 @@ const GrainSim = (() => {
     const line = (pts) => { c.beginPath(); pts.forEach(([x, y], i) => (i ? c.lineTo(x, y) : c.moveTo(x, y))); c.stroke(); };
     const lightAll = (paths) => {
       c.save(); c.lineCap = 'round';
-      c.shadowColor = 'rgba(160,195,255,0.95)'; c.shadowBlur = 9 * d; c.strokeStyle = 'rgba(190,215,255,0.5)'; c.lineWidth = 2.2 * d;
+      c.shadowColor = 'rgba(255,196,120,0.85)'; c.shadowBlur = 9 * d; c.strokeStyle = 'rgba(255,226,175,0.5)'; c.lineWidth = 2.2 * d;
       paths.forEach(line);
-      c.shadowBlur = 0; c.strokeStyle = 'rgba(245,250,255,0.95)'; c.lineWidth = 0.9 * d;
+      c.shadowBlur = 0; c.strokeStyle = 'rgba(255,246,225,0.95)'; c.lineWidth = 0.9 * d;
       paths.forEach(line);
       c.restore();
     };
@@ -6162,49 +6163,73 @@ const GrainSim = (() => {
     c.lineTo(baseW / 2, len); c.lineTo(-baseW / 2, len); c.closePath();
     return { len, baseW, tipW, x0, ang };
   }
-  // zen: a script of our own written down each stick, short strokes in groups like an old inscription: bars across,
-  // slanting bars, a stem with branches, dots, a cross. Faint cuts until the Zen Zone is past its first step; then it
-  // lights from the tips and burns further down toward the hand the fuller the zone gets; while the zone lasts all of
-  // it burns. A broken row takes the zone a step back and the light draws back up with it.
+  // zen: a script of our own carved round each stick, short strokes in groups like an old inscription: bars across,
+  // slanting bars, a stem with branches, dots, a cross, in bands with bare wood between them. Each glyph is sized to
+  // the stick where it is cut, so it does not swell toward the hand. While the Zen Zone fills, it lights from the tips
+  // and burns further down toward the hand; while the zone lasts all of it burns, the ember sitting in the grooves.
   const SCRIPT_LEN = 940;
   const SCRIPT = (() => {
     let seed = 11;
     const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647, out = [[], []];
+    const wAt = (y) => GS.STICK.tipW + ((GS.STICK.baseW - GS.STICK.tipW) * y) / GS.STICK.len;
     for (const side of [0, 1]) {
-      let y = 30;
-      while (y < SCRIPT_LEN) {
-        const kind = Math.floor(rnd() * 5), n = 1 + Math.floor(rnd() * 4), st = [];
-        if (kind === 0) for (let i = 0; i < n; i++) st.push([-0.75, y + i * 4, 0.75, y + i * 4]);
-        else if (kind === 1) for (let i = 0; i < n; i++) st.push([-0.75, y + i * 4 + 3, 0.75, y + i * 4 - 1]);
-        else if (kind === 2) { st.push([0, y, 0, y + 4 * n + 2]); for (let i = 0; i < n; i++) st.push([0, y + 2 + i * 4, i % 2 ? -0.75 : 0.75, y + i * 4]); }
-        else if (kind === 3) for (let i = 0; i < n; i++) st.push([-0.12, y + i * 4.5, 0.12, y + i * 4.5]);
-        else st.push([-0.65, y, 0.65, y + 6], [0.65, y, -0.65, y + 6]);
-        out[side].push({ y, st });
-        y += (kind === 2 ? 4 * n + 2 : kind === 4 ? 6 : 4 * n) + 5 + rnd() * 6;
+      let y = 120;
+      while (y < 820) {
+        const end = Math.min(820, y + 90 + rnd() * 60);
+        while (y < end) {
+          const u = 0.55 * wAt(y), kind = Math.floor(rnd() * 5), n = 1 + Math.floor(rnd() * 3), st = [];
+          let h;
+          if (kind === 0) { for (let i = 0; i < n; i++) st.push([-0.75, y + i * u, 0.75, y + i * u]); h = n * u; }
+          else if (kind === 1) { for (let i = 0; i < n; i++) st.push([-0.75, y + i * u + 0.7 * u, 0.75, y + i * u - 0.2 * u]); h = n * u; }
+          else if (kind === 2) { st.push([0, y, 0, y + u * n + 0.5 * u]); for (let i = 0; i < n; i++) st.push([0, y + 0.5 * u + i * u, i % 2 ? -0.75 : 0.75, y + i * u]); h = n * u + 0.5 * u; }
+          else if (kind === 3) { for (let i = 0; i < n; i++) st.push([-0.12, y + i * u * 1.1, 0.12, y + i * u * 1.1]); h = n * u * 1.1; }
+          else { st.push([-0.65, y, 0.65, y + 1.5 * u], [0.65, y, -0.65, y + 1.5 * u]); h = 1.5 * u; }
+          out[side].push({ y, st });
+          y += h + u * (1.2 + rnd());
+        }
+        y += 40 + rnd() * 24;
       }
     }
     return out;
   })();
-  // in the stick's own frame: tip at y = 0, the hand toward +y
+  // in the stick's own frame: tip at y = 0, the hand toward +y. A stroke is cut in short pieces wrapped round the round
+  // stick (x = sin(u·0.62π) of the half width), fainter where the surface turns away; three passes make a groove: the
+  // dark cut, the lit lower lip of it, and, in the zone, the ember inside it.
   function drawScript(side, len) {
-    const marks = SCRIPT[side < 0 ? 0 : 1], lit = fx.litLen, t = performance.now() / 1000, on = sim.zoneT > 0, still = reducedMotion();
-    const hw = (y) => ((GS.STICK.tipW + ((GS.STICK.baseW - GS.STICK.tipW) * y) / len) / 2) * 0.85;
-    const path = (from, to) => {
-      ctx.beginPath();
+    const marks = SCRIPT[side < 0 ? 0 : 1], litLen = fx.litLen, t = performance.now() / 1000, on = sim.zoneT > 0, still = reducedMotion();
+    const half = (y) => (GS.STICK.tipW + ((GS.STICK.baseW - GS.STICK.tipW) * y) / len) / 2, A = 0.62 * Math.PI, VIS = [1, 0.62, 0.3];
+    const pieces = (from, to) => {
+      const B = [[], [], []];
       for (const g of marks) {
         if (g.y < from || g.y >= to) continue;
-        const w = hw(g.y);
-        for (const [x0, y0, x1, y1] of g.st) { ctx.moveTo(x0 * w, y0); ctx.lineTo(x1 * w, y1); }
+        const h = half(g.y);
+        for (const [u0, y0, u1, y1] of g.st) for (let i = 0; i < 3; i++) {
+          const ua = u0 + ((u1 - u0) * i) / 3, ub = u0 + ((u1 - u0) * (i + 1)) / 3, v = Math.pow(Math.cos(((ua + ub) / 2) * A), 1.5);
+          B[v > 0.75 ? 0 : v > 0.45 ? 1 : 2].push(Math.sin(ua * A) * h, y0 + ((y1 - y0) * i) / 3, Math.sin(ub * A) * h, y0 + ((y1 - y0) * (i + 1)) / 3);
+        }
+      }
+      return B;
+    };
+    const stroke = (B, col, a, w, dx, dy) => {
+      for (let k = 0; k < 3; k++) {
+        const seg = B[k];
+        if (!seg.length) continue;
+        ctx.beginPath();
+        for (let i = 0; i < seg.length; i += 4) { ctx.moveTo(seg[i] + dx, seg[i + 1] + dy); ctx.lineTo(seg[i + 2] + dx, seg[i + 3] + dy); }
+        ctx.strokeStyle = 'rgba(' + col + ',' + (a * VIS[k]).toFixed(3) + ')'; ctx.lineWidth = w * (0.6 + 0.4 * VIS[k]); ctx.stroke();
       }
     };
     ctx.lineCap = 'round';
-    path(Math.max(0, lit), SCRIPT_LEN); ctx.strokeStyle = 'rgba(28,14,4,0.34)'; ctx.lineWidth = 1.1; ctx.stroke();      // carved
-    if (lit > 1) {
-      const fl = on && !still ? 0.82 + 0.18 * Math.sin(t * 17) * Math.sin(t * 6.1) : 1;
+    const cut = pieces(Math.max(0, litLen), SCRIPT_LEN);
+    stroke(cut, '46,24,8', 0.5, 1.3, 0, 0);            // the groove
+    stroke(cut, '255,236,200', 0.3, 0.7, 0.6, 0.6);     // its lit lower lip
+    if (litLen > 1) {
+      const fl = on && !still ? 0.82 + 0.18 * Math.sin(t * 17) * Math.sin(t * 6.1) : 1, lit = pieces(0, litLen);
+      stroke(lit, '46,24,8', 0.45, 1.4, 0, 0);
       ctx.globalCompositeOperation = 'lighter';
-      path(0, lit); ctx.strokeStyle = 'rgba(255,140,50,' + (0.46 * fl).toFixed(3) + ')'; ctx.lineWidth = 4.8; ctx.stroke();
-      ctx.strokeStyle = 'rgba(255,236,190,' + (0.95 * fl).toFixed(3) + ')'; ctx.lineWidth = 1.4; ctx.stroke();
-      if (lit < SCRIPT_LEN - 1) { path(Math.max(0, lit - 46), lit); ctx.strokeStyle = 'rgba(255,252,236,0.95)'; ctx.lineWidth = 1.7; ctx.stroke(); }   // the burning edge
+      stroke(lit, '255,150,60', 0.28 * fl, 2.2, 0, 0);   // a soft glow, kept to the groove
+      stroke(lit, '255,222,160', 0.9 * fl, 1.0, 0, 0);   // the ember in it
+      if (litLen < SCRIPT_LEN - 1) stroke(pieces(Math.max(0, litLen - 46), litLen), '255,248,232', 0.9, 1.2, 0, 0);   // the burning front
       ctx.globalCompositeOperation = 'source-over';
     }
     ctx.lineCap = 'butt';
@@ -6239,19 +6264,17 @@ const GrainSim = (() => {
     const hot = s === sim && !pose ? fx.heat : 0, cold = s === sim && !pose ? fx.quench : 0, runes = s === sim && !pose && s.zen;
     const th = Math.atan2(G.ux, -G.uy), k = K(), cs = Math.cos(th) * k, sn = Math.sin(th) * k;
     const at = (wx, wy) => ctx.setTransform(cs, sn, -sn, cs, view.dpr * (view.offX + ox + wx * view.scale), view.dpr * (oy + wy * view.scale));
-    // shadows first, cast down and to the right; lifted sticks cast them further and softer
+    // one soft shadow, cast down and to the right from the body itself; lifted sticks cast it further and softer
     const lf = 1 + G.lift * 1.8, la = 1 - G.lift * 0.45;
-    for (const [dx, dy, a] of [[13, 18, 0.16], [8, 11, 0.24]]) {
-      at(G.Tx + dx * lf, G.Ty + dy * lf);
-      ctx.fillStyle = 'rgba(0,0,0,' + a * la + ')';
-      for (const side of [-1, 1]) { stickShape(ctx, side, G, L); ctx.fill(); ctx.restore(); }
-    }
     at(G.Tx, G.Ty);
     for (const side of [-1, 1]) {
       const m = stickShape(ctx, side, G, L);
       const gr = ctx.createLinearGradient(-m.baseW / 2, 0, m.baseW / 2, 0);
       [0, 0.22, 0.42, 0.62, 1].forEach((p, i) => gr.addColorStop(p, skin.body[i]));
+      ctx.shadowColor = 'rgba(20,10,4,' + (0.4 * la).toFixed(3) + ')'; ctx.shadowBlur = 7 * lf * k;
+      ctx.shadowOffsetX = 8 * lf * k; ctx.shadowOffsetY = 11 * lf * k;
       ctx.fillStyle = gr; ctx.fill();
+      ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
       if (skin.tip) {
         ctx.save(); ctx.clip();
         const tg = ctx.createLinearGradient(-m.baseW / 2, 0, m.baseW / 2, 0);
