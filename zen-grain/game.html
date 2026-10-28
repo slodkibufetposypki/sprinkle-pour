@@ -3945,7 +3945,7 @@ const GrainSim = (() => {
   }
   function resize() {
     readSafe();
-    view.dpr = Math.min(3, window.devicePixelRatio || 1);
+    view.dpr = Math.min(2, window.devicePixelRatio || 1);     // 3× on a Pro phone costs 2.25× the pixels, and the heat, for a softness nobody sees
     view.cw = window.innerWidth || 390; view.ch = window.innerHeight || 844;
     canvas.width = Math.round(view.cw * view.dpr); canvas.height = Math.round(view.ch * view.dpr);
     // a portrait board: full width on a phone, a centred column on a wide screen
@@ -6468,41 +6468,97 @@ const GrainSim = (() => {
       const k = ease((t - 1.1) / 0.25);
       px = Tx + nx * 110 * k; py = Ty + ny * 110 * k; lift = k; wag = Math.sin(((t - 1.1) / 1.2) * Math.PI * 6) * 0.45 * k;
     } else { const k = ease((t - 2.3) / 0.5); px = Tx + nx * 110 * (1 - k) - nx * far * k; py = Ty + ny * 110 * (1 - k) - ny * far * k; lift = 1 - k; }
-    const bx = px - nx * 640, by = py - ny * 640, seg = (w2, col) => { ctx.strokeStyle = col; ctx.lineWidth = w2; ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(px, py); ctx.stroke(); };
+    const r0 = 25 * (1 + 0.5 * lift), wx = px, wy = wag === null ? py : py + r0 * 0.9;      // turned up, the arm meets it at the wrist
+    const bx = wx - nx * 640, by = wy - ny * 640, seg = (w2, col) => { ctx.strokeStyle = col; ctx.lineWidth = w2; ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(wx, wy); ctx.stroke(); };
     worldTransform(ox, oy); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     // its shadow on the board, further off the higher the paw is
     const sx = 9 + lift * 14, sy = 12 + lift * 18;
     ctx.globalAlpha = 0.32; ctx.strokeStyle = '#000'; ctx.lineWidth = 42;
-    ctx.beginPath(); ctx.moveTo(bx + sx, by + sy); ctx.lineTo(px + sx, py + sy); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(bx + sx, by + sy); ctx.lineTo(wx + sx, wy + sy); ctx.stroke();
     ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(px + sx, py + sy, 27, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
     // the arm: ginger fur with darker stripes across it
     seg(42 + 10 * lift, '#9c5a24'); seg(37 + 10 * lift, '#e8a25a');
     ctx.strokeStyle = 'rgba(193,113,46,0.8)'; ctx.lineWidth = 5;
     for (let k = 0; k < 5; k++) {
-      const d = 46 + k * 32, cx = px - nx * d, cy = py - ny * d;
+      const d = 46 + k * 32, cx = wx - nx * d, cy = wy - ny * d;
       ctx.beginPath(); ctx.moveTo(cx + tx * 15, cy + ty * 15); ctx.quadraticCurveTo(cx - nx * 6, cy - ny * 6, cx - tx * 15, cy - ty * 15); ctx.stroke();
     }
     const r = 25 * (1 + 0.5 * lift);
-    if (wag === null) {                                   // the back of the paw, toes toward the board
-      const a0 = Math.atan2(ny, nx);
-      ctx.fillStyle = '#e8a25a'; ctx.strokeStyle = '#9c5a24'; ctx.lineWidth = 2.4;
-      for (const da of [-0.78, -0.26, 0.26, 0.78]) { ctx.beginPath(); ctx.arc(px + Math.cos(a0 + da) * r * 0.82, py + Math.sin(a0 + da) * r * 0.82, 9.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); }
-      ctx.beginPath(); ctx.arc(px, py, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-      ctx.strokeStyle = 'rgba(176,122,72,0.9)'; ctx.lineWidth = 1.6;
-      for (const da of [-0.5, 0, 0.5]) { ctx.beginPath(); ctx.moveTo(px + Math.cos(a0 + da) * r * 0.55, py + Math.sin(a0 + da) * r * 0.55); ctx.lineTo(px + Math.cos(a0 + da) * r * 0.95, py + Math.sin(a0 + da) * r * 0.95); ctx.stroke(); }
-    } else {                                              // the palm up, one claw out, wagging
-      ctx.save(); ctx.translate(px, py); ctx.rotate(wag);
-      ctx.fillStyle = '#f7dcb6'; ctx.strokeStyle = '#9c5a24'; ctx.lineWidth = 2.4;
-      const fw = r * 0.3; ctx.beginPath(); ctx.moveTo(-fw, -r * 0.5); ctx.lineTo(-fw, -r * 1.75); ctx.arc(0, -r * 1.75, fw, Math.PI, 0); ctx.lineTo(fw, -r * 0.5); ctx.closePath(); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = '#efe6d6'; ctx.beginPath(); ctx.moveTo(-fw * 0.35, -r * 1.98); ctx.lineTo(0, -r * 2.35); ctx.lineTo(fw * 0.35, -r * 1.98); ctx.closePath(); ctx.fill();
-      ctx.fillStyle = '#f7dcb6'; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = '#f2a0a6';
-      ctx.beginPath(); ctx.ellipse(0, r * 0.2, r * 0.44, r * 0.36, 0, 0, Math.PI * 2); ctx.fill();
-      for (const sx2 of [-1, 1]) { ctx.beginPath(); ctx.arc(sx2 * r * 0.56, -r * 0.3, r * 0.2, 0, Math.PI * 2); ctx.fill(); }
-      ctx.beginPath(); ctx.arc(0, -r * 1.62, fw * 0.62, 0, Math.PI * 2); ctx.fill();
-      ctx.restore();
-    }
+    if (wag === null) catPawBack(px, py, r, Math.atan2(ny, nx));
+    else catPawPalm(px, py, r, wag);
     ctx.lineCap = 'butt';
+  }
+  // the paw from above, stirring: the back of a ginger paw, four toes toward the board with the fur parted between
+  // them, lit from the upper left
+  const PAW = { fur: '#e8a25a', furDark: '#c97a36', line: '#9a5722', cream: '#f6dcb4', pad: '#ee9aa3', padRim: '#d47f8a', claw: '#f4efe6' };
+  function furFill(x, y, r) {
+    const g = ctx.createRadialGradient(x - r * 0.35, y - r * 0.4, r * 0.1, x, y, r * 1.1);
+    g.addColorStop(0, '#f3bb7c'); g.addColorStop(0.6, PAW.fur); g.addColorStop(1, PAW.furDark);
+    return g;
+  }
+  function catPawBack(px, py, r, a0) {
+    ctx.lineWidth = 2.2; ctx.strokeStyle = PAW.line;
+    const toes = [-0.8, -0.27, 0.27, 0.8].map((da) => [px + Math.cos(a0 + da) * r * 0.8, py + Math.sin(a0 + da) * r * 0.8, r * (Math.abs(da) > 0.5 ? 0.34 : 0.38)]);
+    for (const [x, y, tr2] of toes) { ctx.fillStyle = furFill(x, y, tr2); ctx.beginPath(); ctx.arc(x, y, tr2, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); }
+    ctx.fillStyle = furFill(px, py, r); ctx.beginPath(); ctx.ellipse(px, py, r, r * 0.94, a0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    // the fur parted between the toes, running back over the paw
+    ctx.strokeStyle = 'rgba(154,87,34,0.75)'; ctx.lineWidth = 1.5;
+    for (const da of [-0.54, 0, 0.54]) {
+      ctx.beginPath(); ctx.moveTo(px + Math.cos(a0 + da) * r * 1.02, py + Math.sin(a0 + da) * r * 1.02);
+      ctx.quadraticCurveTo(px + Math.cos(a0 + da * 0.8) * r * 0.7, py + Math.sin(a0 + da * 0.8) * r * 0.7, px + Math.cos(a0 + da * 0.5) * r * 0.42, py + Math.sin(a0 + da * 0.5) * r * 0.42);
+      ctx.stroke();
+    }
+    ctx.fillStyle = 'rgba(255,240,215,0.28)'; ctx.beginPath(); ctx.ellipse(px - r * 0.3, py - r * 0.32, r * 0.42, r * 0.22, -0.6, 0, Math.PI * 2); ctx.fill();
+  }
+  // the paw turned up, palm toward you, rising from the wrist: the big pad (smooth on top, three lobes below), four
+  // toes in an arc above it, three curled over into fur knuckles, and one held straight up with its bean and the claw
+  // just out, wagging from its knuckle (no, no, no) while the paw sways a little from the wrist
+  function catPawPalm(px, py, r, wag) {
+    ctx.save(); ctx.translate(px, py + r * 0.95); ctx.rotate(wag * 0.35); ctx.translate(0, -r * 0.95);
+    const palm = ctx.createRadialGradient(-r * 0.3, -r * 0.3, r * 0.1, 0, r * 0.1, r * 1.2);
+    palm.addColorStop(0, '#fbe7cb'); palm.addColorStop(0.6, PAW.cream); palm.addColorStop(1, '#e2ad74');
+    // the outer toe is the one held up, like a pointing finger, never one in the middle
+    const toes = [[-r * 0.6, -r * 0.4], [-r * 0.2, -r * 0.6], [r * 0.21, -r * 0.6], [r * 0.62, -r * 0.34]], up = 0;
+    // the straight toe first, so the palm overlaps its root
+    { const [x, y] = toes[up];
+      ctx.save(); ctx.translate(x, y); ctx.rotate(wag * 0.75);
+      const fw = r * 0.19, fl = r * 1.15;
+      ctx.fillStyle = palm; ctx.strokeStyle = PAW.line; ctx.lineWidth = 2.2;
+      ctx.beginPath(); ctx.moveTo(-fw, r * 0.1); ctx.lineTo(-fw * 0.95, -fl); ctx.arc(0, -fl, fw * 0.95, Math.PI, 0); ctx.lineTo(fw, r * 0.1); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = PAW.claw; ctx.strokeStyle = 'rgba(140,120,100,0.8)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(-fw * 0.3, -fl - fw * 0.7); ctx.quadraticCurveTo(fw * 0.1, -fl - fw * 2, fw * 0.34, -fl - fw * 0.72); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = PAW.pad; ctx.beginPath(); ctx.ellipse(0, -fl + fw * 0.15, fw * 0.6, fw * 0.75, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.restore(); }
+    // the palm: wide under the toes, narrowing to the wrist
+    ctx.fillStyle = palm; ctx.strokeStyle = PAW.line; ctx.lineWidth = 2.4;
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.9, -r * 0.18);
+    ctx.bezierCurveTo(-r * 0.95, r * 0.45, -r * 0.62, r * 0.9, -r * 0.42, r * 1.02);
+    ctx.lineTo(r * 0.42, r * 1.02);
+    ctx.bezierCurveTo(r * 0.62, r * 0.9, r * 0.95, r * 0.45, r * 0.9, -r * 0.18);
+    ctx.bezierCurveTo(r * 0.8, -r * 0.62, -r * 0.8, -r * 0.62, -r * 0.9, -r * 0.18);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    // the big pad: a smooth arc on top, three lobes underneath
+    ctx.fillStyle = PAW.pad; ctx.strokeStyle = PAW.padRim; ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.46, r * 0.5);
+    ctx.quadraticCurveTo(-r * 0.44, r * 0.02, 0, r * 0.02);
+    ctx.quadraticCurveTo(r * 0.44, r * 0.02, r * 0.46, r * 0.5);
+    ctx.quadraticCurveTo(r * 0.42, r * 0.8, r * 0.16, r * 0.72);
+    ctx.quadraticCurveTo(0, r * 0.88, -r * 0.16, r * 0.72);
+    ctx.quadraticCurveTo(-r * 0.42, r * 0.8, -r * 0.46, r * 0.5);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,236,240,0.42)'; ctx.beginPath(); ctx.ellipse(-r * 0.16, r * 0.2, r * 0.15, r * 0.07, -0.35, 0, Math.PI * 2); ctx.fill();
+    // the three curled toes: knuckles of ginger fur folded over the top of the palm, a crease across each
+    toes.forEach(([x, y], k) => {
+      if (k === up) return;
+      const rr = r * (k === 0 || k === 3 ? 0.27 : 0.3);
+      ctx.fillStyle = furFill(x, y, rr); ctx.strokeStyle = PAW.line; ctx.lineWidth = 2.2;
+      ctx.beginPath(); ctx.ellipse(x, y, rr, rr * 0.86, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = 'rgba(154,87,34,0.75)'; ctx.lineWidth = 1.3;
+      ctx.beginPath(); ctx.arc(x, y + rr * 0.95, rr * 0.75, 1.2 * Math.PI, 1.8 * Math.PI); ctx.stroke();
+    });
+    ctx.restore();
   }
   function stickShape(c, s, G, L) {
     // one stick in the sticks' frame: tip at y = 0, the hand toward +y; s = -1 left, +1 right
@@ -6625,10 +6681,14 @@ const GrainSim = (() => {
       const m = stickShape(ctx, side, G, L);
       const gr = ctx.createLinearGradient(-m.baseW / 2, 0, m.baseW / 2, 0);
       [0, 0.22, 0.42, 0.62, 1].forEach((p, i) => gr.addColorStop(p, skin.body[i]));
-      ctx.shadowColor = 'rgba(20,10,4,' + (0.4 * la).toFixed(3) + ')'; ctx.shadowBlur = 7 * lf * k;
-      ctx.shadowOffsetX = 8 * lf * k; ctx.shadowOffsetY = 11 * lf * k;
+      // its shadow without a blur (a blurred canvas shadow is the costliest thing a phone's browser draws): the same
+      // shape twice, offset, the nearer one darker, which reads as one soft shadow
+      for (const [o, al] of [[1, 0.16], [0.72, 0.2]]) {
+        ctx.setTransform(cs, sn, -sn, cs, view.dpr * (view.offX + ox + G.Tx * view.scale) + 8 * lf * k * o, view.dpr * (oy + G.Ty * view.scale) + 11 * lf * k * o);
+        stickShape(ctx, side, G, L); ctx.fillStyle = 'rgba(20,10,4,' + (al * la).toFixed(3) + ')'; ctx.fill();
+      }
+      at(G.Tx, G.Ty); stickShape(ctx, side, G, L);
       ctx.fillStyle = gr; ctx.fill();
-      ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
       if (skin.tip) {
         ctx.save(); ctx.clip();
         const tg = ctx.createLinearGradient(-m.baseW / 2, 0, m.baseW / 2, 0);
@@ -7136,14 +7196,14 @@ const GrainSim = (() => {
     fx.bloodK = (fx.bloodK || 0) + ((M && M.blood ? 1 : 0) - (fx.bloodK || 0)) * Math.min(1, dt * 0.8);
     if (!M) return;
     const d = view.dpr, bx = view.offX * d, bw = W * view.scale * d, H = canvas.height, L = M.light, B = fx.bloodK;
+    // one plain wash over the board (a single pass: two blended full-screen passes cost a phone twice the heat): deep
+    // blue and darker at the new moon, pale silver at the full, red under a blood moon
+    const r = (34 + (196 - 34) * L) * (1 - B) + 150 * B, g = (40 + (208 - 40) * L) * (1 - B) + 22 * B, b = (66 + (236 - 66) * L) * (1 - B) + 14 * B;
+    const a = (0.2 * (1 - L) + 0.07 * L) * (1 - B) + 0.24 * B;
+    if (a < 0.005) return;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.globalCompositeOperation = 'multiply';
-    ctx.fillStyle = 'rgba(' + Math.round(34 + 80 * B) + ',' + Math.round(40 - 18 * B) + ',' + Math.round(66 - 50 * B) + ',' + (0.2 * (1 - L) + 0.24 * B).toFixed(3) + ')';
+    ctx.fillStyle = 'rgba(' + Math.round(r) + ',' + Math.round(g) + ',' + Math.round(b) + ',' + a.toFixed(3) + ')';
     ctx.fillRect(bx, 0, bw, H);
-    ctx.globalCompositeOperation = 'soft-light';
-    ctx.fillStyle = 'rgba(' + Math.round(176 + 79 * B) + ',' + Math.round(194 - 120 * B) + ',' + Math.round(232 - 180 * B) + ',' + (0.24 * L * (1 - B) + 0.3 * B).toFixed(3) + ')';
-    ctx.fillRect(bx, 0, bw, H);
-    ctx.globalCompositeOperation = 'source-over';
   }
   // a big moment (the Zen Zone opening) is written into the sand in gold light, under the grains, so it hides none
   function drawSandTitle(ox, oy) {
@@ -7327,16 +7387,17 @@ const GrainSim = (() => {
       ctx.beginPath(); ctx.arc(p.x, p.y, p.r * (1 + 1.6 * k), 0, Math.PI * 2); ctx.fill();
     }
     // notes chalked onto the board: points on top, what happened to the multiplier underneath
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.shadowColor = 'rgba(12,14,17,0.9)'; ctx.shadowBlur = 10 * view.dpr;
+    // a dark rim round the letters keeps them off the sand (in place of a blurred shadow, which costs far more)
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round'; ctx.strokeStyle = 'rgba(12,14,17,0.72)';
     for (const f of fx.floats) {
       const k = f.t / f.life, pop = k < 0.1 ? 0.6 + (k / 0.1) * 0.4 : 1, y = f.y - k * 36;
       ctx.globalAlpha = k < 0.75 ? 1 : 1 - (k - 0.75) / 0.25;
       ctx.font = Math.round((f.compact ? 30 : 48) * pop) + 'px ' + HAND;
+      ctx.lineWidth = f.compact ? 5 : 7; ctx.strokeText(f.big, f.x, y);
       ctx.fillStyle = chalkFill(ctx, f.color); ctx.fillText(f.big, f.x, y);
-      if (f.small) { ctx.font = Math.round(26 * pop) + 'px ' + HAND; ctx.fillStyle = chalkFill(ctx, f.scol); ctx.fillText(f.small, f.x, y + 38); }
+      if (f.small) { ctx.font = Math.round(26 * pop) + 'px ' + HAND; ctx.lineWidth = 5; ctx.strokeText(f.small, f.x, y + 38); ctx.fillStyle = chalkFill(ctx, f.scol); ctx.fillText(f.small, f.x, y + 38); }
     }
-    ctx.globalAlpha = 1; ctx.shadowBlur = 0; ctx.shadowColor = 'transparent';
+    ctx.globalAlpha = 1;
   }
   // zen: the Zen Zone's look, only while it lasts, coming in quickly and going out gently: the script burns down the
   // sticks from the tips, the tips glow and spark, and the bowls send rings of light out through the sand in turn
@@ -7437,7 +7498,12 @@ const GrainSim = (() => {
 
   // ---------- main loop: fixed-step sim, render every frame ----------
   let last = performance.now(), acc = 0;
+  // the screen may refresh at 120 Hz; the board needs no more than 60 frames a second, and the room and the table,
+  // still and filmed at 30, no more than 30 while the camera holds still. Every skipped frame is power not spent
   function frame(now) {
+    requestAnimationFrame(frame);
+    const still = screen !== 'play' && Math.abs(cam.to - cam.k) < 1e-4;
+    if (now - last < (still ? 1000 / 31 : 1000 / 62) - 1) return;
     const dt = Math.min(0.1, (now - last) / 1000); last = now;
     if (screen === 'play' && sim) {
       const step = 1 / sim.cfg.stepHz;
@@ -7485,7 +7551,6 @@ const GrainSim = (() => {
     updateFx(dt);
     updateCam(dt);
     render(dt);
-    requestAnimationFrame(frame);
   }
 
   // ---------- tuning panel ----------
