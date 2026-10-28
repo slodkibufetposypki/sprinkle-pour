@@ -4616,8 +4616,9 @@ const GrainSim = (() => {
       if (animate && !reducedMotion()) { chip.classList.remove('swap'); void chip.offsetWidth; chip.classList.add('swap'); }
       chipType = t;
     }
-    const left = sim.zen ? sim.available(t) : sim.remaining(t);
-    chip.querySelector('.left').textContent = chip.classList.contains('long') ? String(left) : tr('{n} left', { n: left });
+    // what is left of the kind to sort; Pełnia never runs out, so there it only names the kind
+    const left = sim.zen ? '' : sim.remaining(t);
+    chip.querySelector('.left').textContent = sim.zen ? '' : chip.classList.contains('long') ? String(left) : tr('{n} left', { n: left });
   }
   // per frame: the score counts toward its value, the level clock, and the pace line
   function updateClocks(dt) {
@@ -6414,11 +6415,12 @@ const GrainSim = (() => {
     const r = st.r - 10, [a0, a1] = bowlArc(st.kind);
     const over = live && s.sticks.drop === st && s.sticks.phase === 'hold';
     drawBowl(st.x, st.y, r, (a0 + a1) / 2, over, s.t);
-    // the kind it takes, set just outside its rim, so an empty bowl still says what goes there
-    // on a small dark plate with a chalk rim, so it never reads as a loose grain
-    const am = (a0 + a1) / 2, lr = r + BOWL_LIP + 18, lx = st.x + Math.cos(am) * lr, ly = st.y + Math.sin(am) * lr, pr = over ? 22 : 19;
-    ctx.fillStyle = 'rgba(8,9,11,0.55)'; ctx.beginPath(); ctx.arc(lx, ly, pr, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = over ? 'rgba(242,237,227,0.7)' : 'rgba(242,237,227,0.32)'; ctx.lineWidth = 2; ctx.stroke();
+    // the kind it takes, set clear of its rim, so an empty bowl still says what goes there: on a small dark dish with
+    // a soft edge (no ring, so nothing crosses the bowls), lit when a row is held over the bowl
+    const am = (a0 + a1) / 2, lr = r + BOWL_LIP + 28, lx = st.x + Math.cos(am) * lr, ly = st.y + Math.sin(am) * lr, pr = over ? 18 : 16;
+    const dg = ctx.createRadialGradient(lx, ly - pr * 0.3, 1, lx, ly, pr + 3);
+    dg.addColorStop(0, over ? 'rgba(60,48,36,0.85)' : 'rgba(30,24,18,0.75)'); dg.addColorStop(0.8, 'rgba(10,8,6,0.62)'); dg.addColorStop(1, 'rgba(10,8,6,0)');
+    ctx.fillStyle = dg; ctx.beginPath(); ctx.arc(lx, ly, pr + 3, 0, Math.PI * 2); ctx.fill();
     const lab = { type: t, rot: -0.5, s: (TYPES[t].rx > 14 ? 0.78 : 1) * (over ? 1.08 : 0.95), tint: 1, id: 0, x: lx, y: ly };
     drawGrain(lab, 1, 0, 0, ox, oy);
     worldTransform(ox, oy);
@@ -6499,16 +6501,16 @@ const GrainSim = (() => {
     const t = performance.now() / 1000, left = Math.max(0, O.until - sim.clock), k = clamp(O.got / O.need, 0, 1), kt = clamp(left / O.secs, 0, 1);
     const hurry = left < 6, pulse = hurry ? 0.6 + 0.4 * Math.sin(t * 12) : 1;
     ctx.lineCap = 'round';
-    ctx.strokeStyle = 'rgba(236,232,222,0.18)'; ctx.lineWidth = 5;
-    ctx.beginPath(); ctx.arc(x, y, pr + 9, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = 'rgba(236,232,222,0.18)'; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.arc(x, y, pr + 5, 0, Math.PI * 2); ctx.stroke();
     ctx.strokeStyle = 'rgba(246,196,83,0.95)';
-    ctx.beginPath(); ctx.arc(x, y, pr + 9, -Math.PI / 2, -Math.PI / 2 + k * Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(x, y, pr + 5, -Math.PI / 2, -Math.PI / 2 + k * Math.PI * 2); ctx.stroke();
     ctx.strokeStyle = hurry ? 'rgba(255,122,107,' + pulse.toFixed(2) + ')' : 'rgba(236,232,222,0.6)'; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.arc(x, y, pr + 16, -Math.PI / 2, -Math.PI / 2 + kt * Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(x, y, pr + 10, -Math.PI / 2, -Math.PI / 2 + kt * Math.PI * 2); ctx.stroke();
     ctx.lineCap = 'butt';
     ctx.font = '26px ' + HAND; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(10,12,15,0.85)'; ctx.fillStyle = '#f6c453';
-    const txt = tr('{n} in {s} s', { n: Math.max(0, O.need - O.got), s: Math.ceil(left) }), ty = y - pr - 38;
+    const txt = tr('{n} in {s} s', { n: Math.max(0, O.need - O.got), s: Math.ceil(left) }), ty = y - pr - 30;
     ctx.strokeText(txt, x, ty); ctx.fillText(txt, x, ty);
   }
   // The jar: a small stoneware tsubo lying on its side at the top of the board, its mouth toward the middle, in a
