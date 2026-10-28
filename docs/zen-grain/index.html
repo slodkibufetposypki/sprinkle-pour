@@ -5985,7 +5985,7 @@ const GrainSim = (() => {
             mote(at, r.left + r.width / 2, r.top + r.height / 2, false);
             fx.capyHold = performance.now() + 540;
           }
-          note('+' + fmt(e.bonus), tr(e.why === 'kind' ? 'Bowl packed' : 'Bowl full') + ' · ' + tr('{n} of {m} to the Capybara', { n: e.bowls % GS.ZEN_THANKS || GS.ZEN_THANKS, m: GS.ZEN_THANKS }), '#f6c453', '#ece8de', e.x + (e.x < W / 2 ? 110 : e.x > W / 2 ? -110 : 0), e.y - 140);
+          note('+' + fmt(e.bonus), tr(e.why === 'kind' ? 'Bowl packed' : 'Bowl full') + ' · ' + tr('{n} of {m} to the Capybara', { n: Math.min(GS.ZEN_THANKS, e.thanks), m: GS.ZEN_THANKS }), '#f6c453', '#ece8de', e.x + (e.x < W / 2 ? 110 : e.x > W / 2 ? -110 : 0), e.y - 140);
           zenTip('bowl', 'Eight full bowls bring the Zen Capybara, who gives a life back.');
           break;
         }
