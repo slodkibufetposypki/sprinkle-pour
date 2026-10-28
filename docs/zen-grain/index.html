@@ -5933,7 +5933,7 @@ const GrainSim = (() => {
         case 'time_added': pendingFail = 0; break;
         case 'life_lost':
           Sound.thud(); Haptics.buzz([40, 60, 40]); syncLives(true);
-          if (e.why === 'full') { if (!reducedMotion()) fx.shakeT = 0.35; zenSay(tr('The board is full: a life gone'), 3, 'red'); }
+          if (e.why === 'full') { if (!reducedMotion()) fx.shakeT = 0.35; }      // the phrase in the sand and the ensō have said it; no line after
           else if (e.why === 'stone') zenSay(tr('A stone in the row: a life gone'), 3, 'red');
           Analytics.emit('life_lost', { why: e.why, lives: e.lives, time: sim.clock });
           break;
@@ -7169,8 +7169,7 @@ const GrainSim = (() => {
     ctx.restore();
   }
   // Pełnia: a nearly full board says so on the board itself. From just before it is full a thin line of dark red ink
-  // shows at its very edges, a little deeper as the last room goes, swelling with the heartbeat; full, one word is
-  // brushed over the grains until the ring on the ensō closes
+  // shows at its very edges, a little deeper as the last room goes, swelling with the heartbeat
   function drawCrowdInk(s) {
     const full = s.overT > 0, k = clamp((s.crowd - 0.82) / 0.18, 0, 1), p = fx.crowdBeat || 0;
     const d = view.dpr, bx = view.offX * d, bw = W * view.scale * d, H = canvas.height, sc = view.scale * d;
@@ -7186,20 +7185,26 @@ const GrainSim = (() => {
     ctx.fillStyle = edge(bx + bw, 0, bx + bw - depth, 0); ctx.fillRect(bx + bw - depth, 0, depth, H);
     ctx.fillStyle = edge(0, 0, 0, top + depth); ctx.fillRect(bx, 0, bw, top + depth);
     ctx.fillStyle = edge(0, H, 0, H - depth); ctx.fillRect(bx, H - depth, bw, depth);
-    if (!full) return;
-    const appear = clamp(s.overT / 0.25, 0, 1), y = view.top + 44;      // at the top of the board, not over the middle of it
-    worldTransform(0, 0);
+  }
+  // Pełnia, full: the one phrase, written into the sand in red light under the grains like the Zone's name, so it
+  // hides none. It lies in the board's top row between the jar's two places, below the line of talk and never under
+  // the hand, which comes from below. A pale trace that the ink runs through letter by letter in the three seconds,
+  // closing with the ring on the ensō (with reduced motion too: it is the count). Plain fills, no blur.
+  function drawFullWord(s, ox, oy) {
+    const word = tr('Board full!'), chars = Array.from(word), beat = 0.82 + 0.18 * (fx.crowdBeat || 0);
+    const appear = clamp(s.overT / 0.3, 0, 1), run = clamp(s.overT / 3, 0, 1) * chars.length;
+    worldTransform(ox, oy);
     ctx.save();
-    ctx.translate(W / 2, y); ctx.scale(1 + 0.06 * p, 1 + 0.06 * p);
-    ctx.globalAlpha = appear; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
-    const word = tr('Board full!');
-    ctx.font = '66px ' + BRUSH;
-    const fit = Math.min(1, (W * 0.86) / Math.max(1, ctx.measureText(word).width));
-    ctx.scale(fit, fit);
-    // brushed in red with a soft red glow (one line of text for three seconds, so the blur costs nothing worth saving)
-    ctx.shadowColor = 'rgba(255,90,70,0.6)'; ctx.shadowBlur = 14 * view.dpr;
-    ctx.fillStyle = '#ff6a4d'; ctx.fillText(word, 0, 0);
-    ctx.shadowBlur = 0; ctx.shadowColor = 'transparent';
+    ctx.font = '46px ' + BRUSH; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    const w = ctx.measureText(word).width, fit = Math.min(1, 320 / Math.max(1, w)), x0 = -w / 2;
+    ctx.translate(W / 2, view.top + 58); ctx.scale(fit, fit);
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = appear; ctx.fillStyle = 'rgba(255,86,56,0.28)'; ctx.fillText(word, x0, 0);
+    ctx.fillStyle = 'rgba(255,86,56,' + (0.78 * beat).toFixed(3) + ')';
+    for (let i = 0; i < chars.length && run > i; i++) {
+      ctx.globalAlpha = appear * Math.min(1, run - i);
+      ctx.fillText(chars[i], x0 + ctx.measureText(chars.slice(0, i).join('')).width, 0);
+    }
     ctx.restore();
   }
   // Pełnia: the pool of moonlight on the sand, under the grains: a soft silver disc with a dotted rim, red under a blood
@@ -7256,6 +7261,7 @@ const GrainSim = (() => {
     drawZone(s, ox, oy);
     if (s === sim) drawSandTitle(ox, oy);
     if (s === sim) drawMoonPool(s, ox, oy);
+    if (s === sim && s.zen && s.overT > 0 && !s.done) drawFullWord(s, ox, oy);
     const t = s.t, gs = s.grains;
     const badId = s === sim && fx.bad ? fx.bad.id : -1;
     const sp = s === sim ? fx.spill : null;
