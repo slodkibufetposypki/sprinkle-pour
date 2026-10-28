@@ -264,6 +264,27 @@ test('Pełnia: full rows grow the multiplier by a quarter of what they do in a l
   assert.ok(GS.ZEN_MULT <= 0.3);
 });
 
+test('picking a line of grains off an edge brings the Zen Cat: her paw stirs the line across the board', () => {
+  const sim = pushBoard(2), B = sim.bounds();
+  const line = [];
+  for (let i = 0; i < 12; i++) line.push(sim.debugPut('lentil', B.x1 - 24, 380 + i * 40));
+  const ev = [], inp = { down: true, x: B.x1 - 70, y: 0 };
+  for (let i = 0; i < 5 * sim.cfg.stepHz; i++) { inp.y = 1000 + sim.cfg.fingerOffset - Math.min(560, i * 1.2); sim.step(inp); ev.push(...sim.drainEvents()); }
+  ev.push(...release(sim, 2));
+  assert.equal(ev.filter((e) => e.type === 'cat_comes').length, 1, 'she comes once');
+  const stir = ev.find((e) => e.type === 'cat_stir');
+  assert.ok(stir && stir.n >= 5, 'stirred ' + (stir && stir.n));
+  const loose = line.filter((g) => g.st === ST.REST || g.st === ST.SLIDE);
+  assert.ok(loose.length >= 5 && loose.every((g) => g.x < B.x1 - 56), 'off the edge: ' + loose.map((g) => g.x.toFixed(0)).join(' '));
+  assert.equal(sim.cat, null, 'and gone again');
+  // gathering in the open board never calls her
+  const open = pushBoard(3);
+  for (let i = 0; i < 12; i++) open.debugPut('lentil', 300, 380 + i * 40);
+  const ev2 = [], in2 = { down: true, x: 300, y: 0 };
+  for (let i = 0; i < 5 * open.cfg.stepHz; i++) { in2.y = 1000 + open.cfg.fingerOffset - Math.min(560, i * 1.2); open.step(in2); ev2.push(...open.drainEvents()); }
+  assert.ok(!ev2.some((e) => e.type === 'cat_comes'), 'no cat in the open');
+});
+
 test('the sticks shove one grain into another and both move', () => {
   const sim = pushBoard(2);
   const a = sim.debugPut('rice', 300, 760), b = sim.debugPut('rice', 300 + 22, 760);
@@ -685,6 +706,38 @@ test('carrying rows yourself: let go over its pile and it pours there; away from
   for (const g of sim.grains) if (g.type === 'lentil') { assert.notEqual(g.st, ST.GONE); assert.ok(g.y <= B.y1 + 0.01 && g.y >= B.y0 - 0.01, 'back on the board'); }
 });
 
+test('carrying rows yourself: a flick toward the right bowl throws the row in; toward another it spills that one', () => {
+  const L = level({ manual: true, generated: true });
+  const sim = GS.create({}, L, LAYOUT, 3);
+  const c = centroid(sim.grains.filter((g) => g.type === 'lentil'));
+  run(sim, { down: true, x: c.x, y: c.y + 60 + sim.cfg.fingerOffset }, 2);
+  assert.equal(sim.sticks.phase, 'hold');
+  const n = sim.sticks.row.length, st = sim.stores.lentil;
+  // a quick swing from mid-board toward the lentil bowl, let go well short of it
+  const x0 = 320, y0 = 640 + sim.cfg.fingerOffset;
+  run(sim, { down: true, x: x0, y: y0 }, 0.6);
+  const dx = st.x - 320, dy = st.y - 640, d = Math.hypot(dx, dy);
+  let ev = run(sim, (i) => ({ down: true, x: x0 + (dx / d) * i * 18, y: y0 + (dy / d) * i * 18 }), 0.1);
+  assert.equal(sim.sticks.drop, null, 'not over a bowl yet');
+  ev = run(sim, { down: false, x: 300, y: 1200 }, 1.2);
+  assert.ok(ev.some((e) => e.type === 'throw' && e.pile === 'lentil'), 'thrown');
+  const taken = ev.find((e) => e.type === 'row_taken');
+  assert.ok(taken && taken.n === n && taken.grain === 'lentil', 'and in its bowl');
+  // a slow let-go in the same place only parks it
+  const r = centroid(sim.grains.filter((g) => g.type === 'rice' && g.st === ST.REST));
+  run(sim, { down: true, x: r.x, y: r.y + 60 + sim.cfg.fingerOffset }, 2);
+  run(sim, { down: true, x: x0, y: y0 }, 0.8);
+  ev = run(sim, { down: false, x: 300, y: 1200 }, 0.5);
+  assert.equal(sim.sticks.phase, 'parked');
+  assert.ok(!ev.some((e) => e.type === 'throw'));
+  // the rice row flicked at the lentil bowl spills it
+  run(sim, { down: true, x: x0, y: y0 }, 0.6);
+  run(sim, (i) => ({ down: true, x: x0 + (dx / d) * i * 18, y: y0 + (dy / d) * i * 18 }), 0.1);
+  ev = run(sim, { down: false, x: 300, y: 1200 }, 1.5);
+  assert.ok(ev.some((e) => e.type === 'throw' && e.pile === 'lentil' && e.grain === 'rice'));
+  assert.ok(ev.some((e) => e.type === 'spill_pile' && e.pile === 'lentil'), 'the lentil bowl spilled');
+});
+
 test('moving piles: a level can put the kinds in other corners, the same way every time', () => {
   const L = level({ manual: true, shuffle: 'moved', types: ['lentil', 'rice', 'mung'], piles: level().piles.concat([{ type: 'mung', kind: 'blob', cx: 0.5, cy: 0.6, r: 0.1, count: 10 }]) });
   const a = GS.create({}, L, LAYOUT, 1), b = GS.create({}, L, LAYOUT, 2), plain = GS.create({}, Object.assign({}, L, { shuffle: false }), LAYOUT, 1);
@@ -915,6 +968,34 @@ test('zen mode: the jar never stops, full piles are packed away, a full board co
   assert.ok(!ev3.some((e) => e.type === 'life_lost'));
   assert.equal(b.lives, 3);
   assert.ok(Math.abs(b.zone - (0.5 - GS.ZEN_ZONE.broken)) < 1e-9, 'zone ' + b.zone);
+});
+
+test('Pełnia: a run is a lunar month; a row closed in the pool of moonlight pays more; every third full moon is a blood moon', () => {
+  const P = GS.MOON.phaseS, month = P * GS.MOON.phases;
+  assert.ok(GS.moonAt(0).light < 0.01 && GS.moonAt(0).phase === 0, 'it starts at the new moon');
+  const full = GS.moonAt(P * 4.5);
+  assert.ok(full.full && full.light > 0.95 && !full.blood, 'the first full moon at four minutes');
+  assert.ok(!GS.moonAt(month + P * 4.5).blood && GS.moonAt(2 * month + P * 4.5).blood, 'the third is a blood moon');
+  // a full row closed inside the pool pays by the moon's light
+  const sim = GS.create({}, GS.ZEN, LAYOUT, 4);
+  sim.flow.next = 1e9;
+  run(sim, { down: true, x: 300, y: 1250 }, 0.05); run(sim, { down: false, x: 300, y: 1250 }, 0.3);
+  sim.clock = 150; sim.jar.next = 1e9;
+  for (const g of sim.grains) if (g.st === ST.REST || g.st === ST.SLIDE) g.st = ST.GONE;
+  run(sim, { down: false, x: 300, y: 1250 }, 0.1);
+  const M = sim.moon, cap = sim.caps[sim.target];
+  assert.ok(M.r > 0 && M.light > 0.5, 'a pool by the first quarter');
+  for (let i = 0; i < cap; i++) sim.debugPut(sim.target, M.x + (i % 5) * 4 - 8, M.y - 40 + i * 3);
+  const ev = run(sim, { down: true, x: M.x, y: M.y + 90 + sim.cfg.fingerOffset }, 3);
+  const t = ev.find((e) => e.type === 'row_taken');
+  assert.ok(t && t.kind === 'full' && Math.abs(t.moon - (1 + GS.MOON.poolPay * M.light)) < 0.05, 'paid ' + (t && t.moon));
+  // under the blood moon: twice the stones, no capybara, and getting through it gives a life back
+  const b = GS.create({}, GS.ZEN, LAYOUT, 5), botB = GS.makeBot(b, 3);
+  run(b, () => botB(), 0.5);
+  b.clock = 2 * month + P * 4 + 0.5; b.lives = 2;
+  let lifeBack = null;
+  for (let i = 0; i < 70 * b.cfg.stepHz && !b.done && !lifeBack; i++) { b.step(botB()); lifeBack = b.drainEvents().find((e) => e.type === 'blood_survived') || null; if (b.moon && b.moon.blood) b.lives = Math.max(b.lives, 2); }
+  assert.ok(lifeBack && lifeBack.lives === 3, 'a life back after the blood moon');
 });
 
 test('zen: the night goes on in stages, the kinds change and get grander, worth more, and the jar never stops speeding up', () => {

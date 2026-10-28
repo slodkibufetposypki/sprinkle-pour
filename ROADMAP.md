@@ -1,6 +1,16 @@
 # Zen Grains — what is next
 
 ## The plan (27 Oct, after the design review)
+**Done 28 Oct (the owner's calls):**
+- **Names:** the levels mode is **Droga** ("The Way"); Pełnia is the endless mode with lives; Zen is kept for the calm mode.
+- **Type:** text in Kaisei Decol, titles in Yuji Syuku (variant A). Numerals: the score in a thick brush (Potta One), everything else that counts (multiplier, points, totals) in Yuji Syuku; the time and the small counts (the Zone countdown, the dial, the order, the jar, the helpers) in Yuji Syuku made bolder, so the thin strokes hold at 16–18 px.
+- **Pełnia's multiplier** is earned over minutes: a full row adds a quarter of what it does in a level and less the higher it stands (about ×5 after a minute of clean quick rows, ×9 after three). Scoops are mixed after the first two and scattered, not laid out as ready rows.
+- **No farming the edge:** grains pressed into a wall or a bowl are squeezed out and leap across the board; picking a line of grains off an edge brings the Zen Cat's paw, which stirs the line across the board and wags a claw (no, no, no). Once every 20 s at most.
+- **Droga:** a carried row can be thrown: let go mid-swing toward a bowl.
+- **A full board shows itself:** the next ensō reddens and trembles as the board fills, a ring round it runs out the three seconds once it is full, the board's edge glows red, and one line says it.
+- **The Pełnia prototype is built:** a lunar month (a minute a phase, the first full moon at four minutes), the light from a dark new moon to a silver full one, a drifting pool of moonlight that pays up to ×2 for rows closed in it, the phase as a small moon by the capybara, and the blood moon every third full moon (×3 on rows and orders, twice the stones, the jar a quarter faster, no capybara; getting through it gives a life back). Next: the owner plays it.
+- **Higgsfield anchors made** (17.5 credits): the capybara's turnaround sheet F01 (in `art/`), the six medallions A03 (in the game), lacquer and washi A25 (the washi is good, the lacquer muddy; neither used yet). The capybara's idle sprite through AutoSprite failed on the service's side twice, unbilled.
+
 **Names (the owner, 27 Oct):** the endless mode with lives becomes **Pełnia** (Full Moon). **Zen** is kept for the calm mode without lives or a clock (below). The levels mode still needs a name: proposed **Droga** ("the Way", as in the way of tea), or Ścieżka, or plain Plansze.
 
 **Pełnia: a run is a lunar month** (the owner's idea, 27 Oct; the shape proposed, nothing built yet):
@@ -24,7 +34,7 @@
 6. **The world:** the hut as the menu (modes, workshop, upgrades), its upgrades as separate layers of one painting, the farm on the hill (rice and bean fields, harvests, sacks to sell, helpers to hire), the workshop joining three pairs of chopsticks into one with three bonuses.
 7. **Together:** the full-moon jar for everyone, a share card, a replay. In parallel: recording testers' sessions, and music that follows the rhythm.
 
-**Still to decide:** the levels mode's name; whether a missed goal costs a life or only the blessing (proposed: only the blessing); whether the player fires the Zen Zone (one thumb is busy; try a double tap); the currency (proposed: sacks); continues (proposed: once free from the capybara, then medallions at 1, 2, 4); the spill's visibly tipping jar; the domain; the result layout; the rest under "Ideas to decide" below.
+**Still to decide:** whether a missed goal costs a life or only the blessing (proposed: only the blessing); whether the player fires the Zen Zone (one thumb is busy; try a double tap); the currency (proposed: sacks); continues (proposed: once free from the capybara, then medallions at 1, 2, 4); the spill's visibly tipping jar; the domain; the result layout; the rest under "Ideas to decide" below.
 
 ## Where things stand (27 Oct)
 **Decided before the plan above, not built yet** (now folded into it):
