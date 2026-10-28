@@ -7124,10 +7124,19 @@ const GrainSim = (() => {
     ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.beginPath(); ctx.ellipse(-r * 0.3, -r * 0.3, r * 0.4, r * 0.2, -0.6, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
   }
-  // the paw turned up, palm toward you: a cream mitten, the big pink pad (smooth on top, three lobes below) and four
-  // round pink beans in an arc above it, waving from the wrist, no, no, no
+  // the paw turned up, palm toward you: a cream mitten, the big pink pad (smooth on top, three lobes below) and three
+  // round pink beans in an arc above it; the outer toe is held straight up with its bean and the claw just out, and
+  // wags from its knuckle, no, no, no, while the paw sways a little from the wrist
   function catPawPalm(px, py, r, wag) {
-    ctx.save(); ctx.translate(px, py + r * 0.95); ctx.rotate(wag * 0.85); ctx.translate(0, -r * 0.95);
+    ctx.save(); ctx.translate(px, py + r * 0.95); ctx.rotate(wag * 0.35); ctx.translate(0, -r * 0.95);
+    { ctx.save(); ctx.translate(-r * 0.58, -r * 0.5); ctx.rotate(wag * 0.75);
+      const fw = r * 0.2, fl = r * 1.1;
+      ctx.fillStyle = furFill(0, -fl * 0.5, fl * 0.6); ctx.strokeStyle = PAW.line; ctx.lineWidth = 2.2;
+      ctx.beginPath(); ctx.moveTo(-fw, r * 0.2); ctx.lineTo(-fw * 0.95, -fl); ctx.arc(0, -fl, fw * 0.95, Math.PI, 0); ctx.lineTo(fw, r * 0.2); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = PAW.claw; ctx.strokeStyle = 'rgba(140,120,100,0.8)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(-fw * 0.3, -fl - fw * 0.7); ctx.quadraticCurveTo(fw * 0.1, -fl - fw * 2, fw * 0.34, -fl - fw * 0.72); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = PAW.pad; ctx.beginPath(); ctx.ellipse(0, -fl + fw * 0.2, fw * 0.6, fw * 0.75, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.restore(); }
     ctx.fillStyle = furFill(0, 0, r * 1.05); ctx.strokeStyle = PAW.line; ctx.lineWidth = 2.2;
     // the mitten: round across the toes, narrowing to the wrist
     ctx.beginPath();
@@ -7146,8 +7155,8 @@ const GrainSim = (() => {
     ctx.quadraticCurveTo(0, r * 0.88, -r * 0.16, r * 0.72);
     ctx.quadraticCurveTo(-r * 0.42, r * 0.8, -r * 0.46, r * 0.5);
     ctx.closePath(); ctx.fill(); ctx.stroke();
-    // the four beans
-    for (const [x, y, br] of [[-r * 0.6, -r * 0.3, 0.17], [-r * 0.22, -r * 0.6, 0.19], [r * 0.22, -r * 0.6, 0.19], [r * 0.6, -r * 0.3, 0.17]]) {
+    // the three beans of the curled toes
+    for (const [x, y, br] of [[-r * 0.18, -r * 0.62, 0.19], [r * 0.24, -r * 0.6, 0.19], [r * 0.6, -r * 0.3, 0.17]]) {
       ctx.beginPath(); ctx.ellipse(x, y, r * br, r * br * 1.15, x * 0.012, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
     }
     ctx.fillStyle = 'rgba(255,240,244,0.5)';
