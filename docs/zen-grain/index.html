@@ -2996,7 +2996,7 @@ const GrainSim = (() => {
     "The jar never stops. Three lives: a broken row or a full board costs one.": "Słoik nie przestaje sypać. Trzy życia: przerwany rząd albo pełna plansza zabiera jedno.",
     "Zen mode opens after the first three levels.": "Tryb zen otwiera się po trzech pierwszych poziomach.",
     "The board is full": "Plansza pełna", "A life gone": "minus jedno życie", "Bowl full": "Miska pełna",
-    "The board is filling up: sort faster!": "Plansza się zapełnia, sortuj szybciej!", "Too many grains: you are about to lose a life": "Za dużo ziaren: zaraz stracisz życie", "Sort some grains before the ring closes.": "Zbierz ziarna, zanim zamknie się krąg.", "No, no, no.": "Nie, nie, nie.", "The moon is rising": "Wschodzi księżyc", "Rows closed in its light pay more.": "Rzędy zamknięte w jego świetle płacą więcej.", "Blood moon": "Krwawy księżyc", "×3 on everything, twice the stones, no capybara. Hold on.": "×3 za wszystko, dwa razy więcej kamieni, bez kapibary. Wytrzymaj.", "Full moon": "Pełnia", "Its light pays ×2.": "Jej światło płaci ×2.", "You came through the blood moon": "Przetrwałeś krwawy księżyc", "The capybara gives a life back.": "Kapibara oddaje życie.", "Sort from the board, not off its edge.": "Zbieraj z planszy, nie spod krawędzi.",
+    "The board is filling up: sort faster!": "Plansza się zapełnia, sortuj szybciej!", "Board full!": "Plansza pełna!", "No, no, no.": "Nie, nie, nie.", "The moon is rising": "Wschodzi księżyc", "Rows closed in its light pay more.": "Rzędy zamknięte w jego świetle płacą więcej.", "Blood moon": "Krwawy księżyc", "×3 on everything, twice the stones, no capybara. Hold on.": "×3 za wszystko, dwa razy więcej kamieni, bez kapibary. Wytrzymaj.", "Full moon": "Pełnia", "Its light pays ×2.": "Jej światło płaci ×2.", "You came through the blood moon": "Przetrwałeś krwawy księżyc", "The capybara gives a life back.": "Kapibara oddaje życie.", "Sort from the board, not off its edge.": "Zbieraj z planszy, nie spod krawędzi.",
     "The jar won this time": "Tym razem wygrał słoik", "Three rows broken": "Trzy przerwane rzędy",
     "{t} at the board, {n} sorted.": "{t} przy stole, posortowane: {n}.", "Best: {s}.": "Rekord: {s}.", "Again": "Jeszcze raz",
     "Touch and hold below the lentils. The sticks come in above your finger.": "Dotknij i przytrzymaj pod soczewicą. Pałeczki pojawią się nad palcem.",
@@ -4769,7 +4769,7 @@ const GrainSim = (() => {
     fx.moonTold = false; fx.moonAge = undefined; fx.bloodK = 0; fx.sand = 0; fx.sandPulse = 0; fx.sandWave = null; fx.zoneSeen = 0; fx.zoneHold = 0; fx.zoneOpened = false; fx.pulseT = 0; fx.pulseI = 0; fx.swaps.clear(); fx.capySeen = 0; fx.capyHold = 0; fx.capyFive = 0; fx.leaps = []; fx.bestSaid = false;
     fx.zenI = 0; fx.litLen = 0; fx.weld = []; fx.weldAcc = 0; fx.scoreGlow = 0; fx.sandRings = [];
     scoreEl.querySelector('b').style.textShadow = ''; scoreEl.querySelector('b').style.color = '';
-    fx.stop = 0; fx.heat = 0; fx.quench = 0; fx.beat = 0; fx.beatT = 0; fx.shimmer = null; fx.score = 0; fx.settle.clear(); fx.prevSt = null;
+    fx.stop = 0; fx.heat = 0; fx.quench = 0; fx.beat = 0; fx.beatT = 0; fx.crowdBeat = 0; fx.crowdBeatT = 10; fx.shimmer = null; fx.score = 0; fx.settle.clear(); fx.prevSt = null;
     fx.slow = 0; fx.scoreRed = 0; fx.saved = false; fx.holdStuck = 0; fx.stars = []; fx.flash = null; fx.lay = null; fx.restRing = null;
     fx.catUsed = false; fx.hamUsed = false; fx.ham = null; fx.dialFrom = null; fx.lastTick = -1; pendingFail = 0; pendingZen = null; dialKey = '';
     clockEl.classList.remove('up');
@@ -4967,8 +4967,6 @@ const GrainSim = (() => {
       if (!ring) { ring = document.createElement('i'); ring.className = 'doomring'; el.appendChild(ring); }
       ring.style.left = (svgs[at].offsetLeft + svgs[at].offsetWidth / 2) + 'px'; ring.style.setProperty('--t', full.toFixed(3));
     } else if (ring) ring.remove();
-    if (risk >= 0.6 && !fx.crowdSaid) { fx.crowdSaid = true; zenSay(tr('Too many grains: you are about to lose a life'), 3, 'red'); }
-    else if (risk < 0.3) fx.crowdSaid = false;
   }
   // the lit part of the moon for a month's age (0 the new moon, 0.5 the full): the outer half on the lit side, then the
   // terminator back as half an ellipse
@@ -7050,14 +7048,35 @@ const GrainSim = (() => {
     ctx.beginPath(); ctx.rect(Math.round(view.offX * view.dpr), 0, Math.round(W * view.scale * view.dpr), canvas.height); ctx.clip();
     drawWorld(s);
     if (s.zen) drawMoonLight(s, dt || 0.016);
-    if (s.zen && s.crowd > 0.65 && !s.done) {
-      const t = performance.now() / 1000, full = s.overT > 0, k = clamp((s.crowd - 0.65) / 0.35, 0, 1) * (full ? 0.8 + 0.2 * Math.sin(t * 9) : 0.65);
-      const d = view.dpr, bx = view.offX * d, bw = W * view.scale * d, H = canvas.height;
-      const g = ctx.createRadialGradient(bx + bw / 2, H * 0.48, Math.min(bw, H) * 0.35, bx + bw / 2, H * 0.48, Math.max(bw, H) * 0.75);
-      g.addColorStop(0, 'rgba(255,90,70,0)'); g.addColorStop(1, 'rgba(255,90,70,' + (0.32 * k).toFixed(3) + ')');
-      ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = g; ctx.fillRect(bx, 0, bw, H);
-      if (full && !fx.fullSaid) { fx.fullSaid = true; zenSay(tr('The board is full'), 3, 'red', { sub: tr('Sort some grains before the ring closes.') }); }
-    } else if (s.zen && s.crowd < 0.7) fx.fullSaid = false;
+    if (s.zen && s.crowd > 0.6 && !s.done) drawCrowdInk(s);
+    ctx.restore();
+  }
+  // Pełnia: a filling board says so on the board itself. Dark red ink soaks in from every edge, deeper the less room
+  // is left, and swells with the heartbeat; full, one word is brushed over the grains until the ring on the ensō closes
+  function drawCrowdInk(s) {
+    const full = s.overT > 0, k = clamp((s.crowd - 0.6) / 0.4, 0, 1), p = fx.crowdBeat || 0;
+    const d = view.dpr, bx = view.offX * d, bw = W * view.scale * d, H = canvas.height, sc = view.scale * d;
+    const depth = (26 + 120 * k + (full ? 24 : 0)) * sc * (1 + 0.08 * p), a = Math.min(0.62, (0.26 + 0.26 * k + (full ? 0.1 : 0)) * (0.85 + 0.3 * p));
+    const top = view.top * sc;      // the top edge soaks in from under the band, so no line shows where the band ends
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    const edge = (x0, y0, x1, y1) => {
+      const g = ctx.createLinearGradient(x0, y0, x1, y1);
+      g.addColorStop(0, 'rgba(96,10,6,' + a.toFixed(3) + ')'); g.addColorStop(0.45, 'rgba(150,24,14,' + (a * 0.42).toFixed(3) + ')'); g.addColorStop(1, 'rgba(150,24,14,0)');
+      return g;
+    };
+    ctx.fillStyle = edge(bx, 0, bx + depth, 0); ctx.fillRect(bx, 0, depth, H);
+    ctx.fillStyle = edge(bx + bw, 0, bx + bw - depth, 0); ctx.fillRect(bx + bw - depth, 0, depth, H);
+    ctx.fillStyle = edge(0, 0, 0, top + depth); ctx.fillRect(bx, 0, bw, top + depth);
+    ctx.fillStyle = edge(0, H, 0, H - depth); ctx.fillRect(bx, H - depth, bw, depth);
+    if (!full) return;
+    const appear = clamp(s.overT / 0.25, 0, 1), y = clamp(view.top + 300, view.top + 180, view.H * 0.42);
+    worldTransform(0, 0);
+    ctx.save();
+    ctx.translate(W / 2, y); ctx.scale(1 + 0.06 * p, 1 + 0.06 * p);
+    ctx.globalAlpha = appear; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+    ctx.font = '74px ' + BRUSH;
+    ctx.lineWidth = 10; ctx.strokeStyle = 'rgba(18,6,4,0.85)'; ctx.strokeText(tr('Board full!'), 0, 0);
+    ctx.shadowColor = 'rgba(255,90,70,0.8)'; ctx.shadowBlur = 16 * view.dpr; ctx.fillStyle = '#ff6a4d'; ctx.fillText(tr('Board full!'), 0, 0);
     ctx.restore();
   }
   // Pełnia: the pool of moonlight on the sand, under the grains: a soft silver disc with a dotted rim, red under a blood
@@ -7125,6 +7144,8 @@ const GrainSim = (() => {
     }
     // a grain squeezed out of the crowd is in the air for a moment: up and down in one arc
     const liftOf = (g) => (g.fly > 0 && g.flyT > 0 ? Math.sin(Math.PI * (1 - g.fly / g.flyT)) : 0);
+    // a nearly full board: every loose grain shivers, packed too tight
+    const shiver = s === sim && s.zen && !s.done && !reducedMotion() ? (s.overT > 0 ? 1.6 : Math.pow(clamp((s.crowd - 0.85) / 0.15, 0, 1), 2) * 1.1) : 0;
     for (const g of gs) {
       if (g.st === ST.WALK) { drawShadow(g, 1.04, 0.35, 0.9, ox, oy); continue; }
       if (g.st !== ST.REST && g.st !== ST.SLIDE) continue;
@@ -7153,6 +7174,7 @@ const GrainSim = (() => {
     for (const g of gs) {
       if ((g.st !== ST.REST && g.st !== ST.SLIDE) || g.fly > 0) continue;     // in the air: drawn over the sticks
       let jx = 0, jy = 0, sc = 1, wob = 0;
+      if (shiver) { jx = Math.sin(t * 43 + g.id * 2.1) * shiver; jy = Math.cos(t * 37 + g.id * 1.3) * shiver; }
       if (sp) {
         const k = spillK(g);
         if (k <= 0) continue;
@@ -7163,7 +7185,7 @@ const GrainSim = (() => {
       if (st) { wob = 0.1 * st * Math.sin((1 - st) * 24); sc *= 1 + 0.04 * st; }
       if (g.warn > 0.02) {
         drawWarnRing(g, Math.min(0.95, 0.25 + g.warn), ox, oy);
-        jx = Math.sin(t * 57 + g.id * 1.7) * g.warn * 2.4; jy = Math.cos(t * 49 + g.id) * g.warn * 2.4;
+        jx += Math.sin(t * 57 + g.id * 1.7) * g.warn * 2.4; jy += Math.cos(t * 49 + g.id) * g.warn * 2.4;
       }
       if (g.id === badId) drawWarnRing(g, Math.min(1, fx.bad.t), ox, oy);
       if (s.zen && TYPES[g.type].stone && g.life > GS.ZEN_STONE_S - 3) {      // a stone sinking into the sand
@@ -7405,6 +7427,13 @@ const GrainSim = (() => {
         fx.beatT += dt;
         if (fx.beatT >= 0.8 - 0.58 * clamp((w - 0.15) / 0.85, 0, 1)) { fx.beatT = 0; fx.beat = 1; Sound.beat(w); if (w > 0.55) Haptics.buzz(6); }
       } else fx.beatT = 10;
+      // Pełnia: a filling board quickens a heart of its own, from four fifths full to the full board
+      const cw = sim.zen && !sim.done ? (sim.overT > 0 ? 1 : clamp((sim.crowd - 0.8) / 0.2, 0, 1)) : 0;
+      if (cw > 0 && w <= 0.15) {
+        fx.crowdBeatT += dt;
+        if (fx.crowdBeatT >= 0.95 - 0.6 * cw) { fx.crowdBeatT = 0; fx.crowdBeat = 1; Sound.beat(0.3 + 0.7 * cw); if (cw > 0.6) Haptics.buzz(cw >= 1 ? 14 : 6); }
+      } else fx.crowdBeatT = 10;
+      fx.crowdBeat = Math.max(0, (fx.crowdBeat || 0) - dt * 4);
       // still holding after a break: the sticks wait for the finger to lift; say so once
       if (sim.waitLift && input.down && !sim.done) {
         fx.holdStuck += dt;
