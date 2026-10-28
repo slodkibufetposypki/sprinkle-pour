@@ -139,32 +139,38 @@
   /* zen: the Zen Zone meter, upright at the right side of the board. It fills from below with good rows, drains with a
      broken row and with waiting, glows when it is nearly full and runs down while the zone lasts; dim, with the time
      left, until it opens. Below it in the top bar: the bowls toward the capybara */
-  #zone { position: fixed; z-index: 3; top: 33%; height: 30%; right: max(6px, calc((100vw - var(--board-w, 100vw)) / 2 + 6px));
-    display: flex; flex-direction: column; align-items: center; gap: 6px; pointer-events: none;
-    font: 400 var(--fs-13)/1 var(--hand); color: var(--chalk); white-space: nowrap; transition: opacity .4s ease; }
-  #zone .lbl { writing-mode: vertical-rl; transform: rotate(180deg); text-shadow: 0 1px 3px rgba(0, 0, 0, .8); }
-  #zone .bar { position: relative; display: block; flex: 1; width: 12px; border-radius: 6px; background: rgba(236, 232, 222, 0.16); overflow: hidden;
-    box-shadow: 0 0 0 1px rgba(10, 12, 15, 0.55); }
-  #zone .bar b { position: absolute; left: 0; right: 0; bottom: 0; height: 0; border-radius: inherit; background: rgba(246, 196, 83, 0.72); transition: height .25s ease, background-color .25s ease; }
-  #zone .wait { display: none; text-shadow: 0 1px 3px rgba(0, 0, 0, .8); }
-  #zone.locked { opacity: 0.55; }
+  /* Pełnia: the Zen Zone, an upright bamboo tube at the right edge, under the score and above the thumb, that fills
+     with gold sand. Its nodes mark the quarters. Sealed with a paper band and the time left until it opens; what a
+     broken row takes away shows for a moment as a pale ghost of the sand that was; full, its wall glows, ×2 above it,
+     and the sand runs out like an hourglass while the zone lasts. */
+  #zone { position: fixed; z-index: 3; top: calc(env(safe-area-inset-top, 0px) + 216px); height: 200px; right: max(5px, calc((100vw - var(--board-w, 100vw)) / 2 + 5px));
+    display: flex; flex-direction: column; align-items: center; gap: 5px; pointer-events: none; white-space: nowrap; transition: opacity .4s ease; }
+  #zone .lbl { order: -2; min-height: 13px; font: 700 var(--fs-13)/1 var(--print); color: var(--ember); text-shadow: var(--halo); }
+  #zone .wait { order: -1; display: none; padding: 3px 4px 2px; border-radius: 2px; background: #e9dfc8; color: #2a1b11; font: 700 var(--fs-13)/1 var(--print);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .6); }
+  #zone .bar { position: relative; display: block; flex: 1; width: 16px; box-sizing: border-box; border-radius: 8px; overflow: hidden;
+    border: 2px solid rgba(236, 232, 222, 0.45); background: rgba(246, 196, 83, 0.1); box-shadow: 0 0 0 1px rgba(10, 12, 15, 0.5), 0 2px 6px rgba(0, 0, 0, .45);
+    transition: border-color .3s ease, box-shadow .3s ease; }
+  #zone .bar::after { content: ""; position: absolute; inset: 0; z-index: 2; background: linear-gradient(to top, transparent calc(25% - 1px), rgba(236, 232, 222, 0.42) calc(25% - 1px), rgba(236, 232, 222, 0.42) calc(25% + 1px), transparent calc(25% + 1px), transparent calc(50% - 1px), rgba(236, 232, 222, 0.42) calc(50% - 1px), rgba(236, 232, 222, 0.42) calc(50% + 1px), transparent calc(50% + 1px), transparent calc(75% - 1px), rgba(236, 232, 222, 0.42) calc(75% - 1px), rgba(236, 232, 222, 0.42) calc(75% + 1px), transparent calc(75% + 1px)); }
+  #zone .bar b { position: absolute; left: 0; right: 0; bottom: 0; height: 0; z-index: 1;
+    background: radial-gradient(circle, rgba(110, 70, 20, 0.5) 0.7px, transparent 1.2px) 0 0 / 4px 4px, linear-gradient(#f2cb6e, #d39b3a); transition: height .25s ease; }
+  #zone .bar s { position: absolute; left: 0; right: 0; bottom: 0; height: 0; z-index: 1; background: rgba(236, 232, 222, 0.42); opacity: 0; }
+  #zone.locked { opacity: 0.75; }
+  #zone.locked .bar { border-color: rgba(236, 232, 222, 0.28); }
   #zone.away { display: none; }
   #zone.locked .wait { display: block; }
-  #zone.near .bar { animation: zonenear 1.1s ease-in-out; }
-  @keyframes zonenear { 50% { box-shadow: 0 0 0 1px rgba(10, 12, 15, 0.55), 0 0 12px 2px rgba(246, 196, 83, 0.75); } }
+  #zone.near .bar { border-color: rgba(246, 196, 83, 0.85); animation: zonenear 1.1s ease-in-out; }
+  @keyframes zonenear { 50% { box-shadow: 0 0 0 1px rgba(10, 12, 15, 0.5), 0 0 12px 2px rgba(246, 196, 83, 0.75); } }
   #zone.tick .bar { animation: zonetick .4s ease-out; }
   @keyframes zonetick { 25% { box-shadow: 0 0 12px 2px rgba(246, 196, 83, 0.85); } }
-  #zone.drain .bar b { background: #ff7a6b; transition: height .45s ease; }
-  #zone.drain .bar { animation: zonedrain .45s ease-out; }
-  @keyframes zonedrain { 20%, 60% { transform: translateX(-2px); } 40%, 80% { transform: translateX(2px); } }
+  #zone.drain .bar s { animation: zoneghost .5s ease-out; }
+  @keyframes zoneghost { 0% { opacity: 1; } 100% { opacity: 0; } }
   /* a full row's charge flying up into the bar */
   .zmote { position: fixed; left: 0; top: 0; z-index: 6; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; border-radius: 50%; pointer-events: none;
     background: #ffe7a6; box-shadow: 0 0 8px 3px rgba(246, 196, 83, 0.75); }
   .zmote.small { width: 5px; height: 5px; margin: -2.5px 0 0 -2.5px; box-shadow: 0 0 6px 2px rgba(246, 196, 83, 0.5); }
-  #zone.on .lbl { color: var(--ember); }
-  #zone.on .bar { box-shadow: 0 0 0 1px rgba(10, 12, 15, 0.55), 0 0 14px 3px rgba(246, 196, 83, 0.7); }
-  #zone.on .bar b { background: var(--ember); transition: none; }
-  #zone.near .bar b { background: var(--ember); }
+  #zone.on .bar { border-color: var(--ember); box-shadow: 0 0 0 1px rgba(10, 12, 15, 0.5), 0 0 12px 3px rgba(246, 196, 83, 0.65); }
+  #zone.on .bar b { transition: none; }
   #zone.up { animation: zoneup .42s cubic-bezier(.34, 1.25, .64, 1); }
   @keyframes zoneup { 40% { transform: scale(1.12); } }
   /* the Zen Zone opening: its name, large, for a moment, and what it gives */
@@ -195,14 +201,15 @@
      at its foot: tap the dial and she turns the hand back, once a round. */
   .dial { position: relative; display: block; width: 40px; height: 40px; padding: 0; border: 0; background: none; margin: 0; }
   .dial svg { width: 40px; height: 40px; overflow: visible; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .6)); }
-  .dial .face { fill: rgba(15, 18, 21, 0.5); stroke: var(--chalk-2); stroke-width: 1.6; }
+  .dial .face { fill: #1d140e; stroke: #d8c9ad; stroke-width: 2.6; }
   .dial .gold { fill: rgba(246, 196, 83, 0.88); }
   .dial .pale { fill: rgba(236, 232, 222, 0.34); }
   .dial.low .pale { fill: rgba(255, 122, 107, 0.8); }
-  .dial .ticks { stroke: rgba(236, 232, 222, 0.42); stroke-width: 1.3; stroke-linecap: round; }
-  .dial .hand { stroke: var(--chalk); stroke-width: 2.4; stroke-linecap: round; }
-  .dial .pin { fill: var(--chalk); }
-  .dial .secs { font: 400 15px var(--hand); fill: var(--chalk); text-anchor: middle; paint-order: stroke; stroke: rgba(15, 18, 21, .9); stroke-width: 3px; }
+  /* where the bonus ends: a gold notch on the lip, which glints as the time passes it */
+  .dial .notch { fill: none; stroke: var(--ember); stroke-width: 3; stroke-linecap: round; }
+  .dial.glint .notch { animation: glint .32s ease; }
+  @keyframes glint { 50% { stroke: #fff4cf; stroke-width: 4.5; } }
+  .dial .secs { font: 700 15px var(--print); fill: var(--chalk); text-anchor: middle; paint-order: stroke; stroke: rgba(15, 18, 21, .9); stroke-width: 3px; }
   .dial.up svg { animation: dialup .42s cubic-bezier(.34, 1.25, .64, 1); }
   @keyframes dialup { 50% { transform: scale(1.08); } }
   /* the helpers, under the back and again arrows: each its own medallion (a drawn face under it in case the picture is
@@ -603,11 +610,7 @@
     <span id="best" hidden></span>
   </div>
   <div class="side end">
-    <div class="r1"><div class="clockwrap"><button id="clock" class="dial" aria-label="Time left"><svg viewBox="0 0 46 46" aria-hidden="true">
-      <circle class="face" cx="23" cy="23" r="19"/><path class="pale" d=""/><path class="gold" d=""/>
-      <path class="ticks" d="M23 5.5v3M23 37.5v3M5.5 23h3M37.5 23h3M31.75 7.84l-1 1.73M38.16 14.25l-1.73 1M38.16 31.75l-1.73-1M31.75 38.16l-1-1.73M14.25 38.16l1-1.73M7.84 31.75l1.73-1M7.84 14.25l1.73 1M14.25 7.84l1 1.73"/>
-      <line class="hand" x1="23" y1="23" x2="23" y2="8"/><circle class="pin" cx="23" cy="23" r="2.2"/><text class="secs" x="23" y="28"></text>
-    </svg></button>
+    <div class="r1"><div class="clockwrap"><button id="clock" class="dial" aria-label="Time left"><svg viewBox="0 0 46 46" aria-hidden="true"><circle class="face" cx="23" cy="23" r="20"/><path class="pale" d=""/><path class="gold" d=""/><path class="notch" d=""/><text class="secs" x="23" y="28.5"></text></svg></button>
     <button id="catHelp" class="helper" aria-label="Zen Cat" hidden><span class="face"><svg viewBox="0 0 20 20" aria-hidden="true"><ellipse cx="10" cy="12.6" rx="4.6" ry="3.8" fill="currentColor"/><circle cx="4.6" cy="7.8" r="2" fill="currentColor"/><circle cx="8.2" cy="5" r="2" fill="currentColor"/><circle cx="11.8" cy="5" r="2" fill="currentColor"/><circle cx="15.4" cy="7.8" r="2" fill="currentColor"/></svg><img src="medal-cat-front.webp" alt="" onerror="this.remove()"></span><i>0</i></button></div><div id="lives" hidden></div><button id="menuBtn" class="iconbtn big" aria-label="Pause"><svg viewBox="0 0 22 22" aria-hidden="true"><path d="M7.4 4.2c.2 4.6-.1 9.2.3 13.6M14.8 4.4c-.3 4.4.1 9 .1 13.4"/></svg></button></div>
     <div id="score" class="chalk"><b>0</b></div>
   </div>
@@ -615,7 +618,7 @@
 <div id="banner" class="note chalk" role="status"><b></b><span></span></div>
 <div id="zsay" class="chalk" role="status"></div>
 <div id="zentitle" class="chalk" aria-live="polite"><b></b><span></span></div>
-<div id="zone" class="chalk" hidden><span class="lbl">Zen Zone</span><i class="bar"><b></b></i><span class="wait"></span></div>
+<div id="zone" hidden aria-label="Zen Zone"><span class="lbl"></span><i class="bar"><s></s><b></b></i><span class="wait"></span></div>
 <div id="medals" aria-hidden="true"></div>
 <div id="catpaw" aria-hidden="true"><svg viewBox="0 0 130 64">
   <path d="M130 16C104 15 76 17 56 19 36 21 18 26 16 35c-2 10 14 16 32 15 26-1 54 0 82 0z" fill="#e8a25a" stroke="#9c5a24" stroke-width="2"/>
@@ -3664,6 +3667,7 @@ const GrainSim = (() => {
   }
   if (/[?&]font=chalk/.test(location.search)) document.documentElement.classList.add('chalkfont');
   const HAND = getComputedStyle(document.documentElement).getPropertyValue('--hand').trim() || 'cursive';
+  const BRUSH = getComputedStyle(document.documentElement).getPropertyValue('--sketch').trim() || 'serif';
   if (document.fonts && document.fonts.load) { try { document.fonts.load('40px ' + HAND.split(',')[0]); } catch (e) { /* ignore */ } }
 
   // ---------- canvas & layout ----------
@@ -4633,7 +4637,8 @@ const GrainSim = (() => {
       if (on) fx.zoneSeen = 0;
       else if (performance.now() >= fx.zoneHold && Math.abs(sim.zone - fx.zoneSeen) > 0.004) {
         const d = sim.zone - fx.zoneSeen;
-        if (d > 0) { zEl.classList.remove('drain'); restartAnim(zEl, 'tick'); } else if (d <= -0.05) restartAnim(zEl, 'drain');
+        if (d > 0) { zEl.classList.remove('drain'); restartAnim(zEl, 'tick'); }
+        else if (d <= -0.05) { zEl.querySelector('.bar s').style.height = (100 * clamp(fx.zoneSeen, 0, 1)).toFixed(1) + '%'; restartAnim(zEl, 'drain'); }
         fx.zoneSeen = sim.zone;
       }
       const k = on ? sim.zoneT / GS.ZEN_ZONE.secs : fx.zoneSeen, open = sim.zoneOpen();
@@ -4645,8 +4650,8 @@ const GrainSim = (() => {
         fx.zoneOpened = true; restartAnim(zEl, 'up'); Sound.zenOpen(); Haptics.buzz(8);
         zenSay(tr('The Zen Zone is open: quick full rows fill it'), 2, 'gold');
       }
-      const lbl = on ? tr('Zen Zone ×{p}', { p: GS.ZEN_ZONE.pay }) : tr('Zen Zone');
-      if (zEl.querySelector('.lbl').textContent !== lbl) zEl.querySelector('.lbl').textContent = lbl;
+      const lbl = on ? '×' + GS.ZEN_ZONE.pay : '';
+      if (zEl.querySelector('.lbl').textContent !== lbl) { zEl.querySelector('.lbl').textContent = lbl; zEl.setAttribute('aria-label', on ? tr('Zen Zone ×{p}', { p: GS.ZEN_ZONE.pay }) : tr('Zen Zone')); }
       const cEl = $('capy'), now = performance.now(), pips = cEl.querySelectorAll('.ring path');
       if (now >= fx.capyHold && fx.capySeen !== sim.bowls) {
         const up = sim.bowls > fx.capySeen;
@@ -4677,15 +4682,15 @@ const GrainSim = (() => {
       if (pace === 'Slow' && sim.mult > 1.05 && screen === 'play' && sim.started) Sound.tick(false);
     }
   }
-  // The dial: the hand at the share of the limit gone by, the gold wedge from the hand to par (the time that still
-  // pays), the pale wedge from there round to the top (the rest). When the cat turns it back, the limit shown eases
-  // up to the new one, so the hand swings back instead of jumping.
+  // The dial, a small dish: the gold wedge is the time that still pays a bonus, the pale wedge the rest, both shrinking
+  // round toward the top as the time goes; a gold notch on the lip marks where the bonus ends and glints as it passes.
+  // When the cat turns it back, the limit shown eases up to the new one, so the wedges swing back instead of jumping.
   const sector = (a0, a1) => {
     if (a1 - a0 < 0.002) return '';
     const r = 16.4, p = (a) => (23 + r * Math.sin(a)).toFixed(2) + ' ' + (23 - r * Math.cos(a)).toFixed(2);
     return 'M23 23L' + p(a0) + 'A' + r + ' ' + r + ' 0 ' + (a1 - a0 > Math.PI ? 1 : 0) + ' 1 ' + p(a1) + 'Z';
   };
-  let dialKey = '';
+  let dialKey = '', dialSim = null, dialPast = false;
   function drawDial(dt) {
     const lim = sim.limit;
     if (!Number.isFinite(lim)) { if (dialKey !== 'off') { dialKey = 'off'; clockEl.hidden = true; } return; }
@@ -4705,8 +4710,12 @@ const GrainSim = (() => {
     const svg = clockEl.firstElementChild;
     svg.querySelector('.gold').setAttribute('d', a < ap ? sector(a, ap) : '');
     svg.querySelector('.pale').setAttribute('d', sector(Math.max(a, ap), T));
-    const h = svg.querySelector('.hand');
-    h.setAttribute('x2', (23 + 15 * Math.sin(a)).toFixed(2)); h.setAttribute('y2', (23 - 15 * Math.cos(a)).toFixed(2));
+    const n = svg.querySelector('.notch');
+    n.setAttribute('d', ap < T - 0.01 ? 'M' + (23 + 17.5 * Math.sin(ap)).toFixed(2) + ' ' + (23 - 17.5 * Math.cos(ap)).toFixed(2) + 'L' + (23 + 22.5 * Math.sin(ap)).toFixed(2) + ' ' + (23 - 22.5 * Math.cos(ap)).toFixed(2) : '');
+    const past = a >= ap;
+    if (dialSim !== sim) { dialSim = sim; dialPast = past; }
+    else if (past && !dialPast) { dialPast = true; restartAnim(clockEl, 'glint'); if (sim.started && !sim.done) Sound.tick(false); }
+    else if (!past) dialPast = false;
     svg.querySelector('.secs').textContent = low ? String(left) : '';
     clockEl.classList.toggle('low', low);
     clockEl.setAttribute('aria-label', tr('Time left: {t}', { t: mmss(sim.limitLeft()) }));
@@ -5633,10 +5642,7 @@ const GrainSim = (() => {
         case 'zone':
           if (e.on) {
             Sound.finale(); Sound.bloom(); Haptics.buzz([15, 30, 15, 30, 15]);
-            const T = $('zentitle');
-            T.querySelector('b').textContent = tr('Zen Zone');
-            T.querySelector('span').textContent = '×' + GS.ZEN_ZONE.pay;
-            T.classList.remove('show'); void T.offsetWidth; T.classList.add('show');
+            fx.sandTitle = { at: performance.now(), big: tr('Zen Zone'), small: '×' + GS.ZEN_ZONE.pay };   // written into the sand
             restartAnim($('zone'), 'up'); fx.pulseT = 0.2;
             if (!reducedMotion()) { fx.sandWave = { t: 0 }; fx.sandPulse = 0.5; }
             Analytics.emit('zen_zone', { time: sim.clock, zones: e.zones });
@@ -6670,12 +6676,30 @@ const GrainSim = (() => {
     } else if (s.zen && s.crowd < 0.7) fx.fullSaid = false;
     ctx.restore();
   }
+  // a big moment (the Zen Zone opening) is written into the sand in gold light, under the grains, so it hides none
+  function drawSandTitle(ox, oy) {
+    const T = fx.sandTitle;
+    if (!T) return;
+    const k = (performance.now() - T.at) / 1800;
+    if (k >= 1 || k < 0) { fx.sandTitle = null; return; }
+    const a = k < 0.14 ? k / 0.14 : k > 0.7 ? (1 - k) / 0.3 : 1, y = clamp(view.top + 300, view.top + 180, view.H * 0.42);
+    worldTransform(ox, oy);
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.5 * a;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.shadowColor = 'rgba(246,196,83,0.9)'; ctx.shadowBlur = 18 * view.dpr;
+    ctx.fillStyle = '#f6c453';
+    ctx.font = '84px ' + BRUSH; ctx.fillText(T.big, W / 2, y);
+    ctx.font = '46px ' + BRUSH; ctx.fillText(T.small, W / 2, y + 84);
+    ctx.restore();
+  }
   function drawWorld(s) {
     let ox = 0, oy = 0;
     if (s === sim && fx.shakeT > 0) { const m = fx.shakeT * 22; ox = (Math.random() - 0.5) * m; oy = (Math.random() - 0.5) * m; }
     drawStores(s, ox, oy);
     if (s === sim) drawTrayEdge(s, ox, oy);
     drawZone(s, ox, oy);
+    if (s === sim) drawSandTitle(ox, oy);
     const t = s.t, gs = s.grains;
     const badId = s === sim && fx.bad ? fx.bad.id : -1;
     const sp = s === sim ? fx.spill : null;
