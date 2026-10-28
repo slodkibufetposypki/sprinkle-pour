@@ -49,6 +49,8 @@
     --kidney: #b8463e;
     --ember: #f6c453;
     --chalk-red: #ff7a6b;
+    /* the cards and their buttons: black lacquer with a gold-leaf rule, the words in the lantern's cream */
+    --lamp: #f1d6a0; --lamp-2: rgba(241, 214, 160, 0.66); --leaf: rgba(217, 165, 74, 0.3);
     /* a Japanese pen hand for everything written on the board, a brush for names and big numbers; both carry every
        Polish letter. ?font=chalk brings back the chalk faces of the first boards to compare. */
     --hand: "Zen Hand", "Segoe Print", "Bradley Hand", cursive;
@@ -285,21 +287,27 @@
   #zsay.gold { color: var(--ember); }
   #zsay.red { color: var(--chalk-red); }
 
-  /* ---------- menus: a slate slab across the bottom ---------- */
+  /* ---------- menus: a tray of black lacquer, a gold-leaf rule inside its edge, near the bottom within thumb reach;
+     the main button is a plaque of the room's old wood with its vermilion seal, the others are words ---------- */
   .screen {
     position: fixed; inset: 0; z-index: 4; display: flex; flex-direction: column; justify-content: flex-end; align-items: center;
-    background: linear-gradient(to bottom, rgba(10, 12, 15, 0) 30%, rgba(10, 12, 15, 0.8));
+    background: linear-gradient(to bottom, rgba(14, 9, 5, 0) 30%, rgba(14, 9, 5, 0.78));
   }
-  .screen.dim { background: rgba(10, 12, 15, 0.62); }
+  .screen.dim { background: rgba(12, 8, 5, 0.55); }
   .slab {
-    position: relative; width: min(100%, var(--board-w, 100%)); box-sizing: border-box; background: var(--slab);
-    padding: 26px max(20px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 18px) max(20px, env(safe-area-inset-left, 0px));
-    display: flex; flex-direction: column; gap: 14px; border-top: 1px solid rgba(255, 255, 255, 0.07);
+    position: relative; width: min(calc(100% - 24px), 380px); box-sizing: border-box; border-radius: 16px;
+    background: linear-gradient(180deg, #2a1b11, #1b120b);
+    margin: 0 auto calc(env(safe-area-inset-bottom, 0px) + 12px); padding: 22px 22px 18px;
+    display: flex; flex-direction: column; gap: 12px;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 200, 136, 0.16), 0 20px 44px rgba(0, 0, 0, 0.55);
+    outline: 1px solid var(--leaf); outline-offset: -7px;
     animation: rise .26s cubic-bezier(.2, .8, .2, 1);
-    max-height: calc(100% - env(safe-area-inset-top, 0px) - 24px); overflow-y: auto; -webkit-overflow-scrolling: touch;
+    max-height: calc(100% - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 36px); overflow-y: auto; -webkit-overflow-scrolling: touch;
   }
-  .slab::before { content: ""; position: absolute; left: 18px; right: 18px; top: 11px; height: 3px; border-radius: 2px; background: var(--chalk-3);
-    -webkit-mask-image: var(--chalk-mask); mask-image: var(--chalk-mask); -webkit-mask-size: 180px; mask-size: 180px; }
+  /* on a card the writing is the lantern's ink, not chalk */
+  .slab .chalk { -webkit-mask-image: none; mask-image: none; }
+  .slab h2 { font: 400 var(--fs-28)/1.15 var(--sketch); letter-spacing: var(--sketch-ls); color: var(--lamp); }
+  .slab .kicker { margin: 0 0 -8px; font-size: var(--fs-15); color: var(--lamp-2); }
   @keyframes rise { from { transform: translateY(40px); opacity: 0; } }
   h1, h2 { margin: 0; font-weight: 400; text-wrap: balance; }
   h1 { font: var(--sketch-w) var(--fs-56)/0.95 var(--sketch); letter-spacing: var(--sketch-ls); }
@@ -307,18 +315,25 @@
   .kicker { margin: 0 0 -10px; font: 400 var(--fs-20)/1.2 var(--hand); color: var(--chalk-2); }
   .lede { margin: 0; font: 400 var(--fs-24)/1.25 var(--hand); color: var(--chalk-2); }
   .primary {
-    height: 58px; border: 0; border-radius: 11px 8px 12px 7px; background: var(--chalk); color: var(--slate); flex: none;
-    font: 400 var(--fs-24)/1 var(--hand); display: flex; align-items: center; justify-content: center; gap: 10px; padding: 0 18px;
+    position: relative; height: 56px; border: 0; border-radius: 6px 5px 7px 5px; flex: none; padding: 0 34px; white-space: nowrap;
+    background: linear-gradient(172deg, #6e4b2e, #4b3220 52%, #2c1d12); color: var(--lamp);
+    font: 400 var(--fs-24)/1 var(--sketch); letter-spacing: var(--sketch-ls); display: flex; align-items: center; justify-content: center; gap: 10px;
+    box-shadow: inset 0 1px 0 rgba(233, 172, 106, 0.5), inset 1px 0 0 rgba(255, 200, 136, 0.22), inset 0 -2px 0 rgba(0, 0, 0, 0.35), 0 0 0 1px #0d0804, 0 8px 14px rgba(0, 0, 0, 0.5);
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.7), 0 0 12px rgba(255, 176, 92, 0.28);
   }
-  .primary:active { transform: scale(0.985) rotate(-0.3deg); }
+  .primary::after { content: ""; position: absolute; right: 14px; top: 50%; width: 12px; height: 12px; margin-top: -6px; border-radius: 2px; background: #a83a28; transform: rotate(-5deg); opacity: 0.9; }
+  .primary:active { transform: scale(0.985); }
+  #catBtn { font-size: var(--fs-20); }
+  /* in the settings the words switch something: a faint line round them says they can be tapped */
+  #settings .ghost { box-shadow: inset 0 0 0 1px rgba(241, 214, 160, 0.16); }
   .ghost {
-    min-height: 52px; border-radius: 9px 7px 10px 8px; border: 2px solid var(--chalk-2); background: rgba(236, 232, 222, 0.07); padding: 0 16px;
-    font: 400 var(--btn-fs)/1.1 var(--hand); color: var(--chalk); display: flex; align-items: center; justify-content: center; gap: 8px; flex: none;
+    min-height: 44px; border: 0; border-radius: 8px; background: none; padding: 0 12px;
+    font: 400 var(--fs-17)/1.1 var(--hand); color: var(--lamp-2); display: flex; align-items: center; justify-content: center; gap: 8px; flex: none;
   }
-  .ghost:active { background: rgba(236, 232, 222, 0.14); }
+  .ghost:active { color: var(--lamp); background: rgba(241, 214, 160, 0.06); }
   .ghost svg { width: 22px; height: 22px; flex: none; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
   #pause .ghost.back { margin-top: 6px; }
-  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
   .pair .ghost { padding: 0 10px; white-space: nowrap; }
   /* a volume: its name, then a chalk line with a round stone to slide */
   .vol { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); align-items: center; gap: 14px; min-height: 48px; padding: 0 4px;
@@ -329,7 +344,7 @@
   .vol input::-moz-range-progress { height: 4px; border-radius: 2px; background: var(--chalk); }
   .vol input::-webkit-slider-thumb { -webkit-appearance: none; width: 26px; height: 26px; margin-top: -11px; border-radius: 50%; background: var(--chalk); box-shadow: 0 2px 6px rgba(0, 0, 0, .5); }
   .vol input::-moz-range-thumb { width: 26px; height: 26px; border: 0; border-radius: 50%; background: var(--chalk); box-shadow: 0 2px 6px rgba(0, 0, 0, .5); }
-  .stack { display: flex; flex-direction: column; gap: 10px; }
+  .stack { display: flex; flex-direction: column; gap: 2px; }
   .sub { margin: 0; color: var(--chalk-2); font: 400 var(--fs-15)/1.4 var(--print); }
 
   /* the lobby: your stars, how far to the next board, the boards themselves */
@@ -457,9 +472,9 @@
   .tally li.minus b { color: var(--chalk-red); }
   .tally li b { font-weight: 400; }
   @keyframes write { from { opacity: 0; transform: translateX(-8px); } }
-  .total { margin: 0; display: flex; align-items: center; gap: 12px; border-top: 2px solid var(--chalk-3); padding-top: 10px; }
+  .total { margin: 0; display: flex; align-items: center; gap: 12px; border-top: 1px solid var(--leaf); padding-top: 10px; }
   .total span { font: 400 var(--fs-20)/1 var(--hand); color: var(--chalk-2); }
-  .total b { margin-left: auto; font: var(--sketch-w) var(--fs-44)/1 var(--sketch); letter-spacing: var(--sketch-ls); }
+  .total b { margin-left: auto; font: var(--sketch-w) var(--fs-44)/1 var(--sketch); letter-spacing: var(--sketch-ls); color: var(--lamp); }
   .total em { font: 400 var(--fs-17)/1 var(--hand); color: var(--ember); border: 2px solid var(--ember); border-radius: 50% / 46%;
     padding: 5px 10px 4px; transform: rotate(-6deg); animation: stamp .3s cubic-bezier(.3, 1.6, .5, 1) backwards; }
   .prize { margin: 0; font: 400 var(--fs-20)/1.3 var(--hand); color: var(--chalk); }
@@ -469,10 +484,8 @@
   .screen[data-v="top"] .primary svg { width: 24px; height: 24px; fill: currentColor; }
   .screen[data-v="top"] .primary { height: 54px; }
   .screen[data-v="top"] .ghost { min-height: 48px; }
-  #zenEnd[data-v="top"], #fail[data-v="top"], #done[data-v="top"] { justify-content: flex-start; background: linear-gradient(to bottom, rgba(10, 12, 15, 0.78), rgba(10, 12, 15, 0.5) 40%, rgba(10, 12, 15, 0) 62%); }
-  #zenEnd[data-v="top"] .slab, #fail[data-v="top"] .slab, #done[data-v="top"] .slab { border-top: 0; border-bottom: 1px solid rgba(255, 255, 255, 0.07); gap: 10px;
-    padding-top: calc(env(safe-area-inset-top, 0px) + 16px); padding-bottom: 22px; animation-name: drop; box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45); }
-  #zenEnd[data-v="top"] .slab::before, #fail[data-v="top"] .slab::before, #done[data-v="top"] .slab::before { top: auto; bottom: 9px; }
+  #zenEnd[data-v="top"], #fail[data-v="top"], #done[data-v="top"] { justify-content: flex-start; background: linear-gradient(to bottom, rgba(14, 9, 5, 0.7), rgba(14, 9, 5, 0.4) 40%, rgba(14, 9, 5, 0) 62%); }
+  #zenEnd[data-v="top"] .slab, #fail[data-v="top"] .slab, #done[data-v="top"] .slab { margin: calc(env(safe-area-inset-top, 0px) + 12px) auto 0; gap: 10px; animation-name: drop; }
   /* zen mode: its way in at the top of the board screen, and its three lives, brush circles under the score */
   /* The menu in the room, after the first tap: two flat boards of the room's own dark old wood, one above the other,
      floating over the table, lit warm from the candle's side, their words painted in the cream gold of the lantern's
@@ -481,15 +494,15 @@
   .mainmenu { position: absolute; z-index: 2; left: 0; right: 0; bottom: 0; padding: 40px 0 calc(env(safe-area-inset-bottom, 0px) + 12px);
     background: linear-gradient(to bottom, rgba(14, 9, 5, 0), rgba(14, 9, 5, 0.66) 34%, rgba(14, 9, 5, 0.88)); }
   .mainmenu .hang { position: relative; width: min(calc(100% - 48px), 340px); margin: 0 auto; }
-  .mainmenu .plaques { position: relative; display: flex; flex-direction: column; gap: 14px; }
-  .ema { position: relative; width: 100%; height: 76px; border: 0; padding: 4px 30px 6px; background: none; color: #f1d6a0;
+  .mainmenu .plaques { position: relative; display: flex; flex-direction: column; gap: 10px; }
+  .ema { position: relative; width: 100%; height: 64px; border: 0; padding: 4px 30px 6px; background: none; color: #f1d6a0;
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; transform-origin: 50% 50%;
     filter: drop-shadow(0 12px 12px rgba(0, 0, 0, .62)) drop-shadow(0 0 16px rgba(255, 160, 80, .1));
     will-change: transform; backface-visibility: hidden;
     animation: emarise .8s cubic-bezier(.2, .8, .2, 1) backwards, drift 9s ease-in-out .8s infinite; }
   .ema + .ema { animation-delay: .1s, .9s; animation-duration: .8s, 10.4s; }
   .ema .art { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; }
-  .ema b { position: relative; font: 400 var(--fs-28)/1.1 var(--sketch); letter-spacing: var(--sketch-ls);
+  .ema b { position: relative; font: 400 var(--fs-24)/1.1 var(--sketch); letter-spacing: var(--sketch-ls);
     text-shadow: 0 1px 1px rgba(0, 0, 0, .7), 0 0 12px rgba(255, 176, 92, .28); }
   .ema small { position: relative; font: 400 var(--fs-15)/1.2 var(--hand); color: rgba(241, 214, 160, .66); text-align: center; text-shadow: 0 1px 1px rgba(0, 0, 0, .6); }
   .ema:active { scale: 0.98; }
@@ -512,7 +525,7 @@
     font: 400 var(--fs-20)/1.1 var(--hand); color: var(--chalk); text-align: left; }
   .toggle .sw { position: relative; flex: none; width: 50px; height: 28px; border-radius: 14px; background: rgba(236, 232, 222, 0.16); border: 1.5px solid var(--chalk-3); box-sizing: border-box; transition: background .2s ease, border-color .2s ease; }
   .toggle .sw::after { content: ""; position: absolute; left: 3px; top: 2.5px; width: 20px; height: 20px; border-radius: 50%; background: var(--chalk); box-shadow: 0 1px 3px rgba(0, 0, 0, .5); transition: transform .22s cubic-bezier(.3, 1.3, .5, 1); }
-  .toggle[aria-checked="true"] .sw { background: rgba(246, 196, 83, 0.85); border-color: var(--ember); }
+  .toggle[aria-checked="true"] .sw { background: #c9963f; border-color: #c9963f; }
   .toggle[aria-checked="true"] .sw::after { transform: translateX(21px); }
   #lives { display: flex; justify-content: flex-end; gap: 2px; }
   #lives svg { width: 17px; height: 17px; color: var(--ember); filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .6)); }
@@ -521,9 +534,7 @@
   @keyframes lose { 30% { transform: scale(1.5) rotate(-20deg); } }
   @keyframes drop { from { transform: translateY(-40px); opacity: 0; } }
   #done[data-v="card"] { justify-content: center; background: rgba(10, 12, 15, 0.32); }
-  #done[data-v="card"] .slab { width: min(calc(100% - 32px), 400px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 18px 14px 18px 15px;
-    padding: 22px 20px 18px; gap: 10px; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55); margin-bottom: 14vh; }
-  #done[data-v="card"] .slab::before { display: none; }
+  #done[data-v="card"] .slab { gap: 10px; margin-bottom: 14vh; }
   #done:not([data-v="sheet"]) h2 { font-size: var(--fs-28); }
   #done:not([data-v="sheet"]) .stars.big svg { width: 40px; height: 40px; }
   #done:not([data-v="sheet"]) .tally { display: none; }
