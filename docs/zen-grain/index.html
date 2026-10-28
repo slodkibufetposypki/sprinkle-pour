@@ -357,7 +357,18 @@
   @keyframes giftout { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateX(-24%); } }
   @keyframes giftpop { from { opacity: 0; transform: translateY(6px) scale(.7); } to { opacity: 1; transform: none; } }
   @keyframes giftcount { from { opacity: 0; transform: scale(1.35); } to { opacity: 1; transform: none; } }
-  /* what she gave that waits for its moment (matcha for a broken row, a lantern for the next order) sits on her medallion */
+  /* her pocket: a gift kept for the player's moment stands on her medallion, bobbing, and the medallion glows; a tap
+     uses it */
+  #capy.ready { pointer-events: auto; cursor: pointer; }
+  #capy .pocket { position: absolute; right: -9px; bottom: -7px; width: 30px; height: 30px; pointer-events: none; filter: drop-shadow(1px 2px 2px rgba(20, 12, 6, .8)); }
+  #capy .pocket svg { width: 100%; height: 100%; overflow: visible; }
+  #capy.ready .pocket { animation: tapbob 1s ease-in-out infinite; }
+  #capy.ready .cap { animation: capyready 1.2s ease-in-out infinite; }
+  @keyframes capyready { 0%, 100% { filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .6)) drop-shadow(0 0 3px rgba(226, 181, 92, .4)); }
+    50% { filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .6)) drop-shadow(0 0 10px rgba(226, 181, 92, .85)); } }
+  .giftfly { position: fixed; z-index: 6; width: 30px; height: 30px; pointer-events: none; }
+  .giftfly svg { width: 100%; height: 100%; overflow: visible; }
+  /* what she gave that waits for its moment by itself (matcha for a broken row, a lantern for the next order) sits under her medallion */
   #capy .held { position: absolute; left: 50%; bottom: -13px; display: flex; gap: 1px; transform: translateX(-50%); pointer-events: none; }
   #capy .held i { display: block; width: 22px; height: 22px; filter: drop-shadow(1px 2px 2px rgba(20, 12, 6, .8)); animation: giftpop .42s cubic-bezier(.34, 1.25, .64, 1); }
   #capy .held svg { width: 100%; height: 100%; overflow: visible; }
@@ -670,7 +681,8 @@
   #tuneJson { width: 100%; box-sizing: border-box; background: #0d0f12; color: var(--chalk); border: 1px solid var(--chalk-3); border-radius: 10px; font: 12px ui-monospace, Menlo, monospace; }
 
   @media (prefers-reduced-motion: reduce) {
-    .slab, #done .slab, #chip.swap, .dial.up svg, #catpaw.go, #lives svg.lose, .stars.big svg.stamp, #streak.up b, #streak.lost, #streak.lost b, .tally li, .total em, #tally .nw, .lcard.next, #best.pop, #zone.up, #zone.near .bar, #capy.bless, #zone.ready .tap, #zone.ready .bar, #gift .ic, #gift .x, #capy .held i { animation: none; }
+    .slab, #done .slab, #chip.swap, .dial.up svg, #catpaw.go, #lives svg.lose, .stars.big svg.stamp, #streak.up b, #streak.lost, #streak.lost b, .tally li, .total em, #tally .nw, .lcard.next, #best.pop, #zone.up, #zone.near .bar, #capy.bless, #zone.ready .tap, #zone.ready .bar, #gift .ic, #gift .x, #capy .held i, #capy.ready .pocket { animation: none; }
+    #capy.ready .cap { animation: none; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .6)) drop-shadow(0 0 8px rgba(226, 181, 92, .75)); }
     #gift.in { animation: giftfade .2s ease forwards; } #gift.out { animation: giftfade .2s ease reverse forwards; }
     @keyframes giftfade { from { opacity: 0; } to { opacity: 1; } }
     #zone.ready .bar { box-shadow: 0 0 0 1px rgba(10, 12, 15, .5), 0 0 12px 4px rgba(246, 196, 83, .65); }
@@ -1440,10 +1452,15 @@ const GrainSim = (() => {
   //   lotus: points; matcha: the next broken row costs nothing; bell: the jar is still for a few seconds; dango: a third
   //   of the Zen Zone; drop: the stones on the board sink at once; lantern: an order gets twice the time; enso: a life;
   //   onsen: half the loose grains sink into the sand
+  // The lotus and the ensō work at once, the matcha and the lantern wait for their moment by themselves; the ones whose
+  // moment is the player's (pocket) go into her pocket, one at a time, and work when the player taps her medallion.
+  // While the pocket is full she brings only the others, so nothing is lost.
+  // For a start only three are on (the owner, 28 Oct: see first whether the gifts work at all): the ensō, the hot
+  // spring in the pocket and the lotus when nothing else is needed. The other five are built and tested, and wait.
   const ZEN_GIFTS = {
-    lotus: { tier: 1, w: 3, pts: 250 }, matcha: { tier: 1, w: 2 }, bell: { tier: 1, w: 2, secs: 8 },
-    dango: { tier: 2, w: 2, zone: 1 / 3 }, drop: { tier: 2, w: 1 }, lantern: { tier: 2, w: 1 },
-    enso: { tier: 3 }, onsen: { tier: 3, part: 0.5, crowd: 0.7, min: 12 },
+    lotus: { tier: 1, w: 3, pts: 250, on: true }, matcha: { tier: 1, w: 2 }, bell: { tier: 1, w: 2, secs: 8, pocket: true },
+    dango: { tier: 2, w: 2, zone: 1 / 3, pocket: true }, drop: { tier: 2, w: 1, pocket: true }, lantern: { tier: 2, w: 1 },
+    enso: { tier: 3, on: true }, onsen: { tier: 3, part: 0.5, crowd: 0.7, pocket: true, on: true },
   };
   // The night's rhythm, about a minute round and round: a stretch of steady pouring, then an order (one bowl asks for so
   // many of its kind in so many seconds), a short breath, then the peak: a wave (a short warning, then the jar pours hard,
@@ -1762,7 +1779,7 @@ const GrainSim = (() => {
       sim.lives = level.lives || 3; sim.overT = 0; sim.zenN = 0; sim.moon = null; sim.thanks = 0; sim.packs = []; sim.stage = 0; sim.bowls = 0; sim.continues = 0;
       sim.retiring = new Set(); sim.goldT = 40; sim.emberT = 9; sim.golds = 0;
       sim.zone = 0; sim.zoneT = 0; sim.zones = 0;
-      sim.gifts = {}; sim.lastGift = null; sim.shield = 0; sim.hush = 0; sim.lantern = false; sim.offer = null;
+      sim.gifts = {}; sim.lastGift = null; sim.shield = 0; sim.hush = 0; sim.lantern = false; sim.offer = null; sim.pocket = null;
       sim.flow = { kind: 'steady', until: 0, next: ZEN_FLOW.first, last: null }; sim.order = null; sim.orders = 0;
       sim.jar = { scoops: [], pour: [], every: 7.5, next: 1.2, gap: 0, idle: 0, aim: 0, left: true, x: 62, y: sim.top + 50, tip: 0, reach: 1 };
     }
@@ -2127,18 +2144,29 @@ const GrainSim = (() => {
     // Pełnia: the capybara's gifts (see ZEN_GIFTS)
     const looseGrains = () => sim.grains.filter((g) => (g.st === ST.REST || g.st === ST.SLIDE) && !TYPES[g.type].stone && !TYPES[g.type].gold && !g.frenzy);
     const boardStones = () => sim.grains.filter((g) => TYPES[g.type].stone && (g.st === ST.REST || g.st === ST.SLIDE));
+    // whether she can bring it now: a pocket gift only into an empty pocket, and only once it can be of use in this
+    // night (the zone open, stones on their way)
     function giftOk(id) {
+      if (!ZEN_GIFTS[id].on || (ZEN_GIFTS[id].pocket && sim.pocket)) return false;
       switch (id) {
         case 'matcha': return !sim.shield;
-        case 'bell': return sim.clock >= sim.hush;
-        case 'dango': return sim.zoneOpen() && sim.zoneT <= 0 && sim.zone < 1;
-        case 'drop': return boardStones().length > 0;
+        case 'dango': return sim.zoneOpen();
+        case 'drop': return !!ZEN_STAGES[sim.stage].stones;
         case 'lantern': return !sim.lantern;
         case 'enso': return sim.lives < 3;
-        case 'onsen': return looseGrains().length >= ZEN_GIFTS.onsen.min;
         default: return true;
       }
     }
+    // why the gift in the pocket cannot work right now (it stays there), or null
+    sim.pocketWhyNot = function () {
+      const id = sim.pocket;
+      if (!id) return 'none';
+      if (id === 'dango') return !sim.zoneOpen() ? 'closed' : sim.zoneT > 0 ? 'on' : sim.zone >= 1 ? 'full' : null;
+      if (id === 'drop') return boardStones().length ? null : 'nostones';
+      if (id === 'bell') return sim.clock < sim.hush ? 'hushed' : null;
+      if (id === 'onsen') return looseGrains().length ? null : 'empty';
+      return null;
+    };
     function giftWeight(id) {
       const w = ZEN_GIFTS[id].w || 1;
       if (id === 'bell') return w + (sim.crowd > 0.45 ? 2 : 0);
@@ -2154,16 +2182,33 @@ const GrainSim = (() => {
     // the lotus pays as much as the grandest kind now in the jar, times the multiplier
     sim.lotusPoints = () => Math.round(ZEN_GIFTS.lotus.pts * Math.max(1, ...pourKinds().map((t) => ZEN_WORTH[t] || 1)) * sim.mult);
     const smallGifts = (but) => Object.keys(ZEN_GIFTS).filter((id) => ZEN_GIFTS[id].tier < 3 && !but.includes(id) && giftOk(id));
-    // what the board needs: the hot spring for a crowded board, the ensō for a life lost, else a small one by chance
+    // what the board needs: the hot spring for a crowded board, the ensō for a life lost, the hot spring to keep in
+    // the pocket while it is empty, else a small one by chance
     function pickGift() {
       if (sim.crowd >= ZEN_GIFTS.onsen.crowd && giftOk('onsen')) return 'onsen';
       if (giftOk('enso')) return 'enso';
-      const ids = smallGifts([sim.lastGift]);
-      return ids.length ? pickWeighted(ids) : 'lotus';
+      if (giftOk('onsen')) return 'onsen';
+      const ids = smallGifts([sim.lastGift]), any = ids.length ? ids : smallGifts([]);
+      return any.length ? pickWeighted(any) : 'lotus';
     }
     function giveGift(id, from) {
       const G = ZEN_GIFTS[id], e = { id, tier: G.tier, from };
       sim.gifts[id] = (sim.gifts[id] || 0) + 1; sim.lastGift = id; e.n = sim.gifts[id];
+      if (G.pocket) { sim.pocket = id; e.pocket = true; } else applyGift(id, e);
+      e.lives = sim.lives; e.score = sim.score;
+      emit('gift', e);
+    }
+    // the tap on her medallion: what is in the pocket works now, if it can
+    function usePocket() {
+      if (!sim.zen || sim.done || !sim.pocket || sim.pocketWhyNot()) return false;
+      const id = sim.pocket, e = { id, tier: ZEN_GIFTS[id].tier };
+      sim.pocket = null; applyGift(id, e);
+      e.lives = sim.lives; e.score = sim.score;
+      emit('gift_used', e);
+      return true;
+    }
+    function applyGift(id, e) {
+      const G = ZEN_GIFTS[id];
       const sink = (gs) => gs.map((g) => { g.st = ST.LOST; g.vx = g.vy = 0; g.warn = 0; return [Math.round(g.x), Math.round(g.y)]; });
       if (id === 'lotus') { e.points = sim.lotusPoints(); sim.score += e.points; }
       else if (id === 'matcha') sim.shield = 1;
@@ -2177,13 +2222,13 @@ const GrainSim = (() => {
         for (let i = L.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [L[i], L[j]] = [L[j], L[i]]; }
         e.sunk = sink(L.slice(0, Math.round(L.length * G.part)));
       }
-      e.lives = sim.lives; e.score = sim.score;
-      emit('gift', e);
     }
     // at each new moon the capybara brings three gifts, one of them big if the board needs it, and the night waits
     // while the player takes one
     function offerGifts() {
-      const big = sim.crowd >= 0.5 && giftOk('onsen') ? 'onsen' : giftOk('enso') ? 'enso' : giftOk('onsen') ? 'onsen' : null, opts = big ? [big] : [];
+      const ok = Object.keys(ZEN_GIFTS).filter(giftOk);
+      const big = sim.crowd >= 0.5 && giftOk('onsen') ? 'onsen' : giftOk('enso') ? 'enso' : giftOk('onsen') ? 'onsen' : null;
+      const opts = ok.length <= 3 ? ok : big ? [big] : [];
       while (opts.length < 3) { const ids = smallGifts(opts); if (!ids.length) break; opts.push(pickWeighted(ids)); }
       for (let i = opts.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [opts[i], opts[j]] = [opts[j], opts[i]]; }
       sim.offer = { opts };
@@ -2947,6 +2992,7 @@ const GrainSim = (() => {
       const dt = 1 / cfg.stepHz;
       if (sim.offer) { if (input && input.pick != null) sim.takeGift(input.pick); return; }      // the night waits for a gift to be taken
       if (input && input.fire) fireZone();
+      if (input && input.use) usePocket();
       sim.t += dt; sim.steps++;
       const down = !!(input && input.down) && !sim.done && !sim.timeUp;
       if (!down) { sim.waitLift = false; sim.rearm = 0; } else if (sim.rearm > 0) sim.rearm -= dt;
@@ -3190,7 +3236,13 @@ const GrainSim = (() => {
       return finger(aim);
     };
     // a full Zen Zone is fired at once
-    return () => { const i = bot(); if (sim.zen && sim.zoneReady()) i.fire = true; if (sim.offer) i.pick = 0; return i; };
+    return () => {
+      const i = bot();
+      if (sim.zen && sim.zoneReady()) i.fire = true;
+      if (sim.offer) i.pick = 0;
+      if (sim.pocket && !sim.pocketWhyNot()) i.use = true;
+      return i;
+    };
   }
 
   return {
@@ -3220,6 +3272,9 @@ const GrainSim = (() => {
     "a third of the Zen Zone": "⅓ strefy Zen", "the stones sink": "kamienie toną", "double time for an order": "podwójny czas na zamówienie",
     "half the grains sink": "połowa ziaren tonie", "New moon": "Nów", "Take a gift": "Wybierz dar",
     "Saved": "Uratowany",
+    "A gift waits on the capybara's medallion: tap her when you need it.": "Dar czeka na medalionie kapibary: dotknij jej, gdy będzie potrzebny.",
+    "the board is empty": "plansza jest pusta", "no stones on the board": "na planszy nie ma kamieni", "the Zen Zone is not open yet": "Strefa Zen jeszcze zamknięta",
+    "the Zen Zone is on": "Strefa Zen już trwa", "the Zen Zone is full": "Strefa Zen jest pełna", "the jar is already still": "dzban już milczy",
     "Every eight full bowls the Zen Capybara brings a gift, the one the board needs. At each new moon you choose one of three.": "Co osiem pełnych misek Zen Kapibara przynosi dar, taki, jakiego potrzebuje plansza. Przy każdym nowiu wybierasz jeden z trzech.",
     "Every eight full bowls the Zen Capybara brings a gift.": "Co osiem pełnych misek Zen Kapibara przynosi dar.",
     "Next star at {s}.": "Następna gwiazdka przy {s}.", "new": "nowe", "Tap to begin": "Dotknij, by zacząć", "Open the menu": "Otwórz menu", "Menu": "Menu", "Levels": "Poziomy", "The Way": "Droga",
@@ -6234,19 +6289,27 @@ const GrainSim = (() => {
             fx.rings.push({ x: e.x, y: e.y, t: 0, life: 0.4 });
           }
           break;
-        case 'gift': {
-          // the capybara's gift: her banner; a big one is traced into the sand as well, and what sank leaves ripples
-          if (e.from === 'bowls') fx.capyFive = performance.now() + 900;      // the whole ring lit for a moment, then it starts again
-          if (e.from === 'moon') $('offer').hidden = true;
-          restartAnim($('capy'), 'bless');
+        case 'gift': case 'gift_used': {
+          // the capybara's gift: her banner as it comes; a gift for the pocket waits on her medallion, the rest works at
+          // once. Working, a big one is traced into the sand as well, and what sank leaves ripples
+          const used = e.type === 'gift_used';
+          if (!used) {
+            if (e.from === 'bowls') fx.capyFive = performance.now() + 900;      // the whole ring lit for a moment, then it starts again
+            if (e.from === 'moon') $('offer').hidden = true;
+            restartAnim($('capy'), 'bless'); showGift(e);
+            Analytics.emit('zen_gift', { gift: e.id, from: e.from, n: e.n, pocket: !!e.pocket, time: sim.clock });
+          } else { flyGift(e.id); Analytics.emit('zen_gift_used', { gift: e.id, time: sim.clock }); }
+          if (e.pocket) {
+            Sound.saved(); Haptics.buzz(10); syncHeld();
+            zenTip('pocket', "A gift waits on the capybara's medallion: tap her when you need it.");
+            break;
+          }
           if (e.tier === 3) { Sound.fanfare(); Haptics.buzz([15, 40, 15]); if (!reducedMotion()) fx.sandGift = { id: e.id, t0: performance.now() }; }
           else { Sound.saved(); Haptics.buzz(10); }
           if (e.id === 'enso') syncLives(false);
           if (e.sunk && !reducedMotion()) for (const [x, y] of e.sunk) fx.rings.push({ x, y, t: Math.random() * -0.3, life: 0.6, sand: true });
           if (e.id === 'dango') { const r = $('capy').getBoundingClientRect(); if (r.width) zoneMote({ x: (r.left + r.width / 2 - view.offX) / view.scale, y: (r.top + r.height / 2) / view.scale }, true); }
-          showGift(e); syncHeld();
-          Analytics.emit('zen_gift', { gift: e.id, from: e.from, n: e.n, time: sim.clock });
-          updateHud(false);
+          syncHeld(); updateHud(false);
           break;
         }
         case 'gift_offer': openOffer(e.opts); break;
@@ -6524,10 +6587,38 @@ const GrainSim = (() => {
     const c = $('capy');
     let box = c.querySelector('.held');
     if (!box) { box = document.createElement('span'); box.className = 'held'; c.appendChild(box); }
-    const want = sim && sim.zen && !sim.done ? [sim.shield && 'matcha', sim.lantern && 'lantern'].filter(Boolean).join() : '';
-    if (box.dataset.ids === want) return;
-    box.dataset.ids = want;
-    box.innerHTML = want ? want.split(',').map((id) => '<i>' + giftSVG(id) + '</i>').join('') : '';
+    const live = sim && sim.zen && !sim.done, want = live ? [sim.shield && 'matcha', sim.lantern && 'lantern'].filter(Boolean).join() : '';
+    if (box.dataset.ids !== want) { box.dataset.ids = want; box.innerHTML = want ? want.split(',').map((id) => '<i>' + giftSVG(id) + '</i>').join('') : ''; }
+    const pk = live ? sim.pocket || '' : '';
+    let pe = c.querySelector('.pocket');
+    if (!pe) { pe = document.createElement('span'); pe.className = 'pocket'; c.appendChild(pe); }
+    if (pe.dataset.id !== pk) {
+      pe.dataset.id = pk; pe.innerHTML = pk ? giftSVG(pk) : '';
+      c.classList.toggle('ready', !!pk);
+      c.setAttribute('role', pk ? 'button' : 'img');
+      if (pk) c.setAttribute('aria-label', tr('Zen Capybara') + ': ' + tr(GIFT_TEXT[pk][0]) + ', ' + giftWhat(pk));
+    }
+  }
+  // the tap on her medallion uses the gift in her pocket; when it cannot work yet, she says why and keeps it
+  const POCKET_WHY = { empty: 'the board is empty', nostones: 'no stones on the board', closed: 'the Zen Zone is not open yet', on: 'the Zen Zone is on',
+    full: 'the Zen Zone is full', hushed: 'the jar is already still' };
+  $('capy').addEventListener('pointerdown', (e) => {
+    if (screen !== 'play' || !sim || !sim.zen || !sim.pocket || sim.done) return;
+    e.preventDefault(); e.stopPropagation();
+    const why = sim.pocketWhyNot();
+    if (why) { zenSay(tr(GIFT_TEXT[sim.pocket][0]) + ': ' + tr(POCKET_WHY[why]), 2); Haptics.buzz([8, 40, 8]); return; }
+    input.use = true; Haptics.buzz(10);
+  });
+  // used, the gift leaves her medallion for the board
+  function flyGift(id) {
+    const r = $('capy').getBoundingClientRect();
+    if (reducedMotion() || !r.width) return;
+    const m = document.createElement('i'), x0 = r.right, y0 = r.top + 6;
+    m.className = 'giftfly'; m.innerHTML = giftSVG(id); m.style.left = (x0 - 15) + 'px'; m.style.top = (y0 - 15) + 'px';
+    document.body.appendChild(m);
+    const a = m.animate([{ transform: 'none', opacity: 1 }, { transform: 'translate(' + (innerWidth / 2 - x0) + 'px, ' + (innerHeight * 0.36 - y0) + 'px) scale(2.6)', opacity: 0 }],
+      { duration: 420, easing: 'cubic-bezier(.2, .8, .2, 1)' });
+    a.onfinish = a.oncancel = () => m.remove();
   }
   // at a new moon the night waits on a tray of three gifts; a tap takes one
   function openOffer(opts) {
@@ -7947,7 +8038,7 @@ const GrainSim = (() => {
       let n = 0;
       while (acc >= step && n < 24) {
         const inp = autoBot ? autoBot() : input;
-        sim.step(inp); if (inp === input) { input.fire = false; input.pick = null; }
+        sim.step(inp); if (inp === input) { input.fire = false; input.pick = null; input.use = false; }
         handleEvents(sim.drainEvents()); acc -= step; n++;
       }
       if (n === 24) acc = 0;

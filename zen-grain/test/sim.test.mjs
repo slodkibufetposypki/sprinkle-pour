@@ -1040,21 +1040,29 @@ test('Pełnia: the capybara brings what the board needs: the hot spring for a cr
   a.step({ down: false }); a.drainEvents();
   const loose = () => a.grains.filter((g) => (g.st === ST.REST || g.st === ST.SLIDE) && !TYPES[g.type].stone).length, before = loose();
   const ga = pack(a);
-  assert.ok(ga && ga.id === 'onsen' && ga.tier === 3, 'the hot spring: ' + JSON.stringify(ga && ga.id));
-  assert.ok(Math.abs(loose() - before / 2) <= 1 && ga.sunk.length === before - loose(), 'half sank: ' + before + ' then ' + loose());
+  assert.ok(ga && ga.id === 'onsen' && ga.tier === 3 && ga.pocket && a.pocket === 'onsen', 'the hot spring, into her pocket: ' + JSON.stringify(ga && ga.id));
+  assert.equal(loose(), before, 'nothing happens until the player taps her');
+  a.step({ down: false, use: true });
+  const used = a.drainEvents().find((e) => e.type === 'gift_used');
+  assert.ok(used && used.id === 'onsen' && !a.pocket, 'used');
+  assert.ok(Math.abs(loose() - before / 2) <= 1 && used.sunk.length === before - loose(), 'half sank: ' + before + ' then ' + loose());
   // a life lost: the ensō
   const gb = pack(a);
   assert.ok(gb && gb.id === 'enso' && a.lives === 3, 'the ensō: ' + (gb && gb.id));
-  // all lives and a calm board: a small one, by chance, never the same twice running, counted per kind
-  const seen = [];
-  for (let k = 0; k < 12; k++) { a.lives = 3; const g = pack(a); assert.ok(g && GS.ZEN_GIFTS[g.id].tier < 3, 'small: ' + (g && g.id)); seen.push(g.id); a.shield = 0; a.hush = 0; a.lantern = false; }
-  for (let k = 1; k < seen.length; k++) assert.notEqual(seen[k], seen[k - 1], 'not twice running: ' + seen.join(' '));
-  assert.ok(new Set(seen).size >= 3, 'several kinds: ' + seen.join(' '));
-  assert.equal(a.gifts[seen[0]], seen.filter((id) => id === seen[0]).length, 'each kind counted');
+  // all lives and an empty pocket: the hot spring to keep; with the pocket full, a small one by chance (only gifts
+  // that are on), never the same twice running while there are several
+  a.lives = 3;
+  const gk = pack(a);
+  assert.ok(gk && gk.id === 'onsen' && a.pocket === 'onsen', 'one to keep: ' + (gk && gk.id));
+  const on = Object.keys(GS.ZEN_GIFTS).filter((id) => GS.ZEN_GIFTS[id].on && GS.ZEN_GIFTS[id].tier < 3), seen = [];
+  for (let k = 0; k < 12; k++) { a.lives = 3; const g = pack(a); assert.ok(g && on.includes(g.id), 'small and on: ' + (g && g.id)); seen.push(g.id); a.shield = 0; a.lantern = false; }
+  if (on.length > 1) for (let k = 1; k < seen.length; k++) assert.notEqual(seen[k], seen[k - 1], 'not twice running: ' + seen.join(' '));
+  assert.equal(a.gifts[seen[0]], seen.filter((id) => id === seen[0]).length + (seen[0] === 'onsen' ? 2 : 0), 'each kind counted');
 });
 
 test('Pełnia: each gift does what it says', () => {
   const fresh = (seed) => { const s = GS.create({}, GS.ZEN, LAYOUT, seed); s.started = true; s.flow.next = 1e9; return s; };
+  const use = (s) => { s.step({ down: false, use: true }); return s.drainEvents().find((e) => e.type === 'gift_used'); };
   // matcha: the next broken row, a stone in it even, costs nothing; the one after costs as before
   const b = fresh(6), l = b.grains.find((g) => g.type === 'lentil');
   b.debugGift('matcha'); b.zone = 0.5; b.mult = 4; b.score = 5000;
@@ -1072,18 +1080,18 @@ test('Pełnia: each gift does what it says', () => {
   // bell: the jar is still for a while
   const c = fresh(7);
   for (let i = 0; i < 5 * 120; i++) c.step({ down: false });
-  c.drainEvents(); c.debugGift('bell');
+  c.drainEvents(); c.debugGift('bell'); assert.ok(use(c), 'the bell rung');
   const quiet = release(c, GS.ZEN_GIFTS.bell.secs - 0.2).filter((e) => e.type === 'jar_grain').length;
   const after = release(c, 8).filter((e) => e.type === 'jar_grain').length;
   assert.ok(quiet === 0 && after > 5, 'still, then pouring: ' + quiet + ', ' + after);
   // dango: a third of the Zen Zone, once it is open
   const d = fresh(8); d.clock = GS.ZEN_ZONE.from + 1; d.zone = 0.2; d.lastPull = d.clock;
-  d.debugGift('dango');
+  d.debugGift('dango'); assert.ok(use(d), 'eaten');
   assert.ok(Math.abs(d.zone - (0.2 + 1 / 3)) < 1e-9, 'zone ' + d.zone);
   // drop: the stones on the board sink at once
   const e = fresh(9);
   for (let i = 0; i < 3; i++) e.debugPut('stone', 120 + i * 90, 500);
-  e.debugGift('drop');
+  e.debugGift('drop'); assert.ok(use(e), 'dropped');
   assert.equal(e.grains.filter((g) => TYPES[g.type].stone && (g.st === ST.REST || g.st === ST.SLIDE)).length, 0, 'no stones left');
   // lantern: the open order gets twice the time, or else the next one does
   const f = fresh(10); f.clock = 100; f.flow.next = f.clock;
@@ -1101,6 +1109,36 @@ test('Pełnia: each gift does what it says', () => {
   assert.ok(g.score === s0 + 2 * GS.ZEN_GIFTS.lotus.pts, 'points ' + (g.score - s0));
 });
 
+test('Pełnia: the capybara keeps one gift in her pocket until the player taps her, and says why when it cannot work yet', () => {
+  const s = GS.create({}, GS.ZEN, LAYOUT, 15);
+  s.started = true; s.flow.next = 1e9;
+  s.debugGift('drop');
+  assert.equal(s.pocket, 'drop');
+  assert.equal(s.pocketWhyNot(), 'nostones', 'no stones yet');
+  s.step({ down: false, use: true });
+  assert.ok(!s.drainEvents().some((e) => e.type === 'gift_used') && s.pocket === 'drop', 'kept for later');
+  // while it is full she brings only what works by itself
+  s.stage = 2; s.lives = 3;
+  const brought = [];
+  for (let k = 0; k < 20; k++) {
+    const st = s.stores.lentil;
+    for (let i = 0; i < GS.ZEN_PILE; i++) { const g = s.debugPut('lentil', 300, 300); g.st = ST.GONE; st.ids.push(g.id); st.n++; }
+    s.stats.taken.lentil = st.n; s.packs = [{ type: 'lentil', at: 0 }]; s.thanks = GS.ZEN_THANKS - 1;
+    s.step({ down: false }); const g = s.drainEvents().find((e) => e.type === 'gift');
+    brought.push(g.id); s.shield = 0; s.lantern = false;
+  }
+  assert.ok(brought.every((id) => !GS.ZEN_GIFTS[id].pocket), 'nothing for the pocket while it is full: ' + brought.join(' '));
+  // a stone comes: now it works
+  s.debugPut('stone', 300, 600);
+  assert.equal(s.pocketWhyNot(), null);
+  s.step({ down: false, use: true });
+  assert.ok(s.drainEvents().some((e) => e.type === 'gift_used' && e.id === 'drop') && !s.pocket, 'used');
+  // dango waits for the Zen Zone to open
+  const d = GS.create({}, GS.ZEN, LAYOUT, 16);
+  d.started = true; d.debugGift('dango');
+  assert.equal(d.pocketWhyNot(), 'closed');
+});
+
 test('Pełnia: at each new moon the capybara brings three gifts and the night waits until one is taken', () => {
   const sim = GS.create({}, GS.ZEN, LAYOUT, 12);
   const month = GS.MOON.phaseS * GS.MOON.phases;
@@ -1109,7 +1147,7 @@ test('Pełnia: at each new moon the capybara brings three gifts and the night wa
   sim.clock = month - 0.05; sim.drainEvents();
   let offer = null;
   for (let i = 0; i < 30 && !offer; i++) { sim.step({ down: false }); offer = sim.drainEvents().find((e) => e.type === 'gift_offer'); }
-  assert.ok(offer && offer.opts.length === 3 && new Set(offer.opts).size === 3, 'three gifts: ' + JSON.stringify(offer));
+  assert.ok(offer && offer.opts.length === 3 && new Set(offer.opts).size === 3 && offer.opts.every((id) => GS.ZEN_GIFTS[id].on), 'three gifts, all on: ' + JSON.stringify(offer));
   assert.ok(offer.opts.includes('enso'), 'a life among them, one was lost');
   const t0 = sim.clock;
   for (let i = 0; i < 240; i++) sim.step({ down: false });
