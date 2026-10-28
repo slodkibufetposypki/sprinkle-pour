@@ -5040,9 +5040,10 @@ const GrainSim = (() => {
     shino: { well: '#5a3c2b', wall: '#8a5e44', rim: '#b98964', drip: '#a67452', hi: '255,232,205' },
   };
   const bowlGlaze = () => GLAZE_TRY || BOWL_GLAZE[levelIndex < 0 ? 'zen' : SURFACE_TRY || GS.surfaceOf(levelIndex)] || 'cobalt';
-  // ?bowls=code draws the bowls in code, ?bowls=simple shows the simpler painted test bowl, to compare with the painted ones
+  // The bowls are drawn in code, in the flat tones of the grains: the painted ones read as photographs on the board
+  // (the owner, 28 Oct). ?bowls=painted brings those back to compare, ?bowls=simple the simpler painted test bowl.
   const BOWLS_TRY = new URLSearchParams(location.search).get('bowls');
-  const bowlPic = () => BOWLS_TRY === 'code' ? null : painted(BOWLS_TRY === 'simple' ? 'zg-bowl-simple-cobalt' : 'zg-bowl-' + bowlGlaze());
+  const bowlPic = () => BOWLS_TRY === 'painted' ? painted('zg-bowl-' + bowlGlaze()) : BOWLS_TRY === 'simple' ? painted('zg-bowl-simple-cobalt') : null;
   const porcImgs = {};
   function porcelainLayer(which) {
     if (!porcImgs[which]) {
