@@ -2,6 +2,7 @@
 
 ## The plan (27 Oct, after the design review)
 **Done 28 Oct (the owner's calls):**
+- **The Zen Capybara's gifts** (in place of a life or points every eight bowls). Eight gifts in three sizes, like the gifts on a live stream: small ones (lotus: points; matcha: the next mistake is free; wind bell: the jar rests 8 s), middle ones (dango: a third of the Zen Zone; onsen drop: the stones sink; lantern: twice the time for an order) and big ones (ensō: a life; hot spring: half the loose grains sink). Every eight bowls she brings the one the board needs: the hot spring for a crowded board, the ensō for a lost life, else a small or middle one by chance, never the same twice running. At each new moon (8:00, 16:00…) the night stops and she brings three, one of them big if the board needs it; the player takes one. Getting through a blood moon brings one too. A gift comes in on a dark pill from the left, the way a gift does on a live stream: her medallion, the gift's name and what it does in one line, the gift popping out and how many of it so far (×2). A big one is traced in gold into the sand under the grains as well. Matcha and a lantern wait for their moment and sit under her medallion until then. The icons are drawn in code (gold and enamel); Higgsfield could redo them later.
 - **A missed order** costs only the capybara's blessing (the bowls counted toward it start again) and points: 15 for each grain it asked for, times what the kind is worth. No life, and the Zen Zone keeps its charge.
 - **The player fires the Zen Zone.** Full, the tube holds its charge: a broken row and an idle spell no longer take from it. It glows gold and a gold finger bobs above it; a tap on the tube starts the ten seconds. The first time, one tip says so.
 - **Names:** the levels mode is **Droga** ("The Way"); Pełnia is the endless mode with lives; Zen is kept for the calm mode.
@@ -37,7 +38,7 @@
 6. **The world:** the hut as the menu (modes, workshop, upgrades), its upgrades as separate layers of one painting, the farm on the hill (rice and bean fields, harvests, sacks to sell, helpers to hire), the workshop joining three pairs of chopsticks into one with three bonuses.
 7. **Together:** the full-moon jar for everyone, a share card, a replay. In parallel: recording testers' sessions, and music that follows the rhythm.
 
-**Still to decide:** the currency (proposed: sacks); continues (proposed: once free from the capybara, then medallions at 1, 2, 4); the spill's visibly tipping jar; the domain; the result layout; the rest under "Ideas to decide" below.
+**Still to decide:** whether a gift works at once (now), has to be caught on the board like a bonus fruit in Fruit Ninja, or waits in a pocket on the capybara's medallion until tapped (proposed: points and the ensō at once, the bell, the hot spring, the drop and the dango in the pocket); the currency (proposed: sacks); continues (proposed: once free from the capybara, then medallions at 1, 2, 4); the spill's visibly tipping jar; the domain; the result layout; the rest under "Ideas to decide" below.
 
 ## Where things stand (27 Oct)
 **Decided before the plan above, not built yet** (now folded into it):
