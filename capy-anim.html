@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Kapibara drapie się</title>
+<style>
+  :root {
+    --bg: #f3ead9; --stage: #e6d8bf; --ink: #2b1d12; --muted: #6f5b45;
+    --line: rgba(43, 29, 18, .14); --chip: rgba(43, 29, 18, .06); --chip-on: #2b1d12; --chip-on-ink: #f3ead9;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #17100b; --stage: #241811; --ink: #f1e4cc; --muted: #b29d80;
+      --line: rgba(241, 228, 204, .14); --chip: rgba(241, 228, 204, .07); --chip-on: #f1e4cc; --chip-on-ink: #17100b;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #17100b; --stage: #241811; --ink: #f1e4cc; --muted: #b29d80;
+    --line: rgba(241, 228, 204, .14); --chip: rgba(241, 228, 204, .07); --chip-on: #f1e4cc; --chip-on-ink: #17100b;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink); }
+  body { font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 20px 16px 28px; }
+  h1 { font-size: 20px; margin: 0; }
+  .sub { color: var(--muted); margin: 4px 0 14px; font-size: 14px; text-align: center; }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: min(100%, 640px); }
+  .card { position: relative; background: radial-gradient(ellipse at 50% 94%, rgba(0,0,0,.2), transparent 40%), var(--stage); border: 1px solid var(--line); border-radius: 16px; padding: 10px 8px 8px; cursor: pointer; touch-action: manipulation; }
+  .card canvas { display: block; width: 100%; aspect-ratio: 304 / 480; }
+  .card h2 { margin: 0 0 6px; font-size: 14px; font-weight: 600; text-align: center; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 14px; }
+  button { font: inherit; font-size: 14px; color: var(--ink); background: var(--chip); border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px; cursor: pointer; transition: transform .12s; }
+  button:active { transform: scale(.96); }
+  button.main { background: var(--chip-on); color: var(--chip-on-ink); border-color: transparent; }
+  button[aria-pressed="true"] { background: var(--chip-on); color: var(--chip-on-ink); border-color: transparent; }
+</style>
+</head>
+<body>
+  <h1>Kapibara drapie się po głowie</h1>
+  <p class="sub">Ten sam obrazek, dwa modele wideo, klatka po klatce. Dotknij kapibary.</p>
+  <div class="pair">
+    <div class="card" data-k="0"><h2>Kling 3.0</h2><canvas></canvas></div>
+    <div class="card" data-k="1"><h2>Seedance 2.5</h2><canvas></canvas></div>
+  </div>
+  <div class="row">
+    <button class="main" id="both">Podrap się</button>
+    <button id="loop" aria-pressed="false">W kółko</button>
+    <button id="slow" aria-pressed="false">Wolniej</button>
+  </div>
+<script>
+(() => {
+  // Sprite sheets cut from the videos: 76 frames each, 15 per second, filled left to right, top to bottom.
+  const SHEETS = [
+    { src: 'capy-scratch-kling.webp', frames: 76, cell: [304, 480], grid: [11, 7] },
+    { src: 'capy-scratch-seed.webp', frames: 76, cell: [299, 480], grid: [12, 7] },
+  ];
+  const FPS = 15;
+  let loop = false, slow = false;
+  const cards = [...document.querySelectorAll('.card')];
+  const P = SHEETS.map((s, i) => {
+    const c = cards[i].querySelector('canvas'), x = c.getContext('2d');
+    const im = new Image(); im.decoding = 'async'; im.src = s.src;
+    return { s, c, x, im, t0: null };
+  });
+  function size() {
+    for (const p of P) { const r = p.c.getBoundingClientRect(), d = Math.min(2, devicePixelRatio || 1); p.c.width = Math.round(r.width * d); p.c.height = Math.round(r.width * d * 480 / 304); }
+  }
+  addEventListener('resize', size); size();
+  const play = (p) => { if (p.t0 == null) p.t0 = performance.now(); };
+  function frame(now) {
+    for (const p of P) {
+      let f = 0;
+      if (p.t0 != null) {
+        f = Math.floor((now - p.t0) / 1000 * FPS * (slow ? .5 : 1));
+        if (f >= p.s.frames) { if (loop) { p.t0 = now; f = 0; } else { p.t0 = null; f = 0; } }
+      } else if (loop) play(p);
+      if (!p.im.complete || !p.im.naturalWidth) continue;
+      const [cw, ch] = p.s.cell, cols = p.s.grid[0];
+      const sx = (f % cols) * cw, sy = Math.floor(f / cols) * ch;
+      const k = Math.min(p.c.width / cw, p.c.height / ch), w = cw * k, h = ch * k;
+      p.x.clearRect(0, 0, p.c.width, p.c.height);
+      p.x.drawImage(p.im, sx, sy, cw, ch, (p.c.width - w) / 2, p.c.height - h, w, h);
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+  cards.forEach((c, i) => c.addEventListener('click', () => play(P[i])));
+  document.getElementById('both').onclick = () => { const t = performance.now(); P.forEach((p) => (p.t0 = t)); };
+  const tg = (id, set) => { const b = document.getElementById(id); b.onclick = () => { const v = b.getAttribute('aria-pressed') !== 'true'; b.setAttribute('aria-pressed', v); set(v); }; };
+  tg('loop', (v) => (loop = v)); tg('slow', (v) => (slow = v));
+})();
+</script>
+</body>
+</html>
