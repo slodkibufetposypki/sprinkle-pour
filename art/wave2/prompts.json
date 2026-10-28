@@ -1,0 +1,193 @@
+[
+ {
+  "key": "bowl-tenmoku",
+  "ar": "1:1",
+  "refs": [
+   "8393c798-a3c9-40e3-8e9f-c271f86b10b3"
+  ],
+  "bg": "transparent",
+  "prompt": "Match the painting style, brushwork, palette and candle light of the reference image (a style reference only: do not copy its content). Hand-painted gouache illustration, painterly realism with soft visible brush texture, from a quiet Japanese mountain tea hut at blue hour, lit by one warm candle from the upper left (2700K) with a faint cool indigo fill from the upper right, warm brown shadows falling down and to the right, muted earthy palette of honey wood, stoneware, washi paper, sumi ink and worn gold leaf, wabi-sabi, handmade, calm. Subject: a wide, shallow handmade tenmoku stoneware bowl, empty: deep brown-black glaze with rust hare's-fur streaks running down into the well, a slightly uneven hand-thrown rim where the glaze thins to persimmon brown, a faint pool of glossier glaze in the bottom. Seen straight from above (orthographic top-down), centred, the whole object in frame with a 10% margin, no cast shadow, the object alone with nothing around it. No text, no letters, no logo. Avoid: photorealistic 3D render, CGI, plastic, chrome, glossy highlights, neon, bloom, lens flare, cel shading, black outlines, flat vector, oversaturated, cold blue light, several light sources, checkerboard, busy background, cropped."
+ },
+ {
+  "key": "bowl-celadon",
+  "ar": "1:1",
+  "refs": [
+   "8393c798-a3c9-40e3-8e9f-c271f86b10b3"
+  ],
+  "bg": "transparent",
+  "prompt": "Match the painting style, brushwork, palette and candle light of the reference image (a style reference only: do not copy its content). Hand-painted gouache illustration, painterly realism with soft visible brush texture, from a quiet Japanese mountain tea hut at blue hour, lit by one warm candle from the upper left (2700K) with a faint cool indigo fill from the upper right, warm brown shadows falling down and to the right, muted earthy palette of honey wood, stoneware, washi paper, sumi ink and worn gold leaf, wabi-sabi, handmade, calm. Subject: a wide, shallow handmade celadon stoneware bowl, empty: soft grey-green jade glaze pooling deeper in the well, a fine crackle in the glaze, a slightly uneven hand-thrown rim where the glaze thins to pale grey. Seen straight from above (orthographic top-down), centred, the whole object in frame with a 10% margin, no cast shadow, the object alone with nothing around it. No text, no letters, no logo. Avoid: photorealistic 3D render, CGI, plastic, chrome, glossy highlights, neon, bloom, lens flare, cel shading, black outlines, flat vector, oversaturated, cold blue light, several light sources, checkerboard, busy background, cropped."
+ },
+ {
+  "key": "bowl-shino",
+  "ar": "1:1",
+  "refs": [
+   "8393c798-a3c9-40e3-8e9f-c271f86b10b3"
+  ],
+  "bg": "transparent",
+  "prompt": "Match the painting style, brushwork, palette and candle light of the reference image (a style reference only: do not copy its content). Hand-painted gouache illustration, painterly realism with soft visible brush texture, from a quiet Japanese mountain tea hut at blue hour, lit by one warm candle from the upper left (2700K) with a faint cool indigo fill from the upper right, warm brown shadows falling down and to the right, muted earthy palette of honey wood, stoneware, washi paper, sumi ink and worn gold leaf, wabi-sabi, handmade, calm. Subject: a wide, shallow handmade Shino stoneware bowl, empty: thick creamy white feldspar glaze with soft orange-red scorch blushes where it thins, tiny pinholes, a gently uneven rim. Seen straight from above (orthographic top-down), centred, the whole object in frame with a 10% margin, no cast shadow, the object alone with nothing around it. No text, no letters, no logo. Avoid: photorealistic 3D render, CGI, plastic, chrome, glossy highlights, neon, bloom, lens flare, cel shading, black outlines, flat vector, oversaturated, cold blue light, several light sources, checkerboard, busy background, cropped."
+ },
+ {
+  "key": "bowl-cobalt",
+  "ar": "1:1",
+  "refs": [
+   "8393c798-a3c9-40e3-8e9f-c271f86b10b3"
+  ],
+  "bg": "transparent",
+  "prompt": "Match the painting style, brushwork, palette and candle light of the reference image (a style reference only: do not copy its content). Hand-painted gouache illustration, painterly realism with soft visible brush texture, from a quiet Japanese mountain tea hut at blue hour, lit by one warm candle from the upper left (2700K) with a faint cool indigo fill from the upper right, warm brown shadows falling down and to the right, muted earthy palette of honey wood, stoneware, washi paper, sumi ink and worn gold leaf, wabi-sabi, handmade, calm. Subject: a wide, shallow handmade stoneware bowl, empty: deep cobalt-indigo glaze, lighter blue where it thins over the rim, a pale hand-brushed ring inside the well, a slightly uneven rim. Seen straight from above (orthographic top-down), centred, the whole object in frame with a 10% margin, no cast shadow, the object alone with nothing around it. No text, no letters, no logo. Avoid: photorealistic 3D render, CGI, plastic, chrome, glossy highlights, neon, bloom, lens flare, cel shading, black outlines, flat vector, oversaturated, cold blue light, several light sources, checkerboard, busy background, cropped."
+ },
+ {
+  "key": "jar-tsubo",
+  "ar": "4:3",
+  "refs": [
+   "8393c798-a3c9-40e3-8e9f-c271f86b10b3"
+  ],
+  "bg": "transparent",
+  "prompt": "Match the painting style, brushwork, palette and candle light of the reference image (a style reference only: do not copy its content). Hand-painted gouache illustration, painterly realism with soft visible brush texture, from a quiet Japanese mountain tea hut at blue hour, lit by one warm candle from the upper left (2700K) with a faint cool indigo fill from the upper right, warm brown shadows falling down and to the right, muted earthy palette of honey wood, stoneware, washi paper, sumi ink and worn gold leaf, wabi-sabi, handmade, calm. Subject: a small round tsubo stoneware storage jar with a short neck, lying on its side as if just tipped to pour grains, its open mouth toward the lower right, a warm iron-brown ash glaze running in drips over a rough honey-coloured clay body, a straw cord tied round the neck. Seen from above at a steep angle (three-quarter top view), centred, the whole object in frame with a 10% margin, no cast shadow, the object alone with nothing around it. No text, no letters, no logo. Avoid: photorealistic 3D render, CGI, plastic, chrome, glossy highlights, neon, bloom, lens flare, cel shading, black outlines, flat vector, oversaturated, cold blue light, several light sources, checkerboard, busy background, cropped."
+ },
+ {
+  "key": "enso",
+  "ar": "1:1",
+  "refs": [
+   "8393c798-a3c9-40e3-8e9f-c271f86b10b3",
+   "f34c7e8b-f92c-449d-96ea-44595335c488"
+  ],
+  "bg": "transparent",
+  "prompt": "Match the painting style and palette of the first reference image and the worn gold of the medallion in the second (style references only: do not copy their content). Hand-painted gouache illustration, painterly realism with soft visible brush texture, lit by one warm candle from the upper left (2700K), muted earthy palette of sumi ink and worn gold leaf, wabi-sabi, handmade, calm. Subject: a single ens\u014d circle painted in one confident stroke of matte worn gold with a thick brush: the pressure swells and thins around the ring, bristle marks show, and the stroke ends in a dry-brush break just short of where it began. Straight-on front view, centred, the whole stroke in frame with a 10% margin, no cast shadow, nothing else in the frame. No text, no letters, no logo. Avoid: shiny metal, chrome, 3D render, CGI, neon, bloom, glow, lens flare, black outlines, flat vector, oversaturated, checkerboard, busy background, cropped."
+ },
+ {
+  "key": "tube-bamboo",
+  "ar": "9:16",
+  "refs": [
+   "8393c798-a3c9-40e3-8e9f-c271f86b10b3"
+  ],
+  "bg": "transparent",
+  "prompt": "Match the painting style, brushwork, palette and candle light of the reference image (a style reference only: do not copy its content). Hand-painted gouache illustration, painterly realism with soft visible brush texture, from a quiet Japanese mountain tea hut at blue hour, lit by one warm candle from the upper left (2700K) with a faint cool indigo fill from the upper right, warm brown shadows falling down and to the right, muted earthy palette of honey wood, stoneware, washi paper, sumi ink and worn gold leaf, wabi-sabi, handmade, calm. Subject: a single upright length of old bamboo used as a meter: a hollow tube with a long narrow window cut down its front so its empty inside shows, four nodes evenly spaced along it dividing it into steps, warm honey and straw colours with darker speckles, a clean cut rim at the top. Straight-on front view, tall and narrow, centred, filling the height of the frame with a 5% margin, no cast shadow, the object alone with nothing around it. No text, no letters, no logo. Avoid: photorealistic 3D render, CGI, plastic, chrome, glossy highlights, neon, bloom, lens flare, cel shading, black outlines, flat vector, oversaturated, cold blue light, several light sources, checkerboard, busy background, cropped."
+ },
+ {
+  "key": "cup-celadon",
+  "ar": "1:1",
+  "refs": [
+   "8393c798-a3c9-40e3-8e9f-c271f86b10b3"
+  ],
+  "bg": "transparent",
+  "prompt": "Match the painting style, brushwork, palette and candle light of the reference image (a style reference only: do not copy its content). Hand-painted gouache illustration, painterly realism with soft visible brush texture, from a quiet Japanese mountain tea hut at blue hour, lit by one warm candle from the upper left (2700K) with a faint cool indigo fill from the upper right, warm brown shadows falling down and to the right, muted earthy palette of honey wood, stoneware, washi paper, sumi ink and worn gold leaf, wabi-sabi, handmade, calm. Subject: a small handleless celadon tea cup, empty, pale grey-green glaze, a thin darker ring at the inner rim, a smooth shallow well in the centre. Seen straight from above (orthographic top-down), centred, the whole object in frame with a 10% margin, no cast shadow, the object alone with nothing around it. No text, no letters, no logo. Avoid: photorealistic 3D render, CGI, plastic, chrome, glossy highlights, neon, bloom, lens flare, cel shading, black outlines, flat vector, oversaturated, cold blue light, several light sources, checkerboard, busy background, cropped."
+ },
+ {
+  "key": "stones",
+  "ar": "1:1",
+  "refs": [
+   "8393c798-a3c9-40e3-8e9f-c271f86b10b3"
+  ],
+  "bg": "transparent",
+  "prompt": "Match the painting style, brushwork, palette and candle light of the reference image (a style reference only: do not copy its content). Hand-painted gouache illustration, painterly realism with soft visible brush texture, from a quiet Japanese mountain tea hut at blue hour, lit by one warm candle from the upper left (2700K) with a faint cool indigo fill from the upper right, warm brown shadows falling down and to the right, muted earthy palette of honey wood, stoneware, washi paper, sumi ink and worn gold leaf, wabi-sabi, handmade, calm. Subject: three smooth river stones of different sizes set together as a small group, grey-blue and warm grey, one with a touch of soft green moss, only the stones and nothing around them. Seen straight from above (orthographic top-down), centred, the whole object in frame with a 10% margin, no cast shadow, the object alone with nothing around it. No text, no letters, no logo. Avoid: photorealistic 3D render, CGI, plastic, chrome, glossy highlights, neon, bloom, lens flare, cel shading, black outlines, flat vector, oversaturated, cold blue light, several light sources, checkerboard, busy background, cropped."
+ },
+ {
+  "key": "gift-lotus",
+  "ar": "1:1",
+  "refs": [
+   "8393c798-a3c9-40e3-8e9f-c271f86b10b3"
+  ],
+  "bg": "transparent",
+  "prompt": "Match the painting style, brushwork, palette and candle light of the reference image (a style reference only: do not copy its content). Hand-painted gouache illustration, painterly realism with soft visible brush texture, from a quiet Japanese mountain tea hut at blue hour, lit by one warm candle from the upper left (2700K) with a faint cool indigo fill from the upper right, warm brown shadows falling down and to the right, muted earthy palette of honey wood, stoneware, washi paper, sumi ink and worn gold leaf, wabi-sabi, handmade, calm. Subject: a single white lotus flower in full bloom, its petals warm gofun white with the faintest blush at their tips, a small base of worn gold leaf under it. Straight-on front view, centred, the whole object in frame with a 10% margin, no cast shadow, the object alone with nothing around it. No text, no letters, no logo. Avoid: photorealistic 3D render, CGI, plastic, chrome, glossy highlights, neon, bloom, lens flare, cel shading, black outlines, flat vector, oversaturated, cold blue light, several light sources, checkerboard, busy background, cropped."
+ },
+ {
+  "key": "gift-onsen",
+  "ar": "1:1",
+  "refs": [
+   "8393c798-a3c9-40e3-8e9f-c271f86b10b3"
+  ],
+  "bg": "transparent",
+  "prompt": "Match the painting style, brushwork, palette and candle light of the reference image (a style reference only: do not copy its content). Hand-painted gouache illustration, painterly realism with soft visible brush texture, from a quiet Japanese mountain tea hut at blue hour, lit by one warm candle from the upper left (2700K) with a faint cool indigo fill from the upper right, warm brown shadows falling down and to the right, muted earthy palette of honey wood, stoneware, washi paper, sumi ink and worn gold leaf, wabi-sabi, handmade, calm. Subject: a small round wooden hinoki bath tub with a copper hoop, full of steaming pale celadon water, three soft wisps of white steam rising from it, a single yuzu floating. Seen three-quarter from the front and a little above. Straight-on front view, centred, the whole object in frame with a 10% margin, no cast shadow, the object alone with nothing around it. No text, no letters, no logo. Avoid: photorealistic 3D render, CGI, plastic, chrome, glossy highlights, neon, bloom, lens flare, cel shading, black outlines, flat vector, oversaturated, cold blue light, several light sources, checkerboard, busy background, cropped."
+ },
+ {
+  "key": "hashioki",
+  "ar": "1:1",
+  "refs": [
+   "8393c798-a3c9-40e3-8e9f-c271f86b10b3"
+  ],
+  "bg": "transparent",
+  "prompt": "Match the painting style, brushwork, palette and candle light of the reference image (a style reference only: do not copy its content). Hand-painted gouache illustration, painterly realism with soft visible brush texture, from a quiet Japanese mountain tea hut at blue hour, lit by one warm candle from the upper left (2700K) with a faint cool indigo fill from the upper right, warm brown shadows falling down and to the right, muted earthy palette of honey wood, stoneware, washi paper, sumi ink and worn gold leaf, wabi-sabi, handmade, calm. Subject: a small handmade ceramic chopstick rest shaped like a resting leaf, celadon glaze pooling in its veins. Seen straight from above (orthographic top-down), centred, the whole object in frame with a 10% margin, no cast shadow, the object alone with nothing around it. No text, no letters, no logo. Avoid: photorealistic 3D render, CGI, plastic, chrome, glossy highlights, neon, bloom, lens flare, cel shading, black outlines, flat vector, oversaturated, cold blue light, several light sources, checkerboard, busy background, cropped."
+ },
+ {
+  "key": "tag-ema",
+  "ar": "3:4",
+  "refs": [
+   "8393c798-a3c9-40e3-8e9f-c271f86b10b3"
+  ],
+  "bg": "transparent",
+  "prompt": "Match the painting style, brushwork, palette and candle light of the reference image (a style reference only: do not copy its content). Hand-painted gouache illustration, painterly realism with soft visible brush texture, from a quiet Japanese mountain tea hut at blue hour, lit by one warm candle from the upper left (2700K) with a faint cool indigo fill from the upper right, warm brown shadows falling down and to the right, muted earthy palette of honey wood, stoneware, washi paper, sumi ink and worn gold leaf, wabi-sabi, handmade, calm. Subject: a small blank wooden votive tag (ema) for hanging, its top cut like a little roof, honey-coloured cypress wood with visible grain and edges worn by hands, a red-and-white twisted cord through a hole near the top, its front left blank for writing. Straight-on front view, centred, the whole object in frame with a 10% margin, no cast shadow, the object alone with nothing around it. No text, no letters, no logo. Avoid: photorealistic 3D render, CGI, plastic, chrome, glossy highlights, neon, bloom, lens flare, cel shading, black outlines, flat vector, oversaturated, cold blue light, several light sources, checkerboard, busy background, cropped."
+ },
+ {
+  "key": "plaque-ema",
+  "ar": "21:9",
+  "refs": [
+   "8393c798-a3c9-40e3-8e9f-c271f86b10b3"
+  ],
+  "bg": "transparent",
+  "prompt": "Match the painting style, brushwork, palette and candle light of the reference image (a style reference only: do not copy its content). Hand-painted gouache illustration, painterly realism with soft visible brush texture, from a quiet Japanese mountain tea hut at blue hour, lit by one warm candle from the upper left (2700K) with a faint cool indigo fill from the upper right, warm brown shadows falling down and to the right, muted earthy palette of honey wood, stoneware, washi paper, sumi ink and worn gold leaf, wabi-sabi, handmade, calm. Subject: a wide blank wooden plaque of old dark walnut, gently rounded corners, edges polished by hands, faint grain, a small square vermilion seal stamp near the left end with no characters in it, the rest left blank for writing. Straight-on front view, centred, the whole object in frame with a 10% margin, no cast shadow, the object alone with nothing around it. No text, no letters, no logo. Avoid: photorealistic 3D render, CGI, plastic, chrome, glossy highlights, neon, bloom, lens flare, cel shading, black outlines, flat vector, oversaturated, cold blue light, several light sources, checkerboard, busy background, cropped."
+ },
+ {
+  "key": "lacquer",
+  "ar": "1:1",
+  "refs": [
+   "8393c798-a3c9-40e3-8e9f-c271f86b10b3"
+  ],
+  "bg": "opaque",
+  "prompt": "Match the painting style and palette of the reference image (a style reference only: do not copy its content). Seamless tileable texture of black urushi lacquer seen from directly above: deep warm black with the faintest brown depth, sparse fine gold dust (maki-e) scattered unevenly, soft brush ripples in the lacquer, flat even light, no shadows, no objects, no vignette, low contrast, fine detail that holds at 2x zoom. No text."
+ },
+ {
+  "key": "capy-idle",
+  "ar": "3:4",
+  "refs": [
+   "d02c2abf-9d53-4f6f-966b-5cca4d7b36ef"
+  ],
+  "bg": "transparent",
+  "prompt": "The Zen Capybara exactly as in the reference image (the turnaround sheet): barrel-shaped body, chestnut fur, pale muzzle, small round ears, calm half-closed eyes, a yuzu with one leaf on its head, no clothes; the same painted style as the sheet. Pose: sitting upright in meditation, eyes softly closed, front paws folded together over its belly, perfectly calm and content. Hand-painted gouache, painterly realism with soft visible brush texture, one warm candle light from the upper left, warm brown shadows down and to the right, wabi-sabi, calm. Full body, three-quarter front view at its own eye level, centred, feet at 88% of the height, same scale as the reference, the character alone with nothing around it. No text. Avoid: 3D render, CGI, plastic, cel shading, black outlines, flat vector, anime eyes, chibi, oversaturated, cold light, extra limbs, deformed paws, human hands, clothes on animals, cropped."
+ },
+ {
+  "key": "capy-bow",
+  "ar": "3:4",
+  "refs": [
+   "d02c2abf-9d53-4f6f-966b-5cca4d7b36ef"
+  ],
+  "bg": "transparent",
+  "prompt": "The Zen Capybara exactly as in the reference image (the turnaround sheet): barrel-shaped body, chestnut fur, pale muzzle, small round ears, calm half-closed eyes, a yuzu with one leaf on its head, no clothes; the same painted style as the sheet. Pose: bowing politely from the waist toward the viewer, head lowered, eyes closed, front paws together. Hand-painted gouache, painterly realism with soft visible brush texture, one warm candle light from the upper left, warm brown shadows down and to the right, wabi-sabi, calm. Full body, three-quarter front view at its own eye level, centred, feet at 88% of the height, same scale as the reference, the character alone with nothing around it. No text. Avoid: 3D render, CGI, plastic, cel shading, black outlines, flat vector, anime eyes, chibi, oversaturated, cold light, extra limbs, deformed paws, human hands, clothes on animals, cropped."
+ },
+ {
+  "key": "capy-life",
+  "ar": "3:4",
+  "refs": [
+   "d02c2abf-9d53-4f6f-966b-5cca4d7b36ef",
+   "f34c7e8b-f92c-449d-96ea-44595335c488"
+  ],
+  "bg": "transparent",
+  "prompt": "The Zen Capybara exactly as in the reference image (the turnaround sheet): barrel-shaped body, chestnut fur, pale muzzle, small round ears, calm half-closed eyes, a yuzu with one leaf on its head, no clothes; the same painted style as the sheet. Pose: sitting upright and holding out a small ring of matte worn gold (an ens\u014d, like the gold of the medallion in the second reference) in both front paws as a gift, a gentle content expression, eyes closed into crescents and raised cheeks, no teeth. Hand-painted gouache, painterly realism with soft visible brush texture, one warm candle light from the upper left, warm brown shadows down and to the right, wabi-sabi, calm. Full body, three-quarter front view at its own eye level, centred, feet at 88% of the height, same scale as the reference, the character alone with nothing around it. No text. Avoid: 3D render, CGI, plastic, cel shading, black outlines, flat vector, anime eyes, chibi, oversaturated, cold light, extra limbs, deformed paws, human hands, clothes on animals, cropped."
+ },
+ {
+  "key": "capy-hint",
+  "ar": "3:4",
+  "refs": [
+   "d02c2abf-9d53-4f6f-966b-5cca4d7b36ef"
+  ],
+  "bg": "transparent",
+  "prompt": "The Zen Capybara exactly as in the reference image (the turnaround sheet): barrel-shaped body, chestnut fur, pale muzzle, small round ears, calm half-closed eyes, a yuzu with one leaf on its head, no clothes; the same painted style as the sheet. Pose: holding a small rolled paper scroll in one front paw and raising the other paw gently as if to explain, a calm smile with the mouth closed. Hand-painted gouache, painterly realism with soft visible brush texture, one warm candle light from the upper left, warm brown shadows down and to the right, wabi-sabi, calm. Full body, three-quarter front view at its own eye level, centred, feet at 88% of the height, same scale as the reference, the character alone with nothing around it. No text. Avoid: 3D render, CGI, plastic, cel shading, black outlines, flat vector, anime eyes, chibi, oversaturated, cold light, extra limbs, deformed paws, human hands, clothes on animals, cropped."
+ },
+ {
+  "key": "capy-guide",
+  "ar": "3:4",
+  "refs": [
+   "d02c2abf-9d53-4f6f-966b-5cca4d7b36ef"
+  ],
+  "bg": "transparent",
+  "prompt": "The Zen Capybara exactly as in the reference image (the turnaround sheet): barrel-shaped body, chestnut fur, pale muzzle, small round ears, calm half-closed eyes, a yuzu with one leaf on its head, no clothes; the same painted style as the sheet. Pose: holding up in both front paws a small blank wooden votive tag on a red cord, the front of the tag left blank, a curious, gentle expression. Hand-painted gouache, painterly realism with soft visible brush texture, one warm candle light from the upper left, warm brown shadows down and to the right, wabi-sabi, calm. Full body, three-quarter front view at its own eye level, centred, feet at 88% of the height, same scale as the reference, the character alone with nothing around it. No text. Avoid: 3D render, CGI, plastic, cel shading, black outlines, flat vector, anime eyes, chibi, oversaturated, cold light, extra limbs, deformed paws, human hands, clothes on animals, cropped."
+ },
+ {
+  "key": "capy-onsen",
+  "ar": "3:4",
+  "refs": [
+   "d02c2abf-9d53-4f6f-966b-5cca4d7b36ef"
+  ],
+  "bg": "transparent",
+  "prompt": "The Zen Capybara exactly as in the reference image (the turnaround sheet): barrel-shaped body, chestnut fur, pale muzzle, small round ears, calm half-closed eyes, a yuzu with one leaf on its head, no clothes; the same painted style as the sheet. Pose: sitting up to its chest in a small round wooden hinoki tub of steaming water, eyes closed in bliss, the yuzu still on its head, soft white steam rising. Hand-painted gouache, painterly realism with soft visible brush texture, one warm candle light from the upper left, warm brown shadows down and to the right, wabi-sabi, calm. Three-quarter front view at its own eye level, centred, the whole tub in frame with a 10% margin, the capybara and its tub alone with nothing around them. No text. Avoid: 3D render, CGI, plastic, cel shading, black outlines, flat vector, anime eyes, chibi, oversaturated, cold light, extra limbs, deformed paws, human hands, clothes on animals, cropped."
+ }
+]
