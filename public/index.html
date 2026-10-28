@@ -195,6 +195,20 @@
   @keyframes zoneready { 0%, 100% { box-shadow: 0 0 0 1px rgba(10, 12, 15, .5), 0 0 8px 2px rgba(246, 196, 83, .45); }
     50% { box-shadow: 0 0 0 1px rgba(10, 12, 15, .5), 0 0 16px 5px rgba(246, 196, 83, .8); } }
   @keyframes zoneup { 40% { transform: scale(1.12); } }
+  /* the painted bamboo tube (its four windows cut out of the picture): the sand rises behind it and shows through the
+     windows, the nodes are the steps; it glows round its own outline */
+  #zone.painted .bar { width: 30px; border: 0; border-radius: 0; overflow: visible; box-shadow: none;
+    background: linear-gradient(to right, transparent 35%, #22150c 35%, #22150c 65%, transparent 65%) center / 100% 82% no-repeat; filter: drop-shadow(1px 2px 2px rgba(20, 12, 6, .6)); }
+  #zone.painted .bar::after { background: url(zg-tube-frame.webp) center / 100% 100% no-repeat; }
+  /* the sand runs from the foot of the lowest window (9%) to the top of the highest (91%) */
+  #zone.painted .bar b, #zone.painted .bar s { left: 35%; right: 35%; bottom: 9%; transform: scaleY(0.82); transform-origin: 50% 100%; }
+  #zone.painted.near .bar { animation: zonenearp 1.1s ease-in-out; }
+  @keyframes zonenearp { 50% { filter: drop-shadow(0 0 7px rgba(246, 196, 83, .85)); } }
+  #zone.painted.tick .bar { animation: zonetickp .4s ease-out; }
+  @keyframes zonetickp { 25% { filter: drop-shadow(0 0 8px rgba(246, 196, 83, .9)); } }
+  #zone.painted.on .bar { filter: drop-shadow(0 0 7px rgba(246, 196, 83, .75)); }
+  #zone.painted.ready .bar { animation: zonereadyp 1.2s ease-in-out infinite; }
+  @keyframes zonereadyp { 0%, 100% { filter: drop-shadow(0 0 4px rgba(246, 196, 83, .5)); } 50% { filter: drop-shadow(0 0 11px rgba(246, 196, 83, .9)); } }
   /* the Zen Zone opening: its name, large, for a moment, and what it gives */
   #zentitle { position: fixed; z-index: 5; left: 50%; top: 24%; transform: translate(-50%, 0); text-align: center; pointer-events: none; opacity: 0; white-space: nowrap; }
   #zentitle b { display: block; font: 400 var(--fs-34)/1.1 var(--sketch); color: var(--ember); text-shadow: 0 0 18px rgba(246, 196, 83, 0.7), 0 2px 6px rgba(0, 0, 0, 0.8); }
@@ -242,6 +256,11 @@
   @keyframes glint { 50% { stroke: #fff4cf; stroke-width: 4.5; } }
   .dial .secs { font: 700 18px var(--sketch); letter-spacing: -0.04em; fill: var(--chalk); text-anchor: middle; paint-order: stroke; stroke: rgba(15, 18, 21, .9); stroke-width: 3px; }
   .dial.up svg { animation: dialup .42s cubic-bezier(.34, 1.25, .64, 1); }
+  /* the painted celadon cup as the dial: the wedges of time lie in its well */
+  .dial.painted svg { background: url(zg-cup.webp) center / 118% 118% no-repeat; border-radius: 50%; }
+  .dial.painted .face { fill: none; stroke: none; }
+  .dial.painted .gold { fill: rgba(246, 196, 83, 0.8); }
+  .dial.painted .pale { fill: rgba(236, 232, 222, 0.24); }
   @keyframes dialup { 50% { transform: scale(1.08); } }
   /* the helpers, under the back and again arrows: each its own medallion (a drawn face under it in case the picture is
      missing), the same size, with how many are left; the cat on a level with a clock, the hamster on one with stones */
@@ -401,6 +420,14 @@
     animation: rise .26s cubic-bezier(.2, .8, .2, 1);
     max-height: calc(100% - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 36px); overflow-y: auto; -webkit-overflow-scrolling: touch;
   }
+  /* the painted black lacquer with its gold dust under the tray's warmth, once it has come */
+  :root.p-lacquer .slab { background: linear-gradient(180deg, rgba(42, 27, 17, .62), rgba(27, 18, 11, .5)), url(zg-lacquer.webp) 0 0 / 320px auto; }
+  /* the Zen Capybara on a tray, at its upper right, the title beside her */
+  .slab .capyart { position: absolute; right: 14px; top: 8px; height: 92px; width: auto; pointer-events: none; filter: drop-shadow(2px 4px 4px rgba(10, 6, 3, .55)); }
+  .slab:has(> .capyart) > h2, .slab:has(> .capyart) > .kicker { padding-right: 76px; }
+  /* her visit for a big gift: she comes in at the left edge of the board for a moment, holding what she gives */
+  .capyvisit { position: fixed; z-index: 4; left: max(-24px, calc((100vw - var(--board-w, 100vw)) / 2 - 24px)); bottom: 26%; height: 150px; width: auto; pointer-events: none;
+    filter: drop-shadow(3px 5px 6px rgba(10, 6, 3, .6)); opacity: 0; }
   /* on a card the writing is the lantern's ink, not chalk */
   .slab .chalk { -webkit-mask-image: none; mask-image: none; }
   #score.chalk, .total.chalk b { -webkit-mask-image: var(--brush-mask, var(--chalk-mask)); mask-image: var(--brush-mask, var(--chalk-mask)); -webkit-mask-size: 60px; mask-size: 60px; }
@@ -420,6 +447,12 @@
     text-shadow: 0 1px 1px rgba(0, 0, 0, 0.7), 0 0 12px rgba(255, 176, 92, 0.28);
   }
   .primary::after { content: ""; position: absolute; right: 14px; top: 50%; width: 12px; height: 12px; margin-top: -6px; border-radius: 2px; background: #a83a28; transform: rotate(-5deg); opacity: 0.9; }
+  /* the painted plaque of old walnut with its seal at the left end: its ends kept, its middle stretched to the words */
+  :root.p-plaque .primary { background: none; box-shadow: 0 8px 14px rgba(0, 0, 0, 0.45); border-radius: 8px; border-style: solid; border-width: 12px 14px 12px 34px;
+    border-image: url(zg-plaque.webp) 60 70 60 150 fill stretch; padding: 0 20px; }
+  :root.p-plaque .primary::after { display: none; }
+  :root.p-plaque .ema { border-style: solid; border-width: 13px 14px 13px 36px; border-image: url(zg-plaque.webp) 60 70 60 150 fill stretch; padding: 0 14px 0 8px; }
+  :root.p-plaque .ema .art { display: none; }
   .primary:active { transform: scale(0.985); }
   #catBtn { font-size: var(--fs-20); }
   /* in the settings the words switch something: a faint line round them says they can be tapped */
@@ -542,6 +575,13 @@
       linear-gradient(172deg, #9c8462, #86694a 58%, #6f5539); }
   .lcard.locked > svg rect, .lcard.locked > svg path { fill: #4a3826; stroke: #4a3826; }
   .lcard.locked > svg path { fill: none; }
+  /* the painted tag (zg-tag, its cord above its roof) in place of the drawn one, once it has come; locked ones in the
+     shade, the next one a touch lighter */
+  :root.p-tag .lcard::before { top: calc(var(--card-h, 98px) * -0.15); clip-path: none; background: url(zg-tag.webp) center bottom / 100% 113% no-repeat; }
+  :root.p-tag .lcard::after { display: none; }
+  :root.p-tag .lcard { padding-top: 24px; }
+  :root.p-tag .lcard.next::before { filter: brightness(1.08); }
+  :root.p-tag .lcard.locked::before { filter: brightness(.55) saturate(.7); }
   /* a board opening: the page brightens, "… is open" is chalked across it, then its tags are laid down one by one */
   .bpage > canvas { transition: filter .9s ease; }
   .bpage.sealed > canvas { filter: brightness(.5) saturate(.6); }
@@ -686,7 +726,7 @@
   #tuneJson { width: 100%; box-sizing: border-box; background: #0d0f12; color: var(--chalk); border: 1px solid var(--chalk-3); border-radius: 10px; font: 12px ui-monospace, Menlo, monospace; }
 
   @media (prefers-reduced-motion: reduce) {
-    .slab, #done .slab, #chip.swap, .dial.up svg, #catpaw.go, #lives svg.lose, .stars.big svg.stamp, #streak.up b, #streak.lost, #streak.lost b, .tally li, .total em, #tally .nw, .lcard.next, #best.pop, #zone.up, #zone.near .bar, #capy.bless, #zone.ready .tap, #zone.ready .bar, #gift .ic, #gift .x, #capy .held i, #capy.ready .pocket { animation: none; }
+    .slab, #done .slab, #chip.swap, .dial.up svg, #catpaw.go, #lives svg.lose, .stars.big svg.stamp, #streak.up b, #streak.lost, #streak.lost b, .tally li, .total em, #tally .nw, .lcard.next, #best.pop, #zone.up, #zone.near .bar, #capy.bless, #zone.ready .tap, #zone.ready .bar, #zone.painted.ready .bar, #gift .ic, #gift .x, #capy .held i, #capy.ready .pocket { animation: none; }
     #capy.ready .cap { animation: none; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .6)) drop-shadow(0 0 8px rgba(226, 181, 92, .75)); }
     #gift.in { animation: giftfade .2s ease forwards; } #gift.out { animation: giftfade .2s ease reverse forwards; }
     @keyframes giftfade { from { opacity: 0; } to { opacity: 1; } }
@@ -840,7 +880,7 @@
 </section>
 
 <section id="zenRules" class="screen dim" hidden>
-  <div class="slab">
+  <div class="slab"><img class="capyart" src="zg-capy-guide.webp" alt="" onerror="this.remove()">
     <p class="kicker chalk">Full Moon</p>
     <h2 class="chalk" id="zenRulesTitle">How it goes</h2>
     <ul class="rules chalk">
@@ -854,7 +894,7 @@
 </section>
 
 <section id="offer" class="screen dim" hidden>
-  <div class="slab">
+  <div class="slab"><img class="capyart" src="zg-capy-bow.webp" alt="" onerror="this.remove()">
     <p class="kicker chalk" id="offerKicker">New moon</p>
     <h2 class="chalk" id="offerTitle">Take a gift</h2>
     <div class="gifts" id="offerList"></div>
@@ -862,7 +902,7 @@
 </section>
 
 <section id="zenEnd" class="screen" data-v="top" hidden>
-  <div class="slab">
+  <div class="slab"><img class="capyart" src="zg-capy-idle.webp" alt="" onerror="this.remove()">
     <p class="kicker chalk" id="zenKicker">Full Moon</p>
     <h2 class="chalk" id="zenTitle"></h2>
     <p class="total chalk"><span id="zenScoreLabel">Score</span><b id="zenScore">0</b></p>
@@ -5262,6 +5302,9 @@ const GrainSim = (() => {
   }
   // Pełnia: three ensō, brush circles drawn in one stroke each, by the pause button; one fades to a dry grey for every life gone
   painted('zg-enso', () => $('lives').classList.add('painted'));
+  painted('zg-tube-frame', () => $('zone').classList.add('painted'));
+  for (const [k, f] of [['p-tag', 'zg-tag'], ['p-plaque', 'zg-plaque'], ['p-lacquer', 'zg-lacquer']]) painted(f, () => document.documentElement.classList.add(k));
+  painted('zg-cup', () => $('clock').classList.add('painted'));
   function syncLives(lost) {
     const el = $('lives');
     el.hidden = !(sim && sim.zen);
@@ -6339,7 +6382,7 @@ const GrainSim = (() => {
             zenTip('pocket', "A gift waits on the capybara's medallion: tap her when you need it.");
             break;
           }
-          if (e.tier === 3) { Sound.fanfare(); Haptics.buzz([15, 40, 15]); if (!reducedMotion()) fx.sandGift = { id: e.id, t0: performance.now() }; }
+          if (e.tier === 3) { Sound.fanfare(); Haptics.buzz([15, 40, 15]); if (!reducedMotion()) fx.sandGift = { id: e.id, t0: performance.now() }; capyVisit(e.id); }
           else { Sound.saved(); Haptics.buzz(10); }
           if (e.id === 'enso') syncLives(false);
           if (e.sunk && !reducedMotion()) for (const [x, y] of e.sunk) fx.rings.push({ x, y, t: Math.random() * -0.3, life: 0.6, sand: true });
@@ -6648,6 +6691,20 @@ const GrainSim = (() => {
     if (why) { zenSay(tr(GIFT_TEXT[sim.pocket][0]) + ': ' + tr(POCKET_WHY[why]), 2); Haptics.buzz([8, 40, 8]); return; }
     input.use = true; Haptics.buzz(10);
   });
+  // a big gift that takes effect brings her to the edge of the board for a moment, holding it (the ensō) or in it (the
+  // hot spring); a change in, the reward held, a change out
+  const CAPY_VISIT = { enso: 'zg-capy-life', onsen: 'zg-capy-onsen' };
+  for (const id in CAPY_VISIT) painted(CAPY_VISIT[id]);
+  function capyVisit(id) {
+    const f = CAPY_VISIT[id];
+    if (!f || !painted(f) || reducedMotion()) return;
+    const m = document.createElement('img');
+    m.className = 'capyvisit'; m.src = f + '.webp'; m.alt = '';
+    document.body.appendChild(m);
+    const a = m.animate([{ opacity: 0, transform: 'translateX(-60%)' }, { opacity: 1, transform: 'none', offset: 0.12 }, { opacity: 1, transform: 'none', offset: 0.86 },
+      { opacity: 0, transform: 'translateX(-60%)' }], { duration: 2000, easing: 'cubic-bezier(.2, .8, .2, 1)' });
+    a.onfinish = a.oncancel = () => m.remove();
+  }
   // used, the gift leaves her medallion for the board
   function flyGift(id) {
     const r = $('capy').getBoundingClientRect();
