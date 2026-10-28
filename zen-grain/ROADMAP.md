@@ -2,6 +2,8 @@
 
 ## The plan (27 Oct, after the design review)
 **Done 28 Oct (the owner's calls):**
+- **A missed order** costs only the capybara's blessing (the bowls counted toward it start again) and points: 15 for each grain it asked for, times what the kind is worth. No life, and the Zen Zone keeps its charge.
+- **The player fires the Zen Zone.** Full, the tube holds its charge: a broken row and an idle spell no longer take from it. It glows gold and a gold finger bobs above it; a tap on the tube starts the ten seconds. The first time, one tip says so.
 - **Names:** the levels mode is **Droga** ("The Way"); Pełnia is the endless mode with lives; Zen is kept for the calm mode.
 - **Type:** text in Kaisei Decol, titles in Yuji Syuku (variant A). Numerals: the score in a thick brush (Potta One), everything else that counts (multiplier, points, totals) in Yuji Syuku; the time and the small counts (the Zone countdown, the dial, the order, the jar, the helpers) in Yuji Syuku made bolder, so the thin strokes hold at 16–18 px.
 - **Pełnia's multiplier** is earned over minutes: a full row adds a quarter of what it does in a level and less the higher it stands (about ×5 after a minute of clean quick rows, ×9 after three). Scoops are mixed after the first two and scattered, not laid out as ready rows.
@@ -35,7 +37,7 @@
 6. **The world:** the hut as the menu (modes, workshop, upgrades), its upgrades as separate layers of one painting, the farm on the hill (rice and bean fields, harvests, sacks to sell, helpers to hire), the workshop joining three pairs of chopsticks into one with three bonuses.
 7. **Together:** the full-moon jar for everyone, a share card, a replay. In parallel: recording testers' sessions, and music that follows the rhythm.
 
-**Still to decide:** whether a missed goal costs a life or only the blessing (proposed: only the blessing); whether the player fires the Zen Zone (one thumb is busy; try a double tap); the currency (proposed: sacks); continues (proposed: once free from the capybara, then medallions at 1, 2, 4); the spill's visibly tipping jar; the domain; the result layout; the rest under "Ideas to decide" below.
+**Still to decide:** the currency (proposed: sacks); continues (proposed: once free from the capybara, then medallions at 1, 2, 4); the spill's visibly tipping jar; the domain; the result layout; the rest under "Ideas to decide" below.
 
 ## Where things stand (27 Oct)
 **Decided before the plan above, not built yet** (now folded into it):

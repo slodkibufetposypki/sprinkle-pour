@@ -1196,6 +1196,21 @@ test('zen: full rows charge the Zen Zone; in it the jar pours more, a wrong grai
   invariants(sim);
 });
 
+test('zen: a full Zen Zone waits for the player: it holds through a broken row and an idle spell, and a tap fires it', () => {
+  const sim = GS.create({}, GS.ZEN, LAYOUT, 22);
+  sim.started = true; sim.clock = GS.ZEN_ZONE.from + 1; sim.flow.next = 1e9; sim.zone = 1; sim.lastPull = sim.clock - 30;
+  let ev = release(sim, 6);
+  assert.ok(!ev.some((e) => e.type === 'zone') && sim.zone === 1 && sim.zoneT === 0 && sim.zoneReady(), 'still full, still waiting: ' + JSON.stringify({ z: sim.zone, t: sim.zoneT, ev: [...new Set(ev.map((e) => e.type))] }));
+  sim.step({ down: false, x: 300, y: 1200, fire: true }); ev = sim.drainEvents();
+  assert.ok(ev.some((e) => e.type === 'zone' && e.on), 'fired');
+  assert.ok(sim.zoneT > GS.ZEN_ZONE.secs - 0.1 && sim.zone === 0 && !sim.zoneReady());
+  // a tap on a meter that is not full does nothing
+  const b = GS.create({}, GS.ZEN, LAYOUT, 23);
+  b.started = true; b.clock = GS.ZEN_ZONE.from + 1; b.flow.next = 1e9; b.zone = 0.7; b.lastPull = b.clock;
+  b.step({ down: false, x: 300, y: 1200, fire: true });
+  assert.ok(b.zoneT === 0 && b.zone === 0.7);
+});
+
 test('zen: the Zen Zone meter opens after a while, fills with full rows, and drains with none', () => {
   // before it opens, full rows put nothing in it
   const a = GS.create({}, GS.ZEN, LAYOUT, 21), botA = GS.makeBot(a, 7);
@@ -1310,7 +1325,7 @@ test('zen: the rhythm goes round: order, peak (a wave, then a spill, by turns), 
   assert.ok(Math.max(...stones) <= 3 && Math.max(...stones) === 3 && Math.min(...stones) <= 1, 'stones on the board, each second: ' + stones.join(''));
 });
 
-test('zen: an order counts rows of its kind; filled in time it pays and charges the Zen Zone, missed it takes some back', () => {
+test('zen: an order counts rows of its kind; filled in time it pays and charges the Zen Zone; missed, it costs the capybara and points', () => {
   const sim = GS.create({}, GS.ZEN, LAYOUT, 16), bot = GS.makeBot(sim, 9), ev = [];
   sim.flow.next = 1e9; sim.clock = GS.ZEN_ZONE.from + 1;
   sim.order = { type: 'lentil', need: 5, got: 0, until: sim.clock + 22, secs: 22 };
@@ -1319,9 +1334,13 @@ test('zen: an order counts rows of its kind; filled in time it pays and charges 
   assert.ok(done && done.bonus > 0, 'the order was filled');
   assert.ok(sim.zone >= GS.ZEN_FLOW.orderGain || sim.zoneT > 0, 'and charged the zone');
   assert.equal(sim.order, null);
-  sim.zone = 0.5; sim.flow.next = 1e9; sim.lastPull = sim.clock;
+  sim.zone = 0.5; sim.flow.next = 1e9; sim.lastPull = sim.clock; sim.thanks = 5; sim.score = 100000;
   sim.order = { type: 'rice', need: 999, got: 0, until: sim.clock + 1, secs: 1 };
   const ev2 = release(sim, 1.5);
-  assert.ok(ev2.some((e) => e.type === 'order_failed'));
-  assert.ok(Math.abs(sim.zone - (0.5 - GS.ZEN_FLOW.orderLoss)) < 1e-9);
+  const miss = ev2.find((e) => e.type === 'order_failed');
+  assert.ok(miss && miss.penalty === GS.ZEN_FLOW.orderFine * 999 && miss.thanksLost === 5, 'missed: ' + JSON.stringify(miss));
+  assert.equal(sim.score, 100000 - GS.ZEN_FLOW.orderFine * 999, 'it costs points');
+  assert.equal(sim.thanks, 0, 'the bowls toward the capybara are gone');
+  assert.equal(sim.lives, 3, 'not a life');
+  assert.equal(sim.zone, 0.5, 'and not the Zen Zone');
 });
