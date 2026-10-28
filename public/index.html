@@ -81,38 +81,44 @@
   #hud {
     position: fixed; left: 50%; top: 0; z-index: 2; pointer-events: none; box-sizing: border-box;
     width: min(100%, var(--board-w, 100%)); transform: translateX(-50%);
-    padding-top: calc(env(safe-area-inset-top, 0px) + 8px);
-    padding-left: max(10px, env(safe-area-inset-left, 0px)); padding-right: max(14px, env(safe-area-inset-right, 0px));
-    display: grid; grid-template-columns: 48px 1fr 96px; align-items: start; gap: 6px;
+    padding-top: calc(env(safe-area-inset-top, 0px) + 6px);
+    padding-left: max(8px, env(safe-area-inset-left, 0px)); padding-right: max(10px, env(safe-area-inset-right, 0px));
+    display: grid; grid-template-columns: 92px 1fr 92px; align-items: start; gap: 4px;
     font-family: var(--hand); line-height: 1;
   }
-  #hud > * { pointer-events: auto; }
+  /* the band passes touches through to the board; only its buttons take them */
+  #hud > * { pointer-events: none; }
+  #hud button { pointer-events: auto; }
   .iconbtn { width: 44px; height: 44px; border: 0; background: none; display: grid; place-items: center; padding: 0; }
   .iconbtn svg { width: 22px; height: 22px; fill: none; stroke: var(--chalk-2); stroke-width: 2.6; stroke-linecap: round; }
   /* the corners of the HUD: back and again on the left, pause over the score on the right */
-  #hud .side { display: flex; flex-direction: column; align-items: flex-start; }
-  #hud .side.end { align-items: flex-end; }
-  #hud .side .iconbtn { width: 48px; height: 44px; }
+  #hud .side { display: flex; flex-wrap: wrap; align-content: flex-start; align-items: center; }
+  #hud .side.end { flex-direction: column; flex-wrap: nowrap; align-items: flex-end; }
+  #hud .side .iconbtn { width: 44px; height: 44px; }
+  #hud .r1 { display: flex; align-items: center; justify-content: flex-end; gap: 4px; height: 44px; }
+  .clockwrap { position: relative; display: block; }
   #hud .iconbtn svg { width: 24px; height: 24px; stroke: var(--chalk); stroke-linejoin: round; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .7)); }
-  #hud .iconbtn.big { width: 52px; height: 52px; margin: -4px -6px 0 0; }
-  #hud .iconbtn.big svg { width: 30px; height: 30px; stroke-width: 3; }
+  #hud .iconbtn.big { width: 44px; height: 44px; margin: 0 -6px 0 0; }
+  #hud .iconbtn.big svg { width: 26px; height: 26px; stroke-width: 2.6; }
   #hud .iconbtn:active svg { transform: scale(0.9); }
   #hud .iconbtn.ask svg { stroke: var(--ember); }
-  .mid { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; padding-top: 4px; }
-  #chip { display: flex; align-items: center; gap: 7px; white-space: nowrap; max-width: 100%; font-size: var(--fs-24); line-height: 1.3; margin: -3px 0 -5px; }
-  #chip.long { font-size: var(--fs-20); gap: 5px; }
-  #chip.long .left { font-size: var(--fs-17); }
+  .mid { display: flex; flex-direction: column; align-items: center; gap: 0; min-width: 0; padding-top: 6px; }
+  .mrow { display: flex; align-items: center; justify-content: center; gap: 8px; height: 38px; }
+  #chip { display: flex; align-items: center; gap: 6px; white-space: nowrap; max-width: 100%; font-size: var(--fs-20); line-height: 1.3; margin: -3px 0 -3px; }
+  #chip.long { font-size: var(--fs-17); gap: 5px; }
+  #chip.long .left { font-size: var(--fs-15); }
+  #chip.bare .name { display: none; }
   #chip.swap { animation: swap .24s cubic-bezier(.2, .8, .2, 1); }
   @keyframes swap { from { transform: translateY(-6px) rotate(-3deg); opacity: 0; } }
-  #chip .ico { width: 26px; height: 26px; display: block; flex: none; }
-  #chip .left { color: var(--chalk-2); font-size: var(--fs-20); }
+  #chip .ico { width: 22px; height: 22px; display: block; flex: none; }
+  #chip .left { color: var(--chalk-2); font-size: var(--fs-17); }
   #streak { display: flex; align-items: center; gap: 10px; height: 34px; }
-  #streak b { font-weight: 400; font-size: var(--fs-34); min-width: 2.4ch; text-align: center; transition: color .2s ease; }
+  #streak b { font-weight: 400; font-size: var(--fs-28); min-width: 2.4ch; text-align: center; transition: color .2s ease; }
   #streak.idle b { color: var(--chalk-3); }
   #streak.hot b { color: var(--ember); }
   #streak.max b { color: var(--ember); text-shadow: 0 0 12px rgba(246, 196, 83, 0.55); }
   /* full rows in a row, as tally marks in fives on their own line, so they never read as digits */
-  #tally { display: flex; gap: 7px; height: 16px; margin-top: 3px; }
+  #tally { display: flex; gap: 6px; height: 16px; }
   #tally svg { fill: none; stroke: var(--chalk-2); stroke-width: 2.4; stroke-linecap: round; }
   #streak.up b { animation: up .42s cubic-bezier(.34, 1.25, .64, 1); }
   @keyframes up { 35% { transform: scale(1.12) rotate(-2deg); } }
@@ -121,12 +127,12 @@
   #streak.lost b { animation: lostc .9s ease; }
   @keyframes lostc { 0%, 55% { color: var(--chalk-red); } }
   /* pace: a chalk line that wears away from both ends; when it is gone the next full row counts as slow */
-  #fuse { display: block; width: 132px; height: 4px; border-radius: 2px; background: var(--chalk-2); transform: scaleX(0); transition: background .25s ease; }
+  #fuse { display: block; width: 120px; height: 4px; margin-top: 2px; border-radius: 2px; background: var(--chalk-2); transform: scaleX(0); transition: background .25s ease; }
   #fuse[data-pace="Lightning"] { background: var(--ember); }
   #fuse[data-pace="Quick"] { background: rgba(246, 196, 83, 0.62); }
   #fuse[data-pace="Slow"] { background: var(--chalk-3); }
-  #score { justify-self: end; text-align: right; margin-top: -2px; }
-  #score b { display: block; font-weight: 400; font-size: var(--fs-34); line-height: 1; }
+  #score { justify-self: end; text-align: right; margin-top: 4px; }
+  #score b { display: block; font-weight: 400; font-size: var(--fs-28); line-height: 1; white-space: nowrap; }
   /* zen: a quiet line with the best run under the multiplier, gold once this run is past it */
   /* zen: the Zen Zone meter, upright at the right side of the board. It fills from below with good rows, drains with a
      broken row and with waiting, glows when it is nearly full and runs down while the zone lasts; dim, with the time
@@ -166,26 +172,27 @@
   #zentitle.show { animation: zentitle 1.8s ease both; }
   @media (prefers-reduced-motion: reduce) { #zentitle.show { animation: zentitlestill 1.8s step-end both; } @keyframes zentitlestill { 0% { opacity: 1; } 100% { opacity: 0; } } }
   @keyframes zentitle { 0% { opacity: 0; transform: translate(-50%, 6px) scale(0.92); } 14% { opacity: 1; transform: translate(-50%, 0) scale(1); } 78% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -4px) scale(1.02); } }
-  #capy { display: flex; align-items: center; gap: 5px; margin-top: 3px; }
-  /* the capybara's medallion (the drawn face under it in case the picture is missing), then the five bowls toward her */
-  #capy .cap { position: relative; display: block; width: 24px; height: 24px; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .6)); }
-  #capy .cap svg { position: absolute; left: 1px; top: 3px; width: 22px; height: 20px; }
+  #capy { position: relative; display: grid; place-items: center; width: 44px; height: 44px; }
+  /* the capybara's medallion (the drawn face under it in case the picture is missing) inside a ring of eight arcs,
+     one for each bowl toward her */
+  #capy .ring { position: absolute; inset: 0; width: 44px; height: 44px; overflow: visible; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .6)); }
+  #capy .ring path { fill: none; stroke: var(--chalk-3); stroke-width: 2.6; stroke-linecap: round; transform-box: fill-box; transform-origin: center; }
+  #capy .ring path.on { stroke: var(--ember); }
+  #capy .cap { position: relative; display: block; width: 28px; height: 28px; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .6)); }
+  #capy .cap svg { position: absolute; left: 2px; top: 4px; width: 24px; height: 22px; }
   #capy .cap img { position: absolute; inset: 0; width: 100%; height: 100%; }
-  #capy .pips { display: flex; gap: 3px; align-items: flex-end; }
-  #capy .pips i { width: 11px; height: 7px; box-sizing: border-box; border: 1.3px solid var(--chalk-3); border-radius: 1px 1px 7px 7px / 1px 1px 7px 7px; }
-  #capy .pips i.on { background: linear-gradient(#f0cf9e, #c8925a); border-color: #f0cf9e; }
-  #capy .pips i.pop { animation: pippop .42s cubic-bezier(.34, 1.25, .64, 1); }
-  @keyframes pippop { 40% { transform: scale(1.25); box-shadow: 0 0 9px 2px rgba(246, 196, 83, 0.8); } }
+  #capy .ring path.pop { animation: pippop .42s cubic-bezier(.34, 1.25, .64, 1); }
+  @keyframes pippop { 40% { transform: scale(1.25); } }
   #capy.bless { animation: zoneup .42s cubic-bezier(.34, 1.25, .64, 1) 2; }
-  #best { display: block; margin-top: 2px; font: 400 var(--fs-13)/1.2 var(--hand); color: var(--chalk-2); white-space: nowrap; }
+  #best { display: block; margin-top: 1px; font: 400 var(--fs-13)/1.2 var(--print); color: var(--chalk-2); white-space: nowrap; }
   #best.new { color: var(--ember); }
   #best.pop { animation: bestpop .42s cubic-bezier(.34, 1.25, .64, 1); }
   @keyframes bestpop { 0% { transform: scale(.85); opacity: 0; } }
   /* the clock: a small dial, the hand going round once over the time the level may take. The gold part is the time
      that still pays a bonus, the pale part the rest; the last ten seconds turn red and are counted. The Zen Cat waits
      at its foot: tap the dial and she turns the hand back, once a round. */
-  .dial { position: relative; display: block; width: 50px; height: 50px; padding: 0; border: 0; background: none; margin: 3px -3px 0 auto; }
-  .dial svg { width: 50px; height: 50px; overflow: visible; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .6)); }
+  .dial { position: relative; display: block; width: 40px; height: 40px; padding: 0; border: 0; background: none; margin: 0; }
+  .dial svg { width: 40px; height: 40px; overflow: visible; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .6)); }
   .dial .face { fill: rgba(15, 18, 21, 0.5); stroke: var(--chalk-2); stroke-width: 1.6; }
   .dial .gold { fill: rgba(246, 196, 83, 0.88); }
   .dial .pale { fill: rgba(236, 232, 222, 0.34); }
@@ -198,12 +205,16 @@
   @keyframes dialup { 50% { transform: scale(1.08); } }
   /* the helpers, under the back and again arrows: each its own medallion (a drawn face under it in case the picture is
      missing), the same size, with how many are left; the cat on a level with a clock, the hamster on one with stones */
-  .helper { position: relative; width: 48px; height: 48px; border: 0; padding: 0; background: none; display: grid; place-items: center; margin-top: 6px; }
-  .helper .face { position: relative; display: block; width: 40px; height: 40px; filter: drop-shadow(0 1px 3px rgba(0, 0, 0, .65)); transition: transform .12s ease; }
-  .helper .face svg { position: absolute; inset: 6px; width: 28px; height: 28px; color: #f2b06c; }
+  .helper { position: relative; width: 44px; height: 44px; border: 0; padding: 0; background: none; display: grid; place-items: center; }
+  .helper .face { position: relative; display: block; width: 34px; height: 34px; filter: drop-shadow(0 1px 3px rgba(0, 0, 0, .65)); transition: transform .12s ease; }
+  .helper .face svg { position: absolute; inset: 5px; width: 24px; height: 24px; color: #f2b06c; }
   .helper .face img { position: absolute; inset: 0; width: 100%; height: 100%; }
-  .helper i { position: absolute; right: -2px; bottom: -2px; min-width: 18px; padding: 1px 4px 0; border-radius: 8px; background: rgba(15, 18, 21, 0.88);
-    font: 400 var(--fs-13)/1.2 var(--hand); font-style: normal; color: var(--chalk); text-align: center; }
+  .helper i { position: absolute; right: 1px; bottom: 1px; font: 700 var(--fs-13)/1 var(--print); font-style: normal; color: var(--chalk); text-shadow: var(--halo); }
+  /* the Zen Cat sits at the foot of the clock: tapping either turns the hand back */
+  #catHelp { position: absolute; left: -24px; bottom: -14px; width: 30px; height: 30px; }
+  #catHelp .face { width: 26px; height: 26px; }
+  #catHelp .face svg { inset: 4px; width: 18px; height: 18px; }
+  #catHelp i { right: -3px; bottom: -3px; }
   .helper.none .face, .helper.used .face { opacity: 0.4; filter: grayscale(1); }
   .helper:active .face { transform: scale(0.9); }
   #catpaw { position: fixed; z-index: 5; right: 0; width: 130px; height: 64px; pointer-events: none; transform: translateX(110%); transform-origin: 100% 50%; }
@@ -260,15 +271,17 @@
   #banner.show { opacity: 1; transform: translate(-50%, 0) rotate(-1.5deg); }
   #banner b { display: block; font-weight: 400; font-size: var(--fs-34); line-height: 1.3; color: var(--ember); }
   #banner span { font-size: var(--fs-20); }
-  #hint { top: calc(env(safe-area-inset-top, 0px) + 112px); width: max-content; max-width: min(84vw, 360px); font-size: var(--fs-24); transition: opacity .2s ease; }
+  #hint { top: calc(env(safe-area-inset-top, 0px) + 92px); width: max-content; max-width: min(86vw, 320px); font-size: var(--fs-17); transition: opacity .2s ease; padding: 8px 24px; }
+  #zsay.show ~ #hint { opacity: 0; }
   #hint.off { opacity: 0; }
   #toast { top: calc(env(safe-area-inset-top, 0px) + 70px); z-index: 6; font-size: var(--fs-20); opacity: 0; transition: opacity .2s ease; width: max-content; max-width: min(88vw, 380px); }
   #toast.show { opacity: 1; }
   /* zen: everything the game has to say comes as one short line under the top bar, one at a time, and goes */
-  #zsay { position: fixed; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 160px); z-index: 4; pointer-events: none; transform: translate(-50%, -4px);
+  #zsay { position: fixed; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 100px); z-index: 4; pointer-events: none; transform: translate(-50%, -4px);
     width: max-content; max-width: min(86vw, 300px); text-align: center; text-wrap: balance; font: 400 var(--fs-17)/1.2 var(--hand); color: var(--chalk);
     text-shadow: var(--halo); opacity: 0; transition: opacity .18s ease, transform .18s ease; }
   #zsay.show { opacity: 1; transform: translate(-50%, 0); }
+  #zsay b { font-weight: 400; color: var(--ember); }
   #zsay.gold { color: var(--ember); }
   #zsay.red { color: var(--chalk-red); }
 
@@ -501,8 +514,8 @@
   .toggle .sw::after { content: ""; position: absolute; left: 3px; top: 2.5px; width: 20px; height: 20px; border-radius: 50%; background: var(--chalk); box-shadow: 0 1px 3px rgba(0, 0, 0, .5); transition: transform .22s cubic-bezier(.3, 1.3, .5, 1); }
   .toggle[aria-checked="true"] .sw { background: rgba(246, 196, 83, 0.85); border-color: var(--ember); }
   .toggle[aria-checked="true"] .sw::after { transform: translateX(21px); }
-  #lives { display: flex; justify-content: flex-end; gap: 4px; margin-top: 6px; }
-  #lives svg { width: 20px; height: 20px; color: var(--ember); filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .6)); }
+  #lives { display: flex; justify-content: flex-end; gap: 2px; }
+  #lives svg { width: 17px; height: 17px; color: var(--ember); filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .6)); }
   #lives svg.gone { color: var(--chalk-3); opacity: 0.5; }
   #lives svg.lose { animation: lose .6s ease; }
   @keyframes lose { 30% { transform: scale(1.5) rotate(-20deg); } }
@@ -569,26 +582,23 @@
   <div class="side">
     <button id="leaveBtn" class="iconbtn" aria-label="Back to the boards"><svg viewBox="0 0 22 22" aria-hidden="true"><path d="M13.6 4.4c-2.5 2.3-4.4 4.3-6.3 6.5 1.9 2.1 3.9 4.1 6.4 6.5"/></svg></button>
     <button id="againBtn" class="iconbtn" aria-label="Start the level again"><svg viewBox="0 0 22 22" aria-hidden="true"><path d="M18.6 13.4a7.8 7.8 0 1 1-1.9-8L20 8.6"/><path d="M20.3 3.6v5.2h-5.1"/></svg></button>
-    <button id="catHelp" class="helper" aria-label="Zen Cat" hidden><span class="face"><svg viewBox="0 0 20 20" aria-hidden="true"><ellipse cx="10" cy="12.6" rx="4.6" ry="3.8" fill="currentColor"/><circle cx="4.6" cy="7.8" r="2" fill="currentColor"/><circle cx="8.2" cy="5" r="2" fill="currentColor"/><circle cx="11.8" cy="5" r="2" fill="currentColor"/><circle cx="15.4" cy="7.8" r="2" fill="currentColor"/></svg><img src="medal-cat-front.webp" alt="" onerror="this.remove()"></span><i>×0</i></button>
-    <button id="hamBtn" class="helper" aria-label="Zen Hamster" hidden><span class="face"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6.4" cy="6.6" r="3" fill="#e9b07a"/><circle cx="17.6" cy="6.6" r="3" fill="#e9b07a"/><circle cx="6.4" cy="6.6" r="1.5" fill="#f2a5a5"/><circle cx="17.6" cy="6.6" r="1.5" fill="#f2a5a5"/><ellipse cx="12" cy="13.4" rx="8.6" ry="7.4" fill="#e0a25c"/><ellipse cx="12" cy="16" rx="5.4" ry="4.2" fill="#f6e2c6"/><circle cx="8.8" cy="12" r="1.3" fill="#1b120c"/><circle cx="15.2" cy="12" r="1.3" fill="#1b120c"/><ellipse cx="12" cy="14.4" rx="1.3" ry="0.9" fill="#e8858c"/></svg><img src="medal-ham-front.webp" alt="" onerror="this.remove()"></span><i>×0</i></button>
+    <button id="hamBtn" class="helper" aria-label="Zen Hamster" hidden><span class="face"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6.4" cy="6.6" r="3" fill="#e9b07a"/><circle cx="17.6" cy="6.6" r="3" fill="#e9b07a"/><circle cx="6.4" cy="6.6" r="1.5" fill="#f2a5a5"/><circle cx="17.6" cy="6.6" r="1.5" fill="#f2a5a5"/><ellipse cx="12" cy="13.4" rx="8.6" ry="7.4" fill="#e0a25c"/><ellipse cx="12" cy="16" rx="5.4" ry="4.2" fill="#f6e2c6"/><circle cx="8.8" cy="12" r="1.3" fill="#1b120c"/><circle cx="15.2" cy="12" r="1.3" fill="#1b120c"/><ellipse cx="12" cy="14.4" rx="1.3" ry="0.9" fill="#e8858c"/></svg><img src="medal-ham-front.webp" alt="" onerror="this.remove()"></span><i>0</i></button>
+    <div id="capy" class="chalk" hidden><svg class="ring" viewBox="0 0 44 44" aria-hidden="true"><path d="M23.66 3.07A19 19 0 0 1 34.21 7.45"/><path d="M36.55 9.79A19 19 0 0 1 40.93 20.34"/><path d="M40.93 23.66A19 19 0 0 1 36.55 34.21"/><path d="M34.21 36.55A19 19 0 0 1 23.66 40.93"/><path d="M20.34 40.93A19 19 0 0 1 9.79 36.55"/><path d="M7.45 34.21A19 19 0 0 1 3.07 23.66"/><path d="M3.07 20.34A19 19 0 0 1 7.45 9.79"/><path d="M9.79 7.45A19 19 0 0 1 20.34 3.07"/></svg><span class="cap"><svg viewBox="0 0 24 22" aria-hidden="true"><circle cx="6.2" cy="6.6" r="2" fill="#8c5c35"/><circle cx="17.8" cy="6.6" r="2" fill="#8c5c35"/><path d="M4 11.6c0-4 3.6-6.6 8-6.6s8 2.6 8 6.6v2.8c0 3.2-2.8 5.4-8 5.4s-8-2.2-8-5.4z" fill="#b07a4a"/><path d="M8 11.6h2.3M13.7 11.6H16" stroke="#3a2414" stroke-width="1.2" stroke-linecap="round"/><ellipse cx="12" cy="15.6" rx="3.3" ry="2.1" fill="#7a4d2c"/><circle cx="12" cy="3.2" r="2.3" fill="#f2c94c"/></svg><img src="medal-capy-front.webp" alt="" onerror="this.remove()"></span></div>
   </div>
   <div class="mid">
     <div id="chip" class="chalk" aria-live="polite"><svg class="ico" viewBox="0 0 20 20" aria-hidden="true"></svg><span class="name">Lentils</span><span class="left">0</span></div>
-    <div id="streak" class="chalk"><b>×1.0</b></div>
+    <div class="mrow"><div id="streak" class="chalk"><b>×1.0</b></div><span id="tally" class="chalk" aria-hidden="true"></span></div>
     <i id="fuse" class="chalk" aria-hidden="true"></i>
-    <span id="tally" class="chalk" aria-hidden="true"></span>
-    <div id="capy" class="chalk" hidden><span class="cap"><svg viewBox="0 0 24 22" aria-hidden="true"><circle cx="6.2" cy="6.6" r="2" fill="#8c5c35"/><circle cx="17.8" cy="6.6" r="2" fill="#8c5c35"/><path d="M4 11.6c0-4 3.6-6.6 8-6.6s8 2.6 8 6.6v2.8c0 3.2-2.8 5.4-8 5.4s-8-2.2-8-5.4z" fill="#b07a4a"/><path d="M8 11.6h2.3M13.7 11.6H16" stroke="#3a2414" stroke-width="1.2" stroke-linecap="round"/><ellipse cx="12" cy="15.6" rx="3.3" ry="2.1" fill="#7a4d2c"/><circle cx="12" cy="3.2" r="2.3" fill="#f2c94c"/></svg><img src="medal-capy-front.webp" alt="" onerror="this.remove()"></span><span class="pips"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span></div>
-    <span id="best" class="chalk" hidden></span>
+    <span id="best" hidden></span>
   </div>
   <div class="side end">
-    <button id="menuBtn" class="iconbtn big" aria-label="Pause"><svg viewBox="0 0 22 22" aria-hidden="true"><path d="M7.4 4.2c.2 4.6-.1 9.2.3 13.6M14.8 4.4c-.3 4.4.1 9 .1 13.4"/></svg></button>
-    <div id="score" class="chalk"><b>0</b></div>
-    <div id="lives" hidden></div>
-    <button id="clock" class="dial" aria-label="Time left"><svg viewBox="0 0 46 46" aria-hidden="true">
+    <div class="r1"><div class="clockwrap"><button id="clock" class="dial" aria-label="Time left"><svg viewBox="0 0 46 46" aria-hidden="true">
       <circle class="face" cx="23" cy="23" r="19"/><path class="pale" d=""/><path class="gold" d=""/>
       <path class="ticks" d="M23 5.5v3M23 37.5v3M5.5 23h3M37.5 23h3M31.75 7.84l-1 1.73M38.16 14.25l-1.73 1M38.16 31.75l-1.73-1M31.75 38.16l-1-1.73M14.25 38.16l1-1.73M7.84 31.75l1.73-1M7.84 14.25l1.73 1M14.25 7.84l1 1.73"/>
       <line class="hand" x1="23" y1="23" x2="23" y2="8"/><circle class="pin" cx="23" cy="23" r="2.2"/><text class="secs" x="23" y="28"></text>
     </svg></button>
+    <button id="catHelp" class="helper" aria-label="Zen Cat" hidden><span class="face"><svg viewBox="0 0 20 20" aria-hidden="true"><ellipse cx="10" cy="12.6" rx="4.6" ry="3.8" fill="currentColor"/><circle cx="4.6" cy="7.8" r="2" fill="currentColor"/><circle cx="8.2" cy="5" r="2" fill="currentColor"/><circle cx="11.8" cy="5" r="2" fill="currentColor"/><circle cx="15.4" cy="7.8" r="2" fill="currentColor"/></svg><img src="medal-cat-front.webp" alt="" onerror="this.remove()"></span><i>0</i></button></div><div id="lives" hidden></div><button id="menuBtn" class="iconbtn big" aria-label="Pause"><svg viewBox="0 0 22 22" aria-hidden="true"><path d="M7.4 4.2c.2 4.6-.1 9.2.3 13.6M14.8 4.4c-.3 4.4.1 9 .1 13.4"/></svg></button></div>
+    <div id="score" class="chalk"><b>0</b></div>
   </div>
 </div>
 <div id="banner" class="note chalk" role="status"><b></b><span></span></div>
@@ -1447,6 +1457,15 @@ const GrainSim = (() => {
       const vn = g.vx * nx + g.vy * ny;
       if (vn < 0) { g.vx -= 1.4 * vn * nx; g.vy -= 1.4 * vn * ny; }
     }
+  }
+
+  // nor under the jar lying at the top of the board: a grain that gets under it is set down just below it
+  function keepOffJar(g, J) {
+    if (!J) return;
+    const cx = J.x + (J.left ? 8 : -8), dx = g.x - cx, dy = g.y - J.y, min = 44 + TYPES[g.type].size;
+    if (dx * dx + dy * dy >= min * min) return;
+    g.y = J.y + Math.sqrt(min * min - dx * dx);
+    if (g.vy < 0) g.vy *= -0.4;
   }
 
   function place(rng, p, B) {
@@ -2311,7 +2330,7 @@ const GrainSim = (() => {
           if (sim.tilt) g.y += sim.tilt * (T.tiltK || 1) * dt;
           if (g.x < B.x0) { g.x = B.x0; g.vx = Math.abs(g.vx) * bo; } else if (g.x > B.x1) { g.x = B.x1; g.vx = -Math.abs(g.vx) * bo; }
           if (g.y < B.y0) { g.y = B.y0; g.vy = Math.abs(g.vy) * bo; } else if (g.y > yMax) { g.y = yMax; g.vy = -Math.abs(g.vy) * bo; }
-          keepOffStores(g, sim.stores);
+          keepOffStores(g, sim.stores); keepOffJar(g, sim.jar);
           if (fallOff(g, B)) continue;
           if (g.vx * g.vx + g.vy * g.vy < 100) { g.st = ST.REST; g.vx = 0; g.vy = 0; g.w = 0; }
         } else if (g.st === ST.REST) {
@@ -2325,7 +2344,7 @@ const GrainSim = (() => {
             if (g.y <= B.y0 || g.y >= yMax) g.hd = -g.hd;
           }
           g.x = clamp(g.x, B.x0, B.x1); g.y = clamp(g.y, B.y0, yMax);
-          keepOffStores(g, sim.stores);
+          keepOffStores(g, sim.stores); keepOffJar(g, sim.jar);
           if (fallOff(g, B)) continue;
           if (!g.cw && g.pk !== sim.steps) rim(g, B, dt);
         } else if (g.st === ST.POUR) {
@@ -2429,7 +2448,7 @@ const GrainSim = (() => {
       const B = bounds(), yMax = sim.tilt ? Infinity : B.y1;
       for (const g of gs) {
         if (g.st !== ST.REST && g.st !== ST.SLIDE) continue;
-        if (g.aw) { g.x = clamp(g.x, B.x0, B.x1); g.y = clamp(g.y, B.y0, yMax); keepOffStores(g, sim.stores); }
+        if (g.aw) { g.x = clamp(g.x, B.x0, B.x1); g.y = clamp(g.y, B.y0, yMax); keepOffStores(g, sim.stores); keepOffJar(g, sim.jar); }
         // a grain pushed by a neighbour this step is checked again next step, until nothing pushes it any more
         if (g.hit !== sim.steps) { g.px = g.x; g.py = g.y; g.prot = g.rot; }
       }
@@ -3675,7 +3694,7 @@ const GrainSim = (() => {
     view.offX = (view.cw - boardPx) / 2;
     document.documentElement.style.setProperty('--board-w', boardPx + 'px');
     view.H = view.ch / view.scale;
-    view.top = (view.safe.t + 100) / view.scale;
+    view.top = (view.safe.t + 124) / view.scale;
     view.bottom = (view.safe.b + 4) / view.scale;
     const lay = { H: view.H, top: view.top, bottom: view.bottom };
     if (sim) sim.setLayout(lay);
@@ -4552,7 +4571,7 @@ const GrainSim = (() => {
     updateHud(false);
     updateStreak(null);
     syncHelpers();
-    if (L.rule) banner(tr(L.rule), tr(L.ruleText || ''), 2600);
+    if (L.rule) zenSay(tr(L.rule), 3, '', { sub: tr(L.ruleText || ''), hold: true });   // a new rule waits for the first touch
     if (L.zen && !save.zen.rules) { rulesFrom = 'play'; setScreen('zenRules'); }
 
     $('zenRulesBtn').hidden = !L.zen;
@@ -4564,7 +4583,7 @@ const GrainSim = (() => {
   const chip = $('chip'), streakEl = $('streak'), scoreEl = $('score'), clockEl = $('clock'), fuseEl = $('fuse');
   let chipType = null;
   // zen's grander beans have long Polish names; the chip at the top says them short
-  const CHIP_PL = { moon: 'Księżycowe', star: 'Gwiezdne', ember: 'Żarzące', nebula: 'Mgławicowe', neon: 'Neonowe', crystal: 'Kryształowe', galaxy: 'Galaktyczne' };
+  const CHIP_PL = { mung: 'Mung', kidney: 'Czerwona', moon: 'Księżycowe', star: 'Gwiezdne', ember: 'Żarzące', nebula: 'Mgławicowe', neon: 'Neonowe', crystal: 'Kryształowe', galaxy: 'Galaktyczne' };
   function updateHud(animate) {
     if (!sim) return;
     const t = sim.target;
@@ -4573,6 +4592,9 @@ const GrainSim = (() => {
       const name = lang === 'pl' && CHIP_PL[t] ? CHIP_PL[t] : tr(TYPES[t].label);
       chip.querySelector('.name').textContent = name;
       chip.classList.toggle('long', name.length > 8);        // Mung beans, Ciecierzyca: one size down and the bare count, so it fits
+      // and if a name still does not fit the band's middle, the grain's picture and the count say it
+      chip.classList.remove('bare');
+      if (chip.parentElement.clientWidth && chip.scrollWidth > chip.parentElement.clientWidth) chip.classList.add('bare');
       if (animate && !reducedMotion()) { chip.classList.remove('swap'); void chip.offsetWidth; chip.classList.add('swap'); }
       chipType = t;
     }
@@ -4590,6 +4612,8 @@ const GrainSim = (() => {
       scoreEl.querySelector('b').textContent = fmt(fx.score);
     }
     fx.scoreRed = Math.max(0, fx.scoreRed - dt);
+    // a new rule's line waits for the first touch; once play is under way it goes (the bot never touches)
+    if (zsayHold && sim.started && sim.clock > 0.6) { zsayHold = false; clearTimeout(zsayT); zsayT = setTimeout(hideSay, 1200); }
     scoreEl.classList.toggle('down', fx.scoreRed > 0);
     if (sim.zen) {
       const zEl = $('zone'), on = sim.zoneT > 0;
@@ -4612,7 +4636,7 @@ const GrainSim = (() => {
       }
       const lbl = on ? tr('Zen Zone ×{p}', { p: GS.ZEN_ZONE.pay }) : tr('Zen Zone');
       if (zEl.querySelector('.lbl').textContent !== lbl) zEl.querySelector('.lbl').textContent = lbl;
-      const cEl = $('capy'), now = performance.now(), pips = cEl.querySelectorAll('.pips i');
+      const cEl = $('capy'), now = performance.now(), pips = cEl.querySelectorAll('.ring path');
       if (now >= fx.capyHold && fx.capySeen !== sim.bowls) {
         const up = sim.bowls > fx.capySeen;
         if (up && sim.bowls % GS.ZEN_THANKS === 0) fx.capyFive = now + 900;
@@ -4625,8 +4649,9 @@ const GrainSim = (() => {
       cEl.setAttribute('aria-label', tr('{n} of {m} bowls to the Zen Capybara', { n, m: GS.ZEN_THANKS }));
     } else { $('zone').hidden = true; $('capy').hidden = true; }
     {
+      // the best run shows only once this one comes near it
       const el = $('best'), z = save.zen, beat = sim.zen && z.best > 0 && fx.score > z.best;
-      const txt = !sim.zen || !z.best ? '' : beat ? tr('New best!') : tr('Best {s}', { s: fmt(z.best) });
+      const txt = !sim.zen || !z.best || fx.score < z.best * 0.85 ? '' : beat ? tr('New best!') : tr('Best {s}', { s: fmt(z.best) });
       if (el.textContent !== txt) {
         el.textContent = txt; el.hidden = !txt; el.classList.toggle('new', beat);
         if (beat && !fx.bestSaid) { fx.bestSaid = true; Sound.fanfare(); Haptics.buzz([10, 30, 10]); restartAnim(el, 'pop'); }
@@ -4695,7 +4720,7 @@ const GrainSim = (() => {
     cb.querySelector('i').textContent = String(n);
     cb.classList.toggle('none', !n); cb.classList.toggle('used', !!(sim && fx.catUsed));
     const hb = $('hamBtn'), stones = !!(sim && sim.grains.some((g) => TYPES[g.type].stone));
-    hb.hidden = !stones;
+    hb.hidden = !stones || (sim.zen && !save.helpers.hamster);
     hb.querySelector('i').textContent = String(save.helpers.hamster);
     hb.classList.toggle('none', !save.helpers.hamster); hb.classList.toggle('used', !!fx.hamUsed);
   }
@@ -4735,6 +4760,7 @@ const GrainSim = (() => {
   let bannerT = 0;
   function banner(title, line, ms) {
     if (sim && sim.zen && screen === 'play') { zenSay(title, 2, 'gold'); return; }
+    if (screen === 'play') { zenSay(title, 2, line ? '' : 'gold', { sub: line, ms: ms || 2200 }); return; }
     const el = $('banner');
     el.querySelector('b').textContent = title; el.querySelector('span').textContent = line;
     el.classList.add('show');
@@ -4747,7 +4773,7 @@ const GrainSim = (() => {
   }
   let toastT = 0;
   function toast(msg) {
-    if (sim && sim.zen && screen === 'play') { zenSay(msg, 1); return; }
+    if (screen === 'play') { zenSay(msg, 1); return; }
     const el = $('toast'); el.textContent = msg; el.classList.add('show');
     clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('show'), 2200);
   }
@@ -5458,6 +5484,7 @@ const GrainSim = (() => {
     if (screen === 'play' && sim && sim.done && pendingZen) { pendingZen.at = Math.min(pendingZen.at, performance.now() + 350); return; }
     if (screen === 'play' && sim && sim.done && pendingDone) { pendingDone.at = Math.min(pendingDone.at, performance.now() + (fx.lay && fx.lay.rang ? 0 : 350)); return; }
     if (screen !== 'play' || typeof input.id === 'number' || autoBot) return;
+    if (zsayHold) { zsayHold = false; clearTimeout(zsayT); zsayT = setTimeout(hideSay, 400); }
     input.id = e.pointerId;
     try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
     drag.sx = e.clientX; drag.sy = e.clientY; drag.x0 = virt.x; drag.y0 = virt.y;
@@ -5582,7 +5609,7 @@ const GrainSim = (() => {
             fx.swaps.set(e.corner, { t: 0, x: e.x, y: e.y, r: e.r, corner: e.corner, type: e.grain, dir: { x: dir.x / d, y: dir.y / d },
               held: e.held.map((g) => ({ ...g, st: ST.GONE })) });
           }
-          const pip = $('capy').querySelectorAll('.pips i')[(e.bowls - 1) % GS.ZEN_THANKS];
+          const pip = $('capy').querySelectorAll('.ring path')[(e.bowls - 1) % GS.ZEN_THANKS];
           if (pip && pip.offsetWidth && !reducedMotion()) {
             const r = pip.getBoundingClientRect(), at = { x: e.x + (W / 2 - e.x) * 0.2, y: e.y - e.r * 0.45 };
             mote(at, r.left + r.width / 2, r.top + r.height / 2, false);
@@ -5718,7 +5745,8 @@ const GrainSim = (() => {
           if (e.multLost > 1.05) Sound.lost();
           const back = (n) => (lang === 'pl' ? nn(n, 'grain') + ' z powrotem na planszy' : n + ' ' + (n === 1 ? TYPES[e.pile].one : TYPES[e.pile].label.toLowerCase()) + ' back on the board');
           const what = e.back ? back(e.back) : lang === 'pl' ? 'to nie tu' : TYPES[e.grain].label + ' don\u2019t go there';
-          note(e.penalty ? '\u2212' + fmt(e.penalty) : tr('Wrong pile'), tr('Wrong pile') + ': ' + what, '#ff7a6b', '#ff7a6b', e.x + (e.x < W / 2 ? 140 : e.x > W / 2 ? -140 : 0), e.y - 120);
+          note(e.penalty ? '\u2212' + fmt(e.penalty) : tr('Wrong pile'), '', '#ff7a6b', '#ff7a6b', e.x + (e.x < W / 2 ? 140 : e.x > W / 2 ? -140 : 0), e.y - 120);
+          if (!sim.zen) zenSay(tr('Wrong pile') + ': ' + what, 2, 'red');
           updateStreak('lost');
           Analytics.emit('wrong_pile', { level: L.id, grain: e.grain, pile: e.pile, back: e.back, penalty: e.penalty });
           updateHud(false);
@@ -5731,7 +5759,8 @@ const GrainSim = (() => {
           fx.heat = 0;
           fx.bad = { id: e.id, t: 1.4 };
           if (e.multLost > 1.05) Sound.lost();
-          note(e.penalty ? '−' + fmt(e.penalty) : tr('Broken'), tr(BROKE[e.wrong] || 'A wrong grain got in') + (e.multLost > 1.05 ? tr(', back to ×1') : ''), '#ff7a6b', '#ff7a6b', e.x, e.y);
+          note(e.penalty ? '−' + fmt(e.penalty) : tr('Broken'), '', '#ff7a6b', '#ff7a6b', e.x, e.y);
+          if (!sim.zen) zenSay(tr(BROKE[e.wrong] || 'A wrong grain got in') + (e.multLost > 1.05 ? tr(', back to ×1') : ''), 2, 'red');
           updateStreak('lost');
           Analytics.emit('row_broken', { level: L.id, wrong: e.wrong, lost: e.lost, comboLost: e.comboLost, multLost: e.multLost });
           updateHud(false);
@@ -5885,15 +5914,20 @@ const GrainSim = (() => {
     for (const f of fx.floats) if (f.t < 0.7 && Math.abs(f.y - ny) < gap) ny = Math.max(view.top + 50, f.y - gap - 8);   // stack, never overlap
     fx.floats.push({ big, small, color, scol, x: clamp(x, half, W - half), y: ny, t: 0, life: compact ? 0.9 : 1.3, compact });
   }
-  // zen: one line under the top bar; something more important is not cut short by something less
-  let zsayT = 0, zsayPri = 0, zsayAt = 0;
-  function zenSay(text, pri, tone) {
+  // everything the game says while you play comes as one line under the top bar, one at a time, and goes; something
+  // more important is not cut short by something less. A title goes first in gold; a new rule waits for the first touch.
+  let zsayT = 0, zsayPri = 0, zsayAt = 0, zsayHold = false;
+  function zenSay(text, pri, tone, o) {
     const el = $('zsay'), now = performance.now();
     if (zsayPri > (pri || 1) && now - zsayAt < 900) return;
-    el.textContent = text; el.className = 'chalk show' + (tone ? ' ' + tone : '');
-    zsayPri = pri || 1; zsayAt = now;
-    clearTimeout(zsayT); zsayT = setTimeout(() => { el.classList.remove('show'); zsayPri = 0; }, 1700);
+    el.textContent = '';
+    if (o && o.sub) { const b = document.createElement('b'); b.textContent = text + ':'; el.append(b, ' ' + o.sub); } else el.textContent = text;
+    el.className = 'chalk show' + (tone ? ' ' + tone : '');
+    zsayPri = pri || 1; zsayAt = now; zsayHold = !!(o && o.hold);
+    clearTimeout(zsayT);
+    if (!zsayHold) zsayT = setTimeout(hideSay, (o && o.ms) || 1700);
   }
+  function hideSay() { $('zsay').classList.remove('show'); zsayPri = 0; zsayHold = false; }
   // zen: a row's charge flies from where the row was taken up into the Zen Zone bar, and the bar fills as it lands;
   // a short row sends a smaller one
   function zoneMote(at, full) {

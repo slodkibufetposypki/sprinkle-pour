@@ -1028,13 +1028,17 @@ test('zen: full rows charge the Zen Zone; in it the jar pours more, a wrong grai
   const extra = sim.grains.filter((g) => g.frenzy && (g.st === ST.REST || g.st === ST.SLIDE));
   assert.ok(extra.length > 0, 'the jar poured in the zone');
   // in the zone wrong grains and stones lie still: one near the tips does not creep in
-  const l = sim.grains.find((g) => g.type === sim.target && g.st === ST.REST && !g.frenzy) || sim.debugPut(sim.target, 300, 700);
+  // (a grain of the kind the sticks want, with nothing else close by, so that taking it up breaks nothing by chance)
+  const clear = (g) => !sim.grains.some((o) => o !== g && o.type !== g.type && (o.st === ST.REST || o.st === ST.SLIDE) && Math.hypot(o.x - g.x, o.y - g.y) < 90);
+  const l = sim.grains.find((g) => g.type === sim.target && g.st === ST.REST && !g.frenzy && g.y > sim.top + 160 && clear(g)) || sim.debugPut(sim.target, 300, 700);
   noStones(); holdAt(sim, l.x, l.y + 60, 0.3);
   let G = sim.geom();
   const near = sim.debugPut('stone', G.mx + G.ux * 40, G.my + G.uy * 40), tips = () => { const g2 = sim.geom(); return Math.hypot(near.x - g2.mx, near.y - g2.my); };
   const d0 = tips(), evS = holdAt(sim, l.x, l.y + 60, 0.6);
   assert.ok(!evS.some((e) => e.type === 'break') && tips() > d0 - 4, 'a wrong grain near the tips did not creep in: ' + d0.toFixed(1) + ' then ' + tips().toFixed(1));
-  // driving the tips onto one: the row breaks and the zone is over; what it poured sinks
+  // driving the tips onto one: the row breaks and the zone is over; what it poured sinks. (If a row closed meanwhile,
+  // the sticks wait for the finger to lift, as they do in play.)
+  if (sim.waitLift) release(sim, 0.1);
   const ev2 = [], inp = { down: true, x: l.x, y: l.y + 60 + sim.cfg.fingerOffset };
   let put = false;
   for (let i = 0; i < 4 * sim.cfg.stepHz && !ev2.some((e) => e.type === 'zone'); i++) {
