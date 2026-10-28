@@ -30,6 +30,8 @@
 - Its own light: the levels stay candlelit; Pełnia is a garden at night, a silver moon from the upper right, warm lanterns as an accent, gold only for rewards. The Zen Zone stays the reward for quick rows, its tube filled with silver sand; the small moon in the top band shows only the phase.
 - First step: a prototype on the current mode with no new rules (the phases change the light, the pool of moonlight pays more, a small moon at the top), checked with the bot, then played by the owner.
 
+**Style:** two registers since 28 Oct, painted (characters, medallions, scenes, menus) and the board (grains, bowls, sticks, the cat's paw: soft tones, no outlines); see `STYLE.md`.
+
 **The design review (27 Oct):** three reviewers, each with a different design skill (frontend-design, dataviz, canvas-design), went through every screen of both modes. Their findings, a table of 36 assets with ready Higgsfield prompts, and the style guide are on the page "Pracownia Zen Grains" (https://claude.ai/artifact/Ru9WhKoWKU47USHNyKHhpc). The game reads as four games glued together (a painted hut, a flat procedural board, dialog cards from a dark web app, CGI medallions); the one direction to join them is a candlelit still life: painted objects on one table, information in ink, only gold and flame glowing. Measured: in Pełnia 17 things crowd the top 200 px; on a level with a clock a grain lay under the HUD in 47 of 80 samples (41 under the cat), because the board starts at 119 px and the left column reaches 204 px.
 
 **The order of work:**
