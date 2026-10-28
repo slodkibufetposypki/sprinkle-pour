@@ -2649,8 +2649,9 @@ const GrainSim = (() => {
 
     // The Zen Cat keeps the board honest. Sweeping the grains against one edge and picking the line off it is not
     // sorting: when a row keeps pulling from a long line of grains along an edge, her paw comes in over that edge,
-    // stirs the line and scatters it across the board, then wags a finger at you. Once in a while, never twice running.
-    const CAT_EDGE = { band: 56, calls: 4, line: 8, span: 200, gap: 20, stir: 0.4, len: 2.8 };
+    // stirs the line and scatters it across the board, then wags a finger at you. Every time: try it again the moment
+    // she is gone and she is back, and for half a minute after a visit she comes at the second grain picked off the edge.
+    const CAT_EDGE = { band: 56, calls: 4, recall: 2, watch: 30, rest: 0.8, line: 8, span: 200, stir: 0.4, len: 2.8 };
     function wallOf(g, B) {
       const d = [g.x - B.x0, B.x1 - g.x, g.y - B.y0, sim.tilt ? Infinity : B.y1 - g.y];
       let w = 0;
@@ -2670,12 +2671,12 @@ const GrainSim = (() => {
       const B = bounds(), w = wallOf(g, B);
       if (w < 0 || sim.cat || sim.t < (sim.catNext || 0)) return;
       S.edge = S.edge || [0, 0, 0, 0];
-      if (++S.edge[w] < CAT_EDGE.calls) return;
+      if (++S.edge[w] < (sim.t < (sim.catWatch || 0) ? CAT_EDGE.recall : CAT_EDGE.calls)) return;
       const line = edgeLine(w, B);
       // a line the level laid along its edge is fair game; only one the sticks swept there brings her
       if (line.n < CAT_EDGE.line || line.span < CAT_EDGE.span || line.swept < line.n * CAT_LINE.pressed) return;
       sim.cat = { wall: w, at: line.mid, t: 0, stirred: false };
-      sim.catNext = sim.t + CAT_EDGE.gap; S.edge = [0, 0, 0, 0];
+      catCame(); S.edge = [0, 0, 0, 0];
       emit('cat_comes', { wall: w, at: line.mid, n: line.n });
     }
     // Not only along an edge: grains swept together into a long thin line anywhere on the board are a queue laid out
@@ -2721,11 +2722,13 @@ const GrainSim = (() => {
         if (hi - lo < CAT_LINE.len || Math.sqrt(vv) > CAT_LINE.thin) continue;
         const B = bounds(), wall = mx - B.x0 < B.x1 - mx ? 0 : 1;
         sim.cat = { wall, at: my, x: mx, y: my, ids: grp.map((g) => g.id), t: 0, stirred: false };
-        sim.catNext = sim.t + CAT_EDGE.gap;
+        catCame();
         emit('cat_comes', { wall, at: my, line: true, n: grp.length });
         return;
       }
     }
+    // she can come again a moment after she has gone, and watches more closely for a while
+    function catCame() { sim.catNext = sim.t + CAT_EDGE.len + CAT_EDGE.rest; sim.catWatch = sim.t + CAT_EDGE.watch; }
     function catStep(dt) {
       lineCheck();
       const C = sim.cat;
@@ -2738,9 +2741,11 @@ const GrainSim = (() => {
         for (const g of sim.grains) {
           if ((g.st !== ST.REST && g.st !== ST.SLIDE && g.st !== ST.WALK) || TYPES[g.type].gold) continue;
           if (line ? !line.has(g.id) : wallOf(g, B) !== C.wall) continue;
-          // off an edge: back into the board; a line in the open: every which way
-          const T = TYPES[g.type], a = line ? rng() * Math.PI * 2 : Math.atan2(ny, nx) + (rng() - 0.5) * 2, v = (140 + rng() * 260) * cfg.friction * (T.slide || 1);
-          g.st = ST.SLIDE; g.vx = Math.cos(a) * v; g.vy = Math.sin(a) * v; g.w = (rng() - 0.5) * 24; g.px = NaN; n++;
+          // off an edge: back into the board; a line in the open: every which way. Flicked up, each one leaps over the
+          // sticks and the crowd and lands well clear of where it was, then slides on
+          const a = line ? rng() * Math.PI * 2 : Math.atan2(ny, nx) + (rng() - 0.5) * 1.8, v = 360 + rng() * 240;
+          g.st = ST.SLIDE; g.vx = Math.cos(a) * v; g.vy = Math.sin(a) * v; g.w = (rng() - 0.5) * 30; g.px = NaN; n++;
+          g.fly = g.flyT = 0.4 + rng() * 0.16;
         }
         S.trail = S.trail.filter((id) => sim.grains[id].st === ST.WALK);
         emit('cat_stir', { wall: C.wall, at: C.at, n });

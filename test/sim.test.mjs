@@ -277,14 +277,27 @@ test('picking a line of grains swept against an edge brings the Zen Cat: her paw
   for (let i = 0; i < 12; i++) line.push(sim.debugPut('lentil', B.x1 - 24, 380 + i * 40));
   for (const g of line) { g.prT = 0; g.pushD = 100; }
   const ev = [], inp = { down: true, x: B.x1 - 70, y: 0 };
-  for (let i = 0; i < 5 * sim.cfg.stepHz; i++) { inp.y = 1000 + sim.cfg.fingerOffset - Math.min(560, i * 1.2); sim.step(inp); ev.push(...sim.drainEvents()); }
+  let flew = 0;
+  for (let i = 0; i < 5 * sim.cfg.stepHz; i++) {
+    inp.y = 1000 + sim.cfg.fingerOffset - Math.min(560, i * 1.2); sim.step(inp); ev.push(...sim.drainEvents());
+    flew = Math.max(flew, line.filter((g) => g.fly > 0).length);
+  }
   ev.push(...release(sim, 2));
   assert.equal(ev.filter((e) => e.type === 'cat_comes').length, 1, 'she comes once');
   const stir = ev.find((e) => e.type === 'cat_stir');
   assert.ok(stir && stir.n >= 5, 'stirred ' + (stir && stir.n));
+  assert.ok(flew >= 5, 'flicked up over the sticks: ' + flew);
   const loose = line.filter((g) => g.st === ST.REST || g.st === ST.SLIDE);
-  assert.ok(loose.length >= 5 && loose.every((g) => g.x < B.x1 - 56), 'off the edge: ' + loose.map((g) => g.x.toFixed(0)).join(' '));
+  assert.ok(loose.length >= 5 && loose.every((g) => g.x < B.x1 - 90), 'well off the edge: ' + loose.map((g) => g.x.toFixed(0)).join(' '));
   assert.equal(sim.cat, null, 'and gone again');
+  // the same trick again right away: she is back
+  const again = [];
+  for (let i = 0; i < 12; i++) again.push(sim.debugPut('lentil', B.x1 - 24, 380 + i * 40));
+  for (const g of again) { g.prT = sim.t; g.pushD = 100; }
+  const ev3 = [];
+  for (let i = 0; i < 5 * sim.cfg.stepHz; i++) { inp.y = 1000 + sim.cfg.fingerOffset - Math.min(560, i * 1.2); sim.step(inp); ev3.push(...sim.drainEvents()); }
+  assert.ok(ev3.some((e) => e.type === 'cat_comes'), 'she comes back for the same trick');
+  assert.ok(ev3.some((e) => e.type === 'cat_stir'), 'and stirs it again');
   // gathering in the open board never calls her
   const open = pushBoard(3);
   for (let i = 0; i < 12; i++) open.debugPut('lentil', 300, 380 + i * 40);
