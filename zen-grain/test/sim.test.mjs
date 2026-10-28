@@ -264,10 +264,18 @@ test('Pełnia: full rows grow the multiplier by a quarter of what they do in a l
   assert.ok(GS.ZEN_MULT <= 0.3);
 });
 
-test('picking a line of grains off an edge brings the Zen Cat: her paw stirs the line across the board', () => {
+test('picking a line of grains swept against an edge brings the Zen Cat: her paw stirs the line across the board', () => {
+  // a line the level itself laid along the edge is fair game
+  const fair = pushBoard(2), FB = fair.bounds();
+  for (let i = 0; i < 12; i++) fair.debugPut('lentil', FB.x1 - 24, 380 + i * 40);
+  const fin = { down: true, x: FB.x1 - 70, y: 0 }, fev = [];
+  for (let i = 0; i < 5 * fair.cfg.stepHz; i++) { fin.y = 1000 + fair.cfg.fingerOffset - Math.min(560, i * 1.2); fair.step(fin); fev.push(...fair.drainEvents()); }
+  assert.ok(!fev.some((e) => e.type === 'cat_comes'), 'no cat for the level own edge line');
+  // the same line, swept there by the sticks
   const sim = pushBoard(2), B = sim.bounds();
   const line = [];
   for (let i = 0; i < 12; i++) line.push(sim.debugPut('lentil', B.x1 - 24, 380 + i * 40));
+  for (const g of line) { g.prT = 0; g.pushD = 100; }
   const ev = [], inp = { down: true, x: B.x1 - 70, y: 0 };
   for (let i = 0; i < 5 * sim.cfg.stepHz; i++) { inp.y = 1000 + sim.cfg.fingerOffset - Math.min(560, i * 1.2); sim.step(inp); ev.push(...sim.drainEvents()); }
   ev.push(...release(sim, 2));
@@ -283,6 +291,26 @@ test('picking a line of grains off an edge brings the Zen Cat: her paw stirs the
   const ev2 = [], in2 = { down: true, x: 300, y: 0 };
   for (let i = 0; i < 5 * open.cfg.stepHz; i++) { in2.y = 1000 + open.cfg.fingerOffset - Math.min(560, i * 1.2); open.step(in2); ev2.push(...open.drainEvents()); }
   assert.ok(!ev2.some((e) => e.type === 'cat_comes'), 'no cat in the open');
+});
+
+test('a long thin line of grains swept together anywhere on the board brings the Zen Cat too; the shapes a level starts with never do', () => {
+  const laid = pushBoard(5);
+  for (let i = 0; i < 20; i++) laid.debugPut(i % 2 ? 'rice' : 'mung', 300 + (i % 2) * 14, 420 + i * 24);
+  assert.ok(!release(laid, 2).some((e) => e.type === 'cat_comes'), 'nobody swept it: no cat');
+  const sim = pushBoard(6), line = [];
+  for (let i = 0; i < 20; i++) line.push(sim.debugPut(i % 2 ? 'rice' : 'mung', 300 + (i % 2) * 14, 420 + i * 24));
+  for (const g of line) { g.prT = 0; g.pushD = 100; }          // as if the sticks had just swept them there
+  const ev = release(sim, 4);
+  const come = ev.find((e) => e.type === 'cat_comes');
+  assert.ok(come && come.line && come.n === 20, 'she comes for the line');
+  assert.ok(ev.some((e) => e.type === 'cat_stir' && e.n === 20), 'and stirs all of it');
+  const xs = line.map((g) => g.x);
+  assert.ok(Math.max(...xs) - Math.min(...xs) > 200, 'scattered across the board, not left in a line');
+  // a heap pushed together is not a line
+  const heap = pushBoard(7), hs = [];
+  for (let i = 0; i < 20; i++) hs.push(heap.debugPut('rice', 280 + (i % 5) * 22, 600 + Math.floor(i / 5) * 22));
+  for (const g of hs) { g.prT = 0; g.pushD = 100; }
+  assert.ok(!release(heap, 2).some((e) => e.type === 'cat_comes'), 'no cat for a heap');
 });
 
 test('the sticks shove one grain into another and both move', () => {
