@@ -307,6 +307,49 @@
   #zsay b { font-weight: 400; color: var(--ember); }
   #zsay.gold { color: var(--ember); }
   #zsay.red { color: var(--chalk-red); }
+  /* Pełnia: the capybara's gift comes in the way a gift does on a live stream: a dark pill slides in from the left with
+     her medallion, the gift's name and what it does, the gift popping out at its end and how many of it so far. It takes
+     the one message slot while it shows; a line said meanwhile waits for it to go */
+  #gift { position: fixed; z-index: 5; left: max(8px, env(safe-area-inset-left, 0px)); top: calc(env(safe-area-inset-top, 0px) + 96px);
+    display: flex; align-items: center; height: 44px; padding: 0 0 0 3px; border-radius: 22px; pointer-events: none;
+    background: linear-gradient(90deg, rgba(20, 13, 8, .94), rgba(20, 13, 8, .8) 64%, rgba(20, 13, 8, 0)); opacity: 0; }
+  #gift .av { position: relative; width: 38px; height: 38px; flex: none; border-radius: 50%; overflow: hidden; background: #6b4a2c;
+    box-shadow: 0 0 0 1.5px var(--ember), 0 2px 6px rgba(0, 0, 0, .6); }
+  #gift .av svg { position: absolute; left: 4px; top: 5px; width: 30px; height: 28px; }
+  #gift .av img { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #gift .tx { display: flex; flex-direction: column; justify-content: center; gap: 3px; margin: 0 4px 0 9px; }
+  #gift .tx b { font: 400 var(--fs-15)/1.05 var(--sketch); color: var(--ember); white-space: nowrap; }
+  #gift .tx span { font: 400 var(--fs-13)/1.1 var(--hand); color: var(--chalk); white-space: nowrap; }
+  #gift .ic { display: block; width: 54px; height: 54px; flex: none; margin: -12px 0 -6px; filter: drop-shadow(0 3px 4px rgba(0, 0, 0, .6)); }
+  #gift .ic svg { width: 100%; height: 100%; overflow: visible; }
+  #gift .x { display: flex; align-items: baseline; margin: 0 16px 0 0; font-style: normal; color: #fff7df;
+    text-shadow: 0 1px 0 #6b3d0c, 0 0 2px #6b3d0c, 0 0 12px rgba(246, 196, 83, .55); }
+  #gift .x s { text-decoration: none; font: 700 var(--fs-17)/1 var(--sketch); margin-right: 1px; }
+  #gift .x u { text-decoration: none; font: 700 var(--fs-28)/1 var(--sketch); letter-spacing: -0.02em; }
+  #gift.big .av { box-shadow: 0 0 0 2px var(--ember), 0 0 16px rgba(246, 196, 83, .75); }
+  #gift.in { animation: giftin .26s cubic-bezier(.2, .9, .3, 1.06) forwards; }
+  #gift.in .ic { animation: gifticon .36s .12s cubic-bezier(.34, 1.5, .64, 1) both; }
+  #gift.in .x { animation: giftx .3s .3s cubic-bezier(.3, 1.5, .5, 1) both; }
+  #gift.out { animation: giftout .22s ease-in forwards; }
+  @keyframes giftin { from { opacity: 0; transform: translateX(-104%); } to { opacity: 1; transform: none; } }
+  @keyframes giftout { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateX(-24%); } }
+  @keyframes gifticon { from { transform: scale(0) rotate(-24deg); } to { transform: none; } }
+  @keyframes giftx { from { opacity: 0; transform: scale(2.3); } to { opacity: 1; transform: none; } }
+  /* what she gave that waits for its moment (matcha for a broken row, a lantern for the next order) sits on her medallion */
+  #capy .held { position: absolute; left: 50%; bottom: -13px; display: flex; gap: 1px; transform: translateX(-50%); pointer-events: none; }
+  #capy .held i { display: block; width: 22px; height: 22px; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .85)); animation: gifticon .3s cubic-bezier(.34, 1.5, .64, 1); }
+  #capy .held svg { width: 100%; height: 100%; overflow: visible; }
+  /* at a new moon: three gifts on the tray, take one */
+  #offer .gifts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 2px; }
+  #offer .gifts button { display: flex; flex-direction: column; align-items: center; gap: 5px; min-height: 150px; padding: 12px 6px 12px; border: 0; border-radius: 12px;
+    background: linear-gradient(180deg, rgba(255, 214, 150, .07), rgba(0, 0, 0, .2)); box-shadow: inset 0 0 0 1px rgba(233, 172, 106, .22); color: var(--lamp); cursor: pointer;
+    transition: transform .12s ease, box-shadow .12s ease; }
+  #offer .gifts button:active { transform: scale(.96); box-shadow: inset 0 0 0 1.5px var(--ember); }
+  #offer .gifts i { display: block; width: 58px; height: 58px; filter: drop-shadow(0 3px 5px rgba(0, 0, 0, .6)); }
+  #offer .gifts svg { width: 100%; height: 100%; overflow: visible; }
+  #offer .gifts b { font: 400 var(--fs-17)/1.1 var(--sketch); color: var(--ember); }
+  #offer .gifts span { font: 400 var(--fs-13)/1.2 var(--hand); color: var(--lamp-2); text-wrap: balance; }
+  #offer .gifts button.big i { filter: drop-shadow(0 0 10px rgba(246, 196, 83, .5)) drop-shadow(0 3px 5px rgba(0, 0, 0, .6)); }
 
   /* ---------- menus: a tray of black lacquer, a gold-leaf rule inside its edge, near the bottom within thumb reach;
      the main button is a plaque of the room's old wood with its vermilion seal, the others are words ---------- */
@@ -605,7 +648,9 @@
   #tuneJson { width: 100%; box-sizing: border-box; background: #0d0f12; color: var(--chalk); border: 1px solid var(--chalk-3); border-radius: 10px; font: 12px ui-monospace, Menlo, monospace; }
 
   @media (prefers-reduced-motion: reduce) {
-    .slab, #done .slab, #chip.swap, .dial.up svg, #catpaw.go, #lives svg.lose, .stars.big svg.stamp, #streak.up b, #streak.lost, #streak.lost b, .tally li, .total em, #tally .nw, .lcard.next, #best.pop, #zone.up, #zone.near .bar, #capy.bless, #zone.ready .tap, #zone.ready .bar { animation: none; }
+    .slab, #done .slab, #chip.swap, .dial.up svg, #catpaw.go, #lives svg.lose, .stars.big svg.stamp, #streak.up b, #streak.lost, #streak.lost b, .tally li, .total em, #tally .nw, .lcard.next, #best.pop, #zone.up, #zone.near .bar, #capy.bless, #zone.ready .tap, #zone.ready .bar, #gift .ic, #gift .x, #capy .held i { animation: none; }
+    #gift.in { animation: giftfade .2s ease forwards; } #gift.out { animation: giftfade .2s ease reverse forwards; }
+    @keyframes giftfade { from { opacity: 0; } to { opacity: 1; } }
     #zone.ready .bar { box-shadow: 0 0 0 1px rgba(10, 12, 15, .5), 0 0 12px 4px rgba(246, 196, 83, .65); }
     .bpage .bopen, .bpage.laid .lcard, .bpage > canvas { transition: none; }
     .rest::before { animation: none; opacity: 0.5; }
@@ -640,6 +685,8 @@
 </div>
 <div id="banner" class="note chalk" role="status"><b></b><span></span></div>
 <div id="zsay" class="chalk" role="status"></div>
+<div id="gift" role="status" hidden><span class="av"></span><span class="tx"><b></b><span></span></span><i class="ic"></i><em class="x"><s>×</s><u></u></em></div>
+<svg width="0" height="0" style="position: absolute" aria-hidden="true"><defs id="giftDefs"></defs></svg>
 <div id="zentitle" class="chalk" aria-live="polite"><b></b><span></span></div>
 <div id="zone" hidden aria-label="Zen Zone" role="button"><span class="lbl"></span><i class="bar"><s></s><b></b></i><span class="wait"></span><span class="tap" aria-hidden="true"><svg viewBox="0 0 24 28"><path d="M9.2 3.6c0-1.3 1-2.3 2.3-2.3s2.3 1 2.3 2.3v8.1l4.6 1c1.6.4 2.6 1.9 2.4 3.5l-.9 6.4c-.2 1.6-1.6 2.8-3.2 2.8h-5.6c-1 0-2-.5-2.6-1.3L4 18.4c-.8-1-.7-2.4.3-3.2.9-.7 2.2-.7 3.1.1l1.8 1.6z"/><path class="ripple" d="M5.6 6.2a6.6 6.6 0 0 1 11.8 0"/></svg></span></div>
 <div id="medals" aria-hidden="true"></div>
@@ -760,9 +807,17 @@
       <li data-t="The jar pours without end, faster and faster.">The jar pours without end, faster and faster.</li>
       <li data-t="A stone in a row, or a board that fills up, costs a life. You have three.">A stone in a row, or a board that fills up, costs a life. You have three.</li>
       <li data-t="Quick full rows fill the Zen Zone at the side. It opens at 1:30; full, for 10 s rows fly to their bowls and pay double. A wrong grain or a stone in a row ends it.">Quick full rows fill the Zen Zone at the side. It opens at 1:30; full, for 10 s rows fly to their bowls and pay double. A wrong grain or a stone in a row ends it.</li>
-      <li data-t="Every eight full bowls the Zen Capybara gives a life back.">Every eight full bowls the Zen Capybara gives a life back.</li>
+      <li data-t="Every eight full bowls the Zen Capybara brings a gift, the one the board needs. At each new moon you choose one of three.">Every eight full bowls the Zen Capybara brings a gift, the one the board needs. At each new moon you choose one of three.</li>
     </ul>
     <button id="zenGo" class="primary">Play</button>
+  </div>
+</section>
+
+<section id="offer" class="screen dim" hidden>
+  <div class="slab">
+    <p class="kicker chalk" id="offerKicker">New moon</p>
+    <h2 class="chalk" id="offerTitle">Take a gift</h2>
+    <div class="gifts" id="offerList"></div>
   </div>
 </section>
 
@@ -1323,7 +1378,7 @@ const GrainSim = (() => {
   // goes on in stages of two minutes, and with each the beans change and get grander, worth more and more: never more
   // than three kinds to sort, a kind leaving has its bowl packed and the new one takes its corner. Now and then a
   // golden bean drops in and hops about; catch it before it leaps off. Full bowls are packed as you go, and every few
-  // the Zen Capybara gives a life back.
+  // the Zen Capybara brings a gift (ZEN_GIFTS).
   const ZEN = {
     id: 'zen', name: 'Zen', seed: 2026, types: ['lentil', 'rice', 'mung'], zen: true, lives: 3,
     piles: [
@@ -1356,6 +1411,17 @@ const GrainSim = (() => {
   const ZEN_ZONE = { from: 90, speed: { Lightning: 0.08, Quick: 0.07, Steady: 0.04, Slow: 0.015 }, broken: 0.2, idle: 4, drain: 0.015,
     secs: 10, pourK: 4, scoopK: 2.2, pay: 2 };
   const ZEN_STONE_S = 18;   // zen: a stone sinks into the sand after this long on the board
+  // Pełnia: the Zen Capybara's gifts. Every ZEN_THANKS bowls she brings the one the board needs: the hot spring for a
+  // crowded board, the ensō for a life lost, else a small one by chance, never the same twice running. At each new moon
+  // she brings three and the night waits while the player takes one. Getting through a blood moon brings one too.
+  //   lotus: points; matcha: the next broken row costs nothing; bell: the jar is still for a few seconds; dango: a third
+  //   of the Zen Zone; drop: the stones on the board sink at once; lantern: an order gets twice the time; enso: a life;
+  //   onsen: half the loose grains sink into the sand
+  const ZEN_GIFTS = {
+    lotus: { tier: 1, w: 3, pts: 250 }, matcha: { tier: 1, w: 2 }, bell: { tier: 1, w: 2, secs: 8 },
+    dango: { tier: 2, w: 2, zone: 1 / 3 }, drop: { tier: 2, w: 1 }, lantern: { tier: 2, w: 1 },
+    enso: { tier: 3 }, onsen: { tier: 3, part: 0.5, crowd: 0.7, min: 12 },
+  };
   // The night's rhythm, about a minute round and round: a stretch of steady pouring, then an order (one bowl asks for so
   // many of its kind in so many seconds), a short breath, then the peak: a wave (a short warning, then the jar pours hard,
   // every kind mixed) or, every other time and from the second stage, a spill (the jar tips over across the board); after
@@ -1371,7 +1437,7 @@ const GrainSim = (() => {
   // fills the board from the dark of the new moon to the silver of the full and drains again, and a pool of moonlight
   // drifts over the sand: a row closed inside it pays more, the fuller the moon the more (×2 at the full). Every third
   // full moon is a blood moon: twice the stones, the jar a quarter faster, no capybara, and ×3 on rows and orders. Get
-  // through it and she gives a life back.
+  // through it and she brings a gift.
   const MOON = { phaseS: 60, phases: 8, poolMin: 70, poolGrow: 70, poolPay: 1, bloodEvery: 3, bloodPay: 3, bloodStones: 2, bloodPour: 1.25 };
   function moonAt(t) {
     const monthS = MOON.phaseS * MOON.phases, month = Math.floor(t / monthS), age = (t - month * monthS) / monthS;
@@ -1673,6 +1739,7 @@ const GrainSim = (() => {
       sim.lives = level.lives || 3; sim.overT = 0; sim.zenN = 0; sim.moon = null; sim.thanks = 0; sim.packs = []; sim.stage = 0; sim.bowls = 0; sim.continues = 0;
       sim.retiring = new Set(); sim.goldT = 40; sim.emberT = 9; sim.golds = 0;
       sim.zone = 0; sim.zoneT = 0; sim.zones = 0;
+      sim.gifts = {}; sim.lastGift = null; sim.shield = 0; sim.hush = 0; sim.lantern = false; sim.offer = null;
       sim.flow = { kind: 'steady', until: 0, next: ZEN_FLOW.first, last: null }; sim.order = null; sim.orders = 0;
       sim.jar = { scoops: [], pour: [], every: 7.5, next: 1.2, gap: 0, idle: 0, aim: 0, left: true, x: 62, y: sim.top + 50, tip: 0, reach: 1 };
     }
@@ -2032,12 +2099,81 @@ const GrainSim = (() => {
       const bonus = Math.round(25 * n * (ZEN_WORTH[type] || 1));
       sim.score += bonus; sim.bowls++; sim.thanks++;
       emit('pile_packed', { grain: type, n, bonus, x: st.x, y: st.y, r: st.r, corner: st.kind, held, score: sim.score, bowls: sim.bowls, thanks: sim.thanks, why });
-      if (sim.thanks >= ZEN_THANKS && !(sim.moon && sim.moon.blood)) {
-        sim.thanks = 0;
-        if (sim.lives < 3) { sim.lives++; emit('capybara', { gave: 'life', lives: sim.lives, bowls: sim.bowls }); }
-        else { const b = Math.round(250 * (ZEN_WORTH[type] || 1) * sim.mult); sim.score += b; emit('capybara', { gave: 'points', points: b, bowls: sim.bowls }); }
+      if (sim.thanks >= ZEN_THANKS && !(sim.moon && sim.moon.blood)) { sim.thanks = 0; giveGift(pickGift(), 'bowls'); }
+    }
+    // Pełnia: the capybara's gifts (see ZEN_GIFTS)
+    const looseGrains = () => sim.grains.filter((g) => (g.st === ST.REST || g.st === ST.SLIDE) && !TYPES[g.type].stone && !TYPES[g.type].gold && !g.frenzy);
+    const boardStones = () => sim.grains.filter((g) => TYPES[g.type].stone && (g.st === ST.REST || g.st === ST.SLIDE));
+    function giftOk(id) {
+      switch (id) {
+        case 'matcha': return !sim.shield;
+        case 'bell': return sim.clock >= sim.hush;
+        case 'dango': return sim.zoneOpen() && sim.zoneT <= 0 && sim.zone < 1;
+        case 'drop': return boardStones().length > 0;
+        case 'lantern': return !sim.lantern;
+        case 'enso': return sim.lives < 3;
+        case 'onsen': return looseGrains().length >= ZEN_GIFTS.onsen.min;
+        default: return true;
       }
     }
+    function giftWeight(id) {
+      const w = ZEN_GIFTS[id].w || 1;
+      if (id === 'bell') return w + (sim.crowd > 0.45 ? 2 : 0);
+      if (id === 'drop') return w + boardStones().length;
+      if (id === 'lantern') return w + (sim.order ? 3 : 0);
+      return w;
+    }
+    function pickWeighted(ids) {
+      let r = rng() * ids.reduce((a, id) => a + giftWeight(id), 0);
+      for (const id of ids) { r -= giftWeight(id); if (r <= 0) return id; }
+      return ids[ids.length - 1];
+    }
+    // the lotus pays as much as the grandest kind now in the jar, times the multiplier
+    sim.lotusPoints = () => Math.round(ZEN_GIFTS.lotus.pts * Math.max(1, ...pourKinds().map((t) => ZEN_WORTH[t] || 1)) * sim.mult);
+    const smallGifts = (but) => Object.keys(ZEN_GIFTS).filter((id) => ZEN_GIFTS[id].tier < 3 && !but.includes(id) && giftOk(id));
+    // what the board needs: the hot spring for a crowded board, the ensō for a life lost, else a small one by chance
+    function pickGift() {
+      if (sim.crowd >= ZEN_GIFTS.onsen.crowd && giftOk('onsen')) return 'onsen';
+      if (giftOk('enso')) return 'enso';
+      const ids = smallGifts([sim.lastGift]);
+      return ids.length ? pickWeighted(ids) : 'lotus';
+    }
+    function giveGift(id, from) {
+      const G = ZEN_GIFTS[id], e = { id, tier: G.tier, from };
+      sim.gifts[id] = (sim.gifts[id] || 0) + 1; sim.lastGift = id; e.n = sim.gifts[id];
+      const sink = (gs) => gs.map((g) => { g.st = ST.LOST; g.vx = g.vy = 0; g.warn = 0; return [Math.round(g.x), Math.round(g.y)]; });
+      if (id === 'lotus') { e.points = sim.lotusPoints(); sim.score += e.points; }
+      else if (id === 'matcha') sim.shield = 1;
+      else if (id === 'bell') sim.hush = sim.clock + G.secs;
+      else if (id === 'dango') chargeZone(G.zone);
+      else if (id === 'drop') e.sunk = sink(boardStones());
+      else if (id === 'lantern') { if (sim.order) { sim.order.until += sim.order.secs; sim.order.secs *= 2; } else sim.lantern = true; }
+      else if (id === 'enso') sim.lives = Math.min(3, sim.lives + 1);
+      else if (id === 'onsen') {
+        const L = looseGrains();
+        for (let i = L.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [L[i], L[j]] = [L[j], L[i]]; }
+        e.sunk = sink(L.slice(0, Math.round(L.length * G.part)));
+      }
+      e.lives = sim.lives; e.score = sim.score;
+      emit('gift', e);
+    }
+    // at each new moon the capybara brings three gifts, one of them big if the board needs it, and the night waits
+    // while the player takes one
+    function offerGifts() {
+      const big = sim.crowd >= 0.5 && giftOk('onsen') ? 'onsen' : giftOk('enso') ? 'enso' : giftOk('onsen') ? 'onsen' : null, opts = big ? [big] : [];
+      while (opts.length < 3) { const ids = smallGifts(opts); if (!ids.length) break; opts.push(pickWeighted(ids)); }
+      for (let i = opts.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [opts[i], opts[j]] = [opts[j], opts[i]]; }
+      sim.offer = { opts };
+      emit('gift_offer', { opts: opts.slice(), month: sim.moon ? sim.moon.month : 0 });
+    }
+    sim.takeGift = function (i) {
+      if (!sim.offer) return false;
+      const id = sim.offer.opts[i] || sim.offer.opts[0];
+      sim.offer = null; giveGift(id, 'moon');
+      return true;
+    };
+    // a cup of matcha: the next broken row costs nothing (its grains still scatter)
+    function useShield() { if (!sim.zen || !sim.shield) return false; sim.shield = 0; return true; }
     // Pełnia: the moon over the run, and its pool of light drifting slowly over the sand
     function zenMoon() {
       const m = moonAt(sim.clock), B = bounds(), was = sim.moon, t = sim.clock;
@@ -2047,9 +2183,10 @@ const GrainSim = (() => {
       sim.moon = Object.assign(m, { x, y, r });
       if (!was || was.phase !== m.phase) emit('moon_phase', { phase: m.phase, month: m.month, light: m.light, blood: m.blood, full: m.full });
       if (was && was.blood && !m.blood && !sim.done) {
-        if (sim.lives < 3) sim.lives++;
-        emit('blood_survived', { lives: sim.lives, month: m.month });
+        emit('blood_survived', { month: m.month });
+        giveGift(giftOk('enso') ? 'enso' : pickGift(), 'blood');
       }
+      if (was && was.phase !== m.phase && m.phase === 0 && m.month >= 1 && !sim.done) offerGifts();
     }
     sim.inMoon = (x, y) => { const M = sim.moon; return !!(M && M.r > 0 && Math.hypot(x - M.x, y - M.y) < M.r); };
     function packPiles() {
@@ -2190,8 +2327,9 @@ const GrainSim = (() => {
       const kinds = pourKinds().filter((t) => sim.stores[t]);
       if (!kinds.length) { sim.flow.next = sim.clock + 5; return; }
       const type = kinds[Math.floor(rng() * kinds.length)], need = Math.min(ZEN_PILE, Math.round(sim.caps[type] * (1.2 + 0.15 * sim.stage)));
-      sim.order = { type, need, got: 0, until: sim.clock + ZEN_FLOW.orderT, secs: ZEN_FLOW.orderT };
-      emit('order', { grain: type, need, secs: ZEN_FLOW.orderT, x: sim.stores[type].x, y: sim.stores[type].y });
+      const secs = ZEN_FLOW.orderT * (sim.lantern ? 2 : 1), lantern = sim.lantern;      // the capybara's lantern: twice the time
+      sim.order = { type, need, got: 0, until: sim.clock + secs, secs }; sim.lantern = false;
+      emit('order', { grain: type, need, secs, lantern, x: sim.stores[type].x, y: sim.stores[type].y });
     }
     // the jar tips over: a mixed spill across the board; it rights itself after a few seconds, then a calm
     function zenSpill() {
@@ -2256,12 +2394,13 @@ const GrainSim = (() => {
       }
       st.n = 0; st.ids = [];
       sim.stats.taken[st.type] = (sim.stats.taken[st.type] || 0) - back;
-      const comboLost = sim.combo, multLost = sim.mult;
-      const penalty = sim.gentle ? 0 : Math.min(sim.score, Math.round((SCORE.breakPenalty + SCORE.spillPerGrain * back) * sim.mult));
-      sim.combo = 0; sim.mult = 1; sim.score -= penalty; sim.lastPull = sim.clock;
+      const shielded = useShield(), comboLost = shielded ? 0 : sim.combo, multLost = shielded ? 1 : sim.mult;
+      const penalty = sim.gentle || shielded ? 0 : Math.min(sim.score, Math.round((SCORE.breakPenalty + SCORE.spillPerGrain * back) * sim.mult));
+      if (!shielded) { sim.combo = 0; sim.mult = 1; }
+      sim.score -= penalty; sim.lastPull = sim.clock;
       sim.stats.rows++; sim.stats.breaks++; sim.stats.spills++; sim.stats.penalty += penalty;
       S.phase = 'snap'; S.pt = 0; sim.waitLift = true;
-      emit('spill_pile', { grain: type, pile: st.type, back, inRow: row.length, comboLost, multLost, penalty, score: sim.score, x: st.x, y: st.y });
+      emit('spill_pile', { grain: type, pile: st.type, back, inRow: row.length, comboLost, multLost, penalty, shielded, score: sim.score, x: st.x, y: st.y });
     }
 
     function breakRow(bad, G) {
@@ -2274,18 +2413,20 @@ const GrainSim = (() => {
         const T = TYPES[g.type], v = cfg.breakScatter * cfg.friction * (T.slide || 1) * (T.scatterK || 1) * (0.45 + rng() * 0.8);
         g.st = ST.SLIDE; g.vx = Math.cos(ang) * v; g.vy = Math.sin(ang) * v; g.w = (rng() - 0.5) * 18; g.warn = 0;
       }
-      const inRow = S.row.length, comboLost = sim.combo, multLost = sim.mult;
-      const penalty = sim.gentle ? 0 : Math.min(sim.score, Math.round(SCORE.breakPenalty * sim.mult));
+      const shielded = useShield(), inRow = S.row.length, comboLost = shielded ? 0 : sim.combo, multLost = shielded ? 1 : sim.mult;
+      const penalty = sim.gentle || shielded ? 0 : Math.min(sim.score, Math.round(SCORE.breakPenalty * sim.mult));
       if (TYPES[bad.type].stone) sim.stats.stoneBreaks++;
       S.row = []; S.trail = [];
-      sim.combo = 0; sim.mult = 1; sim.score -= penalty; sim.lastPull = sim.clock;
+      if (!shielded) { sim.combo = 0; sim.mult = 1; }
+      sim.score -= penalty; sim.lastPull = sim.clock;
       sim.stats.rows++; sim.stats.breaks++; sim.stats.penalty += penalty;
       S.phase = 'snap'; S.pt = 0; sim.waitLift = true;
       // zen: a broken row costs points and some of the Zen Zone (in the zone itself it ends it); a stone in the row
       // costs a life as well, since a stone is in plain sight and can always be kept away from the tips
-      if (sim.zen) { if (sim.zoneT > 0) endZone(true); else if (sim.zone < 1) sim.zone = Math.max(0, sim.zone - ZEN_ZONE.broken); }
-      emit('break', { id: bad.id, wrong: bad.type, grain: S.rowType, x: bad.x, y: bad.y, lost: lost.length, inRow, comboLost, multLost, penalty, score: sim.score });
-      if (sim.zen && TYPES[bad.type].stone) loseLife('stone');
+      // (a cup of matcha from the capybara takes all of that on itself, once)
+      if (sim.zen && !shielded) { if (sim.zoneT > 0) endZone(true); else if (sim.zone < 1) sim.zone = Math.max(0, sim.zone - ZEN_ZONE.broken); }
+      emit('break', { id: bad.id, wrong: bad.type, grain: S.rowType, x: bad.x, y: bad.y, lost: lost.length, inRow, comboLost, multLost, penalty, shielded, score: sim.score });
+      if (sim.zen && TYPES[bad.type].stone && !shielded) loseLife('stone');
     }
 
     // the sticks are solid on the board: their sides shove loose grains out of the way
@@ -2750,6 +2891,7 @@ const GrainSim = (() => {
       }
       if (!sim.started || sim.done || sim.timeUp) return;
       if (J.gush && J.gush.length) return;      // rolled over: nothing else pours until the spill is out
+      if (sim.zen && sim.clock < sim.hush) return;      // the capybara's wind bell: the jar is still for a while
       if (sim.zen && !J.scoops.length && !J.pour.length) J.scoops.push(zenScoop());
       if (!J.pour.length && J.scoops.length) {
         // nothing to gather on the board and nothing in the sticks: the next scoop comes after a breath
@@ -2780,6 +2922,7 @@ const GrainSim = (() => {
     // input: { down, x, y } with x, y the finger in board units
     sim.step = function (input) {
       const dt = 1 / cfg.stepHz;
+      if (sim.offer) { if (input && input.pick != null) sim.takeGift(input.pick); return; }      // the night waits for a gift to be taken
       if (input && input.fire) fireZone();
       sim.t += dt; sim.steps++;
       const down = !!(input && input.down) && !sim.done && !sim.timeUp;
@@ -2894,6 +3037,7 @@ const GrainSim = (() => {
       emit('stone_taken', { id, x: g.x, y: g.y });
       return true;
     };
+    sim.debugGift = (id) => giveGift(id, 'debug');
     sim.debugPut = function (type, x, y) {
       const g = makeGrain(sim.grains.length, type, x, y, 0, 1, 0);
       sim.grains.push(g); sim.total[type] = (sim.total[type] || 0) + 1;
@@ -3023,11 +3167,11 @@ const GrainSim = (() => {
       return finger(aim);
     };
     // a full Zen Zone is fired at once
-    return () => { const i = bot(); if (sim.zen && sim.zoneReady()) i.fire = true; return i; };
+    return () => { const i = bot(); if (sim.zen && sim.zoneReady()) i.fire = true; if (sim.offer) i.pick = 0; return i; };
   }
 
   return {
-    W, ST, DEFAULTS, STICK, TYPES, AUTHORED, DEMO, ZEN, ZEN_PILE, ZEN_FULL, ZEN_STAGES, ZEN_WORTH, ZEN_STAGE_S, ZEN_THANKS, ZEN_ZONE, ZEN_STONE_S, ZEN_FLOW, ZEN_MULT, MOON, moonAt, zenPour, SCORE, MILESTONES, TWIST, NEWS, KIND_FROM,
+    W, ST, DEFAULTS, STICK, TYPES, AUTHORED, DEMO, ZEN, ZEN_PILE, ZEN_FULL, ZEN_STAGES, ZEN_WORTH, ZEN_STAGE_S, ZEN_THANKS, ZEN_ZONE, ZEN_STONE_S, ZEN_GIFTS, ZEN_FLOW, ZEN_MULT, MOON, moonAt, zenPour, SCORE, MILESTONES, TWIST, NEWS, KIND_FROM,
     BOARDS, CHAPTERS, boardOf, chapterOf, surfaceOf, newsAt, creepPull, mulberry32, mixOf, mixTarget, capacity, totalsFor, paceFor, speedFactor, speedLabel, multGain, rowPoints, idealScore, starsFor, parTime, difficulty,
     validateLevel, levelFor, create, makeBot,
     overlapOf(a, b) { orient(a); orient(b); return overlap(a, b, { nx: 0, ny: 0 }); },
@@ -3048,6 +3192,13 @@ const GrainSim = (() => {
   // Every text keeps its English wording as its key; tr() swaps in the Polish one and fills {names}.
   const PL = { "Tap to sit at the table": "Dotknij, by usiąść przy stole", "Sit down at the table": "Usiądź przy stole", "Back to the room": "Wróć do pokoju", "Boards": "Plansze", "Change chopsticks": "Zmień pałeczki", "Game board": "Plansza gry", "Pause": "Pauza", "Start the level again": "Zacznij poziom od nowa", "Back to the boards": "Wróć do plansz", "Chopsticks": "Pałeczki", "Each pair is earned by playing well.": "Każdą parę zdobywasz dobrą grą.", "Back": "Wstecz", "Paused": "Pauza", "Resume": "Wznów", "Restart level": "Zacznij od nowa", "Tune feel": "Dostrój", "Score": "Wynik", "Next level": "Następny poziom", "Retry": "Powtórz", "Choose a level": "Wybierz poziom", "On to {board}": "Dalej: {board}", "Changes apply right away and stay on this device. Row length applies from the next level. A level with its own rule keeps it.": "Zmiany działają od razu i zostają na tym urządzeniu. Długość rzędu zmienia się od następnego poziomu. Poziom z własną zasadą ją zachowuje.", "Show how far the sticks reach": "Pokaż zasięg pałeczek", "Vibrate": "Wibracje", "Solid grains": "Twarde ziarna", "Reset": "Przywróć", "Copy values": "Kopiuj wartości", "Done": "Gotowe", "Game sounds": "Dźwięki gry", "Ambience": "Otoczenie", "Slate": "Łupek", "Walnut": "Orzech", "Bamboo": "Bambus", "Clay": "Glina", "Lacquer": "Laka", "Cast iron": "Żeliwo", "Walnut is open": "Orzech otwarty", "Bamboo is open": "Bambus otwarty", "Parchment": "Pergamin", "Parchment is open": "Pergamin otwarty", "Clay is open": "Glina otwarta", "Lacquer is open": "Laka otwarta", "Cast iron is open": "Żeliwo otwarte", "Tenmoku": "Tenmoku", "Damascus steel": "Stal damasceńska", "Black marble": "Czarny marmur", "Charred cedar": "Opalany cedr", "Obsidian": "Obsydian", "{board} is open": "Otwarte: {board}", "Tenmoku is open": "Tenmoku otwarte", "Damascus steel is open": "Stal damasceńska otwarta", "Black marble is open": "Czarny marmur otwarty", "Charred cedar is open": "Opalany cedr otwarty", "Obsidian is open": "Obsydian otwarty", "Paper": "Papier", "Paper is open": "Papier otwarty", "Porcelain": "Porcelana", "Porcelain is open": "Porcelana otwarta", "Celadon mended with gold: everything you know, in pairs you have not met yet.": "Seledyn sklejony złotem: wszystko, co znasz, w parach, których jeszcze nie było.", "Old paper": "Stary papier", "Everything you have met so far comes back here, two at a time.": "Wszystko, co już znasz, wraca tu po dwa naraz.", "Lentils": "Soczewica", "Rice": "Ryż", "Mung beans": "Fasola mung", "Chickpeas": "Ciecierzyca", "Sesame": "Sezam", "Kidney beans": "Fasola czerwona", "Moonseeds": "Nasiona księżycowe", "Star beans": "Fasolki gwiezdne", "Ember beans": "Fasolki żarzące", "Nebula beans": "Fasolki mgławicowe", "Neon beans": "Fasolki neonowe", "Crystal beans": "Fasolki kryształowe", "Galaxy beans": "Fasolki galaktyczne", "Golden bean": "Złota fasolka", "Dusk": "Zmierzch", "Night": "Noc", "Deep night": "Głęboka noc", "Moonrise": "Wschód księżyca", "Stars": "Gwiazdy", "Nebula": "Mgławica", "Neon": "Neon", "Galaxy": "Galaktyka", "Coming: {kinds}": "Nadchodzą: {kinds}", "The jar pours faster": "Słoik sypie szybciej", "New kind, {w} a grain": "Nowy rodzaj, {w} za ziarno", "Catch it!": "Złap ją!", "Got away": "Uciekła", "The golden bean leapt off": "Złota fasolka odskoczyła", "Bowl packed": "Miska spakowana", "Zen Capybara": "Zen Kapibara", "A life back": "Życie wraca", "Thanks for the bowls: a life back": "Dziękuje za miski: życie wraca", "Thanks for the bowls: +{b}": "Dziękuje za miski: +{b}", "Stage {n}": "Etap {n}", "New best!": "Nowy rekord!", "Zen Zone": "Strefa Zen", "The board is full: a life gone": "Plansza zasypana: życie mniej", "Zen Zone: every row ×{p}": "Strefa Zen: każdy rząd ×{p}", "Zen Zone: rows fly to their bowls, ×{p}": "Strefa Zen: rzędy same lecą do misek, ×{p}", "The Zen Zone broke": "Strefa Zen przerwana", "The Zen Zone is over": "Strefa Zen minęła", "rows fly to their bowls · ×{p}": "rzędy same lecą do misek · ×{p}", "The Zen Zone is open: quick full rows fill it": "Strefa Zen otwarta: szybkie pełne rzędy ją napełniają", "Quick full rows fill the Zen Zone meter at the side, slow ones hardly at all; a broken row and waiting drain it. It opens after a minute and a half. Full, for 10 s the jar pours twice as much, rows fly to their bowls by themselves and pay double. A wrong grain or a stone in a row ends it.": "Szybkie pełne rzędy napełniają licznik Strefy Zen z boku, wolne prawie wcale; przerwany rząd i czekanie go opróżniają. Otwiera się po półtorej minuty. Pełna przez 10 s: słoik sypie dwa razy więcej, rzędy same lecą do misek i liczą się podwójnie. Złe ziarno albo kamień w rzędzie ją kończy.", "Calm": "Cisza", "Order: {kind}, {n} in {s} s": "Zamówienie: {kind}, {n} w {s} s", "New: {kind} ×{w}": "Nowe: {kind} ×{w}", "Golden bean: catch it!": "Złota fasolka: złap ją!", "a life back": "życie wraca", "The board is filling up": "Plansza się zapełnia", "A wave is coming": "Nadchodzi fala", "The jar is about to pour hard": "Słoik zaraz mocno sypnie", "Calm: time to tidy up": "Cisza: czas posprzątać", "The jar tipped over": "Słoik się przewrócił", "Sort the spill before the board fills": "Posortuj rozsypkę, zanim plansza się zasypie", "Order: {kind}": "Zamówienie: {kind}", "{n} into its bowl in {s} s": "{n} do miski w {s} s", "Order filled": "Zamówienie spełnione", "Too late": "Nie zdążyłeś", "The order went unfilled": "Zamówienie przepadło", "The jar keeps a rhythm, about a minute round: steady pouring, a bowl asking for so many grains in so many seconds, a wave or a spill, then a calm. Stones come with it: one, two, three at the peak, and back.": "Słoik ma swój rytm, mniej więcej minutowy: spokojne sypanie, miska prosząca o tyle ziaren w tyle sekund, fala albo rozsypka, potem cisza. Kamienie idą z nim: jeden, dwa, trzy na szczycie i z powrotem.", "Zen Zone ×{p}": "Strefa Zen ×{p}", "Wrong grains sleep, every row pays double": "Złe ziarna śpią, każdy rząd liczy się podwójnie", "Full rows charge the Zen Zone.": "Pełne rzędy ładują Strefę Zen.", "Eight full bowls bring the Zen Capybara, who gives a life back.": "Osiem pełnych misek przywołuje Zen Kapibarę, która oddaje życie.", "Stones sink into the sand after a while.": "Kamyki po chwili zapadają się w piasek.", "{n} of {m} to the Capybara": "{n} z {m} do Kapibary", "{n} of {m} bowls to the Zen Capybara": "{n} z {m} misek do Zen Kapibary", "How it goes": "Jak to działa", "Play": "Graj", "Zen mode rules": "Zasady trybu zen", "The jar pours without end, faster and faster.": "Słoik sypie bez końca, coraz szybciej.", "A stone in a row, or a board that fills up, costs a life. You have three.": "Kamień w rzędzie albo zasypana plansza kosztuje życie. Masz trzy.", "A stone in a row: a life gone": "Kamień w rzędzie: życie mniej", "A stone in the row: a life gone": "Kamień w rzędzie: życie mniej", "A stone in a row costs a life. Keep the tips away from it.": "Kamień w rzędzie kosztuje życie. Trzymaj końcówki z dala od niego.", "Full rows charge the Zen Zone: then wrong grains sleep and every row pays double. A broken row takes some of it back.": "Pełne rzędy ładują Strefę Zen: wtedy złe ziarna śpią, a każdy rząd liczy się podwójnie. Przerwany rząd trochę ją rozładowuje.", "Every eight full bowls the Zen Capybara gives a life back.": "Co osiem pełnych misek Zen Kapibara oddaje życie.", "Now and then a golden bean hops in: catch it before it leaps off.": "Czasem wskakuje złota fasolka: złap ją, zanim ucieknie.", "The jar never stops. Full rows charge the Zen Zone; a full board costs a life.": "Słoik nie przestaje sypać. Pełne rzędy ładują Strefę Zen, zasypana plansza kosztuje życie.", "Best {s}": "Rekord {s}", "Stones": "Kamyki", "First row": "Pierwszy rząd", "Two heaps": "Dwie kupki", "Touching": "Stykają się", "Strays": "Zabłąkane", "The slate": "Łupek", "Short reach": "Krótki zasięg", "Mixed heap": "Pomieszana kupka", "Restless": "Niespokojne", "Pantry spill": "Rozsypana spiżarnia", "Heaps": "Kupki", "Spill": "Rozsypka", "Edges": "Brzegi", "Stripes": "Pasy", "Clusters": "Skupiska", "Pushy rice": "Natrętny ryż", "Rice creeps in from further away. Sweep the heap apart, then gather.": "Ryż wkrada się z daleka. Rozgarnij kupkę, potem zbieraj.", "Short reach, restless": "Krótki zasięg, niespokojne", "Close reach and wandering grains, all three kinds.": "Bliski zasięg i wędrujące ziarna, wszystkie trzy rodzaje.", "Restless grains": "Niespokojne ziarna", "They wander and mix again. Sort them before they spread.": "Wędrują i znów się mieszają. Posortuj je, zanim się rozejdą.", "The sticks pull from close by. Drive the tips through the grains.": "Pałeczki ciągną z bliska. Prowadź końcówki przez ziarna.", "Narrow reach": "Wąski zasięg", "The sticks only pull from straight ahead. Come at grains from below.": "Pałeczki ciągną tylko na wprost. Podchodź do ziaren od dołu.", "Long sticks": "Długie pałeczki", "They hold a longer row: more points, and more to lose.": "Mieszczą dłuższy rząd: więcej punktów i więcej do stracenia.", "They can’t be picked, and they go for the tips. Push them aside.": "Nie da się ich zebrać, a pchają się do końcówek. Odsuwaj je.", "Carry it yourself": "Nieś sam", "Take each row to its pile and let go. The wrong pile spills back onto the board.": "Zanieś każdy rząd na jego kupkę i puść. Zła kupka rozsypie się z powrotem na planszę.", "The jar": "Słoik", "It pours more grains in as you go. Keep up with it.": "Dosypuje ziaren w trakcie gry. Nadążaj za nim.", "The tray tilts": "Taca się przechyla", "Grains slide down it. Catch them before they fall off the edge.": "Ziarna zsuwają się w dół. Złap je, zanim spadną z krawędzi.", "Round and heavy. A quick sweep sends them rolling.": "Okrągła i ciężka. Po szybkim machnięciu toczy się daleko.", "Piles move": "Kupki się przesuwają", "The piles change places from level to level. Look before you let go.": "Kupki zmieniają miejsca z poziomu na poziom. Spójrz, zanim puścisz.", "Tiny and light. Long rows, and a sweep scatters it.": "Malutki i lekki. Długie rzędy, a machnięcie go rozsypuje.", "Any order": "Dowolna kolejność", "The sticks can ask for any kind next. Watch the top of the board.": "Pałeczki mogą poprosić o dowolny rodzaj. Patrz na górę planszy.", "Long and heavy. Push one and it swings round.": "Długa i ciężka. Pchnięta obraca się.", "Touch and hold. The lentils walk into the sticks.": "Dotknij i przytrzymaj. Soczewica sama wchodzi między pałeczki.", "Fill the row to grow your multiplier.": "Wypełnij rząd, a mnożnik urośnie.", "After every row the sticks switch to the other kind.": "Po każdym rzędzie pałeczki przechodzą na drugi rodzaj.", "Rice next to the tips creeps in. Push it aside with the side of the sticks.": "Ryż przy końcówkach wkrada się do środka. Odsuń go bokiem pałeczek.", "The line under the multiplier wears away. Fill the row before it is gone.": "Kreska pod mnożnikiem się ściera. Wypełnij rząd, zanim zniknie.", "A short row keeps the multiplier but shrinks it.": "Krótki rząd zachowuje mnożnik, ale go zmniejsza.", "A third kind, with its own pile in the middle.": "Trzeci rodzaj, z własną kupką na środku.", "{n} left": "{n}", "Lightning": "Błyskawica", "Quick": "Szybko", "Steady": "Równo", "Slow": "Wolno", "Short row {m}": "Krótki rząd {m}", "{kind} cleared {m}": "Koniec: {kind} {m}", "Steady hands": "Pewne ręce", "Grain master": "Mistrz ziaren", "Zen hands": "Ręce zen", "+{b} for {n} full rows in a row": "+{b} za {n} pełnych rzędów z rzędu", "New chopsticks": "Nowe pałeczki", "Multiplier {m}, {n} full rows in a row": "Mnożnik {m}, pełne rzędy z rzędu: {n}", "A lentil got in": "Wpadła soczewica", "Rice got in": "Wpadł ryż", "A mung bean got in": "Wpadła fasola mung", "A stone got in": "Wpadł kamyk", "A chickpea got in": "Wpadła ciecierzyca", "Sesame got in": "Wpadł sezam", "A kidney bean got in": "Wpadła fasola", "A wrong grain got in": "Wpadło złe ziarno", ", back to ×1": ", z powrotem ×1", "Broken": "Przerwany", "Wrong pile": "Zła kupka", "Touch the board to pick the row up again.": "Dotknij planszy, by znów podnieść rząd.", "Tap the arrow again to leave this level.": "Dotknij strzałki jeszcze raz, by wyjść z poziomu.", "Tap again to start this level over.": "Dotknij jeszcze raz, by zacząć od nowa.", "{n} more open {board}": "{n} do otwarcia: {board}", "Every board is open": "Wszystkie plansze otwarte", "{board}, {n} stars": "{board}, gwiazdki: {n}", "{board}, opens with {n} stars": "{board}, otwiera się przy gwiazdkach: {n}", "{n} more {star} to open": "jeszcze {n} {star} do otwarcia", "{board} levels": "Poziomy: {board}", "{level}, {n} of 5 stars": "{level}, {n} z 5 gwiazdek", "{level}, locked": "{level}, zablokowany", "Clear {level} to open this one.": "Najpierw ukończ: {level}.", "{level} cleared": "Ukończono: {level}", "{n} of 5 stars": "{n} z 5 gwiazdek", "Combo prizes": "Nagrody za serie", "Time {t} of {par}": "Czas {t} z {par}", "No row broken": "Bez przerwanego rzędu", "New best": "Rekord", "Next star at {s}": "Następna gwiazdka przy {s}", "New chopsticks: <b>{names}</b>. Pick them under Chopsticks.": "Nowe pałeczki: <b>{names}</b>. Wybierzesz je w menu Pałeczki.", "Cherry lacquer": "Wiśniowa laka", "Ebony": "Hebanowe", "Jade": "Jadeitowe", "Steel": "Stalowe", "Gold leaf": "Złocone", "Reach a ×3 multiplier": "Osiągnij mnożnik ×3", "Make 7 full rows in a row": "Zrób 7 pełnych rzędów z rzędu", "Sort 1,000 grains": "Posortuj 1000 ziaren", "Collect 20 stars": "Zbierz 20 gwiazdek", "Reach a ×6 multiplier": "Osiągnij mnożnik ×6", "Your first pair": "Twoja pierwsza para", "In use": "W użyciu", "Use": "Użyj", "{req} to earn these.": "{req}, żeby je zdobyć.", "Control: drag anywhere": "Sterowanie: przeciąganie", "Control: above the finger": "Sterowanie: nad palcem", "Drag anywhere: the sticks move with your drag, your thumb can stay low.": "Przeciągaj gdziekolwiek: pałeczki idą za ruchem, kciuk może zostać nisko.", "The tips sit above your finger.": "Końcówki są nad twoim palcem.", "Sound on": "Dźwięk: tak", "Sound off": "Dźwięk: nie", "Music on": "Muzyka: tak", "Music off": "Muzyka: nie", "Back to the default feel.": "Przywrócono domyślne ustawienia.", "Select the values and copy them.": "Zaznacz wartości i skopiuj.", "Values copied.": "Skopiowano.", "Tips above the finger": "Końcówki nad palcem", "How tightly the sticks follow": "Jak ciasno pałeczki podążają", "Reach of the open sticks": "Zasięg otwartych pałeczek", "How far ahead of the tips they pull": "Jak daleko przed końcówkami ciągną", "Wrong grains creep from": "Złe ziarna wkradają się z", "Wrong grain creep speed": "Szybkość wkradania się złych ziaren", "How far a sweep flicks grains": "Jak daleko machnięcie odrzuca ziarna", "Next grain joins every (s)": "Kolejne ziarno dołącza co (s)", "Walking speed": "Szybkość marszu", "Pace (higher is more forgiving)": "Tempo (więcej = łagodniej)", "Row length": "Długość rzędu",
     "Lift your finger, then touch again.": "Podnieś palec i dotknij znowu.",
+    "Lotus": "Lotos", "Matcha": "Matcha", "Wind bell": "Dzwonek wiatru", "Dango": "Dango", "Onsen drop": "Kropla z onsenu", "Lantern": "Lampion", "Ensō": "Ensō", "Hot spring": "Gorące źródło",
+    "+{n} points": "+{n} pkt", "the next mistake is free": "następny błąd za darmo", "the jar rests {s} s": "dzban milknie na {s} s",
+    "a third of the Zen Zone": "⅓ strefy Zen", "the stones sink": "kamienie toną", "twice the time for an order": "2× czasu na zamówienie",
+    "half the grains sink": "połowa ziaren tonie", "New moon": "Nów", "Take a gift": "Wybierz dar",
+    "Saved": "Uratowany",
+    "Every eight full bowls the Zen Capybara brings a gift, the one the board needs. At each new moon you choose one of three.": "Co osiem pełnych misek Zen Kapibara przynosi dar, taki, jakiego potrzebuje plansza. Przy każdym nowiu wybierasz jeden z trzech.",
+    "Every eight full bowls the Zen Capybara brings a gift.": "Co osiem pełnych misek Zen Kapibara przynosi dar.",
     "Next star at {s}.": "Następna gwiazdka przy {s}.", "new": "nowe", "Tap to begin": "Dotknij, by zacząć", "Open the menu": "Otwórz menu", "Menu": "Menu", "Levels": "Poziomy", "The Way": "Droga",
     "Full Moon": "Pełnia", "Rules": "Zasady", "ASMR": "ASMR", "Full Moon opens after the first three levels.": "Pełnia otwiera się po trzech pierwszych poziomach.",
     "{n} left to sort.": "Zostało {n}.", "{n} in {t}.": "{n} w {t}.", "{n} in {s} s": "{n} w {s} s",
@@ -4827,6 +4978,7 @@ const GrainSim = (() => {
     const failed = save.fails[L.id] || 0;
     sim = GS.create(Object.assign({}, cfg, { perks: stickById(save.sticks.equipped).perks || null, extraTime: 0.12 * Math.min(3, failed) }), L, layout(), ((Date.now() >>> 0) ^ (levelIndex * 7919)) >>> 0);
     autoBot = null; pendingDone = null; levelUnlocks = [];
+    $('offer').hidden = true; fx.sandGift = null; input.pick = null;
     fx.pops.clear(); fx.lands.clear(); fx.sparks = []; fx.steam = []; fx.floats = []; fx.rings = []; fx.wave = null; fx.bad = null; fx.shakeT = 0; fx.falls = []; fx.targetPulse = 1;
     fx.moonTold = false; fx.moonAge = undefined; fx.bloodK = 0; fx.sand = 0; fx.sandPulse = 0; fx.sandWave = null; fx.zoneSeen = 0; fx.zoneHold = 0; fx.zoneOpened = false; fx.pulseT = 0; fx.pulseI = 0; fx.swaps.clear(); fx.capySeen = 0; fx.capyHold = 0; fx.capyFive = 0; fx.leaps = []; fx.bestSaid = false;
     fx.zenI = 0; fx.litLen = 0; fx.weld = []; fx.weldAcc = 0; fx.scoreGlow = 0; fx.sandRings = [];
@@ -4874,6 +5026,7 @@ const GrainSim = (() => {
   const CHIP_PL = { mung: 'Mung', kidney: 'Czerwona', moon: 'Księżycowe', star: 'Gwiezdne', ember: 'Żarzące', nebula: 'Mgławicowe', neon: 'Neonowe', crystal: 'Kryształowe', galaxy: 'Galaktyczne' };
   function updateHud(animate) {
     if (!sim) return;
+    syncHeld();
     const t = sim.target;
     if (t !== chipType) {
       chip.querySelector('.ico').innerHTML = chipIcon(t);
@@ -5875,8 +6028,7 @@ const GrainSim = (() => {
           else if (e.full) { Sound.multUp(4); zenSay(tr('Full moon'), 2, '', { sub: tr('Its light pays ×2.') }); }
           break;
         case 'blood_survived':
-          Sound.fanfare(); Haptics.buzz([15, 40, 15]); syncLives(false);
-          zenSay(tr('You came through the blood moon'), 3, '', { sub: tr('The capybara gives a life back.') });
+          zenSay(tr('You came through the blood moon'), 3);
           break;
         case 'cat_stir':
           Haptics.buzz([10, 40, 10]);
@@ -5968,7 +6120,7 @@ const GrainSim = (() => {
             fx.capyHold = performance.now() + 540;
           }
           note('+' + fmt(e.bonus), tr(e.why === 'kind' ? 'Bowl packed' : 'Bowl full') + ' · ' + tr('{n} of {m} to the Capybara', { n: Math.min(GS.ZEN_THANKS, e.thanks), m: GS.ZEN_THANKS }), '#f6c453', '#ece8de', e.x + (e.x < W / 2 ? 110 : e.x > W / 2 ? -110 : 0), e.y - 140);
-          zenTip('bowl', 'Eight full bowls bring the Zen Capybara, who gives a life back.');
+          zenTip('bowl', 'Every eight full bowls the Zen Capybara brings a gift.');
           break;
         }
         case 'zone':
@@ -5997,6 +6149,7 @@ const GrainSim = (() => {
           if (e.kind !== 'steady') Analytics.emit('zen_flow', { kind: e.kind, time: sim.clock });
           break;
         case 'order':
+          syncHeld();
           zenSay(tr('Order: {kind}, {n} in {s} s', { n: e.need, kind: tr(TYPES[e.grain].label).toLowerCase(), s: e.secs }), 2, 'gold');
           Sound.saved(); Haptics.buzz(10);
           break;
@@ -6058,13 +6211,22 @@ const GrainSim = (() => {
             fx.rings.push({ x: e.x, y: e.y, t: 0, life: 0.4 });
           }
           break;
-        case 'capybara':
-          fx.capyFive = performance.now() + 900;      // the whole ring lit for a moment, then it starts again
-          Sound.fanfare(); Haptics.buzz([15, 40, 15]); syncLives(false); restartAnim($('capy'), 'bless');
-          giveMedal('capybara', '', $('capy'));
-          zenSay(tr('Zen Capybara') + ': ' + (e.gave === 'life' ? tr('a life back') : '+' + fmt(e.points)), 3, 'gold');
+        case 'gift': {
+          // the capybara's gift: her banner; a big one is traced into the sand as well, and what sank leaves ripples
+          if (e.from === 'bowls') fx.capyFive = performance.now() + 900;      // the whole ring lit for a moment, then it starts again
+          if (e.from === 'moon') $('offer').hidden = true;
+          restartAnim($('capy'), 'bless');
+          if (e.tier === 3) { Sound.fanfare(); Haptics.buzz([15, 40, 15]); if (!reducedMotion()) fx.sandGift = { id: e.id, t0: performance.now() }; }
+          else { Sound.saved(); Haptics.buzz(10); }
+          if (e.id === 'enso') syncLives(false);
+          if (e.sunk && !reducedMotion()) for (const [x, y] of e.sunk) fx.rings.push({ x, y, t: Math.random() * -0.3, life: 0.6, sand: true });
+          if (e.id === 'dango') { const r = $('capy').getBoundingClientRect(); if (r.width) zoneMote({ x: (r.left + r.width / 2 - view.offX) / view.scale, y: (r.top + r.height / 2) / view.scale }, true); }
+          showGift(e); syncHeld();
+          Analytics.emit('zen_gift', { gift: e.id, from: e.from, n: e.n, time: sim.clock });
           updateHud(false);
           break;
+        }
+        case 'gift_offer': openOffer(e.opts); break;
         case 'revived': syncLives(false); break;
         case 'zen_over': {
           Haptics.buzz([20, 30, 20, 30, 40]);
@@ -6097,7 +6259,8 @@ const GrainSim = (() => {
           if (e.multLost > 1.05) Sound.lost();
           const back = (n) => (lang === 'pl' ? nn(n, 'grain') + ' z powrotem na planszy' : n + ' ' + (n === 1 ? TYPES[e.pile].one : TYPES[e.pile].label.toLowerCase()) + ' back on the board');
           const what = e.back ? back(e.back) : lang === 'pl' ? 'to nie tu' : TYPES[e.grain].label + ' don\u2019t go there';
-          note(e.penalty ? '\u2212' + fmt(e.penalty) : tr('Wrong pile'), '', '#ff7a6b', '#ff7a6b', e.x + (e.x < W / 2 ? 140 : e.x > W / 2 ? -140 : 0), e.y - 120);
+          note(e.shielded ? tr('Saved') : e.penalty ? '\u2212' + fmt(e.penalty) : tr('Wrong pile'), '', e.shielded ? '#b6dc78' : '#ff7a6b', e.shielded ? '#b6dc78' : '#ff7a6b', e.x + (e.x < W / 2 ? 140 : e.x > W / 2 ? -140 : 0), e.y - 120);
+          if (e.shielded) syncHeld();
           if (!sim.zen) zenSay(tr('Wrong pile') + ': ' + what, 2, 'red');
           updateStreak('lost');
           Analytics.emit('wrong_pile', { level: L.id, grain: e.grain, pile: e.pile, back: e.back, penalty: e.penalty });
@@ -6111,7 +6274,8 @@ const GrainSim = (() => {
           fx.heat = 0;
           fx.bad = { id: e.id, t: 1.4 };
           if (e.multLost > 1.05) Sound.lost();
-          note(e.penalty ? '−' + fmt(e.penalty) : tr('Broken'), '', '#ff7a6b', '#ff7a6b', e.x, e.y);
+          if (e.shielded) { note(tr('Saved'), '', '#b6dc78', '#b6dc78', e.x, e.y); syncHeld(); }
+          else note(e.penalty ? '−' + fmt(e.penalty) : tr('Broken'), '', '#ff7a6b', '#ff7a6b', e.x, e.y);
           if (!sim.zen) zenSay(tr(BROKE[e.wrong] || 'A wrong grain got in') + (e.multLost > 1.05 ? tr(', back to ×1') : ''), 2, 'red');
           updateStreak('lost');
           Analytics.emit('row_broken', { level: L.id, wrong: e.wrong, lost: e.lost, comboLost: e.comboLost, multLost: e.multLost });
@@ -6192,6 +6356,173 @@ const GrainSim = (() => {
   // the pictures are fetched ahead, once the game is idle, so a medallion never shows up blank
   setTimeout(() => { for (const k of Object.values(MEDAL)) for (const s of ['front', 'back']) { const im = new Image(); im.src = 'medal-' + k + '-' + s + '.webp'; } }, 4000);
   // zen: a line said once on this device, the first time a thing happens
+  // Pełnia: the capybara's gifts (ZEN_GIFTS in the sim): drawn here in gold and enamel, each a list of paths so the
+  // same picture is the banner's icon and, for a big gift, what is traced into the sand
+  const GIFT_INK = '#3a2208';
+  // each gift: parts drawn in order; f = fill (a gradient id or a colour), s = stroke, w = width, t = rotate about (24,36)
+  const GIFT_ART = {
+    lotus: [
+      { d: 'M24 37 C14 36 6 30 4 22 C12 22 20 27 24 37Z', f: 'url(#gp-pink2)', s: GIFT_INK, t: 0 },
+      { d: 'M24 37 C34 36 42 30 44 22 C36 22 28 27 24 37Z', f: 'url(#gp-pink2)', s: GIFT_INK },
+      { d: 'M24 37 C15 33 10 22 12 12 C19 16 24 26 24 37Z', f: 'url(#gp-pink)', s: GIFT_INK },
+      { d: 'M24 37 C33 33 38 22 36 12 C29 16 24 26 24 37Z', f: 'url(#gp-pink)', s: GIFT_INK },
+      { d: 'M24 37 C18 30 18 15 24 6 C30 15 30 30 24 37Z', f: 'url(#gp-pink1)', s: GIFT_INK },
+      { d: 'M9 38 C16 43 32 43 39 38 C32 40 16 40 9 38Z', f: 'url(#gp-gold)', s: GIFT_INK },
+      { d: 'M22.5 12 C21 17 21 22 22 26', s: 'rgba(255,255,255,.75)', w: 1.6 },
+    ],
+    matcha: [
+      { d: 'M18 40 H30 L29 44 H19Z', f: 'url(#gp-gold)', s: GIFT_INK },
+      { d: 'M7 22 H41 C41 33 34 41 24 41 C14 41 7 33 7 22Z', f: 'url(#gp-tenmoku)', s: GIFT_INK },
+      { d: 'M7 22 C7 18.5 41 18.5 41 22 C41 25.5 7 25.5 7 22Z', f: 'url(#gp-gold)', s: GIFT_INK },
+      { d: 'M9.5 22 C9.5 19.8 38.5 19.8 38.5 22 C38.5 24.2 9.5 24.2 9.5 22Z', f: 'url(#gp-matcha)' },
+      { d: 'M18 21.5 C21 20.4 27 20.4 30 21.5', s: 'rgba(240,255,200,.7)', w: 1.2 },
+      { d: 'M11 28 C12 33 15 36 18 38', s: 'rgba(255,255,255,.35)', w: 1.6 },
+      { d: 'M19 15 C16 12 21 10 18 6', s: 'rgba(236,232,222,.8)', w: 1.6 },
+      { d: 'M28 15 C25 12 30 10 27 6', s: 'rgba(236,232,222,.6)', w: 1.6 },
+    ],
+    bell: [
+      { d: 'M24 2 V10', s: '#c9a46a', w: 1.2 },
+      { d: 'M24 29 V34', s: '#c9a46a', w: 1.2 },
+      { d: 'M20.5 34 H27.5 V45 L24 43 L20.5 45Z', f: 'url(#gp-red)', s: GIFT_INK },
+      { d: 'M11 28 C11 13 37 13 37 28 C30 30 18 30 11 28Z', f: 'url(#gp-glass)', s: GIFT_INK },
+      { d: 'M16 24 C18 22 20 23 21 24 C20 25 18 26 16 24Z M21 24 L23 22.5 L23 25.5Z', f: '#e8553a' },
+      { d: 'M15 20 C16 17 19 15 22 14.5', s: 'rgba(255,255,255,.85)', w: 1.8 },
+      { d: 'M21.5 10 A2.5 2.5 0 1 0 26.5 10 A2.5 2.5 0 1 0 21.5 10Z', f: 'url(#gp-gold)', s: GIFT_INK },
+    ],
+    dango: [
+      { d: 'M8 44 L40 6', s: '#b98a4e', w: 2.6 },
+      { d: 'M8 44 L40 6', s: GIFT_INK, w: 0.6 },
+      { d: 'M7.5 33 A7.5 7.5 0 1 0 22.5 33 A7.5 7.5 0 1 0 7.5 33Z', f: 'url(#gp-green)', s: GIFT_INK },
+      { d: 'M16.5 24 A7.5 7.5 0 1 0 31.5 24 A7.5 7.5 0 1 0 16.5 24Z', f: 'url(#gp-rice)', s: GIFT_INK },
+      { d: 'M25.5 15 A7.5 7.5 0 1 0 40.5 15 A7.5 7.5 0 1 0 25.5 15Z', f: 'url(#gp-pink1)', s: GIFT_INK },
+      { d: 'M11 30.5 C11.5 28.5 13 27.5 15 27.2 M20 21.5 C20.5 19.5 22 18.5 24 18.2 M29 12.5 C29.5 10.5 31 9.5 33 9.2', s: 'rgba(255,255,255,.85)', w: 1.6 },
+    ],
+    drop: [
+      { d: 'M24 4 C31 15 37 21 37 30 A13 13 0 0 1 11 30 C11 21 17 15 24 4Z', f: 'url(#gp-water)', s: GIFT_INK },
+      { d: 'M17 26 C17 22 19.5 18 22 15', s: 'rgba(255,255,255,.85)', w: 2.2 },
+      { d: 'M15.5 31.5 A2.6 2.6 0 1 0 15.6 31.5Z', f: 'rgba(255,255,255,.5)' },
+    ],
+    lantern: [
+      { d: 'M24 1 V6', s: '#c9a46a', w: 1.2 },
+      { d: 'M16 6 H32 V10 H16Z', f: 'url(#gp-lacq)', s: GIFT_INK },
+      { d: 'M16 38 H32 V42 H16Z', f: 'url(#gp-lacq)', s: GIFT_INK },
+      { d: 'M17 10 C7 15 7 33 17 38 H31 C41 33 41 15 31 10Z', f: 'url(#gp-lamp)', s: GIFT_INK },
+      { d: 'M11.5 16 H36.5 M9.6 22 H38.4 M9.6 28 H38.4 M11.5 34 H36.5', s: 'rgba(90,20,8,.55)', w: 1 },
+      { d: 'M24 10 V38', s: 'rgba(90,20,8,.35)', w: 1 },
+      { d: 'M14 15 C12 20 12 27 14 32', s: 'rgba(255,240,200,.75)', w: 1.8 },
+      { d: 'M24 42 V47', s: '#c9a46a', w: 1.4 },
+    ],
+    enso: [
+      { d: 'M33.5 9.5 C26 5.5 14 7 9 15.5 C4 24.5 7.5 36 17 40.5 C26.5 45 37.5 40.5 40.5 31 C42.3 25 41 19 37.5 14.5', s: 'url(#gp-gold)', w: 6.2, cap: 'round' },
+      { d: 'M33.5 9.5 C26 5.5 14 7 9 15.5 C4 24.5 7.5 36 17 40.5 C26.5 45 37.5 40.5 40.5 31 C42.3 25 41 19 37.5 14.5', s: 'rgba(60,34,8,.55)', w: 0.8 },
+      { d: 'M12 17 C14 13 18 10.5 23 9.6', s: 'rgba(255,250,225,.85)', w: 1.8 },
+    ],
+    onsen: [
+      { d: 'M5 36 C5 30 43 30 43 36 C43 42 5 42 5 36Z', f: 'url(#gp-gold)', s: GIFT_INK },
+      { d: 'M8 36 C8 32.5 40 32.5 40 36 C40 39.5 8 39.5 8 36Z', f: 'url(#gp-water)' },
+      { d: 'M14 35.5 C18 34.2 22 34.2 25 35.2', s: 'rgba(255,255,255,.7)', w: 1.2 },
+      { d: 'M15 28 C10 23 19 20 14 13 C12 10 15 7 15 5', s: '#e8553a', w: 3, cap: 'round' },
+      { d: 'M24 27 C19 22 28 19 23 12 C21 9 24 6 24 4', s: '#e8553a', w: 3, cap: 'round' },
+      { d: 'M33 28 C28 23 37 20 32 13 C30 10 33 7 33 5', s: '#e8553a', w: 3, cap: 'round' },
+    ],
+  };
+  const GIFT_DEFS = `<linearGradient id="gp-gold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff0b8"/><stop offset=".45" stop-color="#f6c453"/><stop offset="1" stop-color="#9c6a1a"/></linearGradient>
+  <linearGradient id="gp-pink" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd3df"/><stop offset="1" stop-color="#e36a8e"/></linearGradient>
+  <linearGradient id="gp-pink1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff0f4"/><stop offset=".6" stop-color="#f7a3bb"/><stop offset="1" stop-color="#e0668b"/></linearGradient>
+  <linearGradient id="gp-pink2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f6a9be"/><stop offset="1" stop-color="#b8456a"/></linearGradient>
+  <linearGradient id="gp-tenmoku" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5a3a24"/><stop offset=".5" stop-color="#2a1a10"/><stop offset="1" stop-color="#140c08"/></linearGradient>
+  <radialGradient id="gp-matcha" cx=".45" cy=".4" r=".7"><stop offset="0" stop-color="#c9e48a"/><stop offset="1" stop-color="#6d9a2e"/></radialGradient>
+  <linearGradient id="gp-glass" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="rgba(220,245,255,.95)"/><stop offset="1" stop-color="rgba(120,190,220,.8)"/></linearGradient>
+  <linearGradient id="gp-red" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff7b5c"/><stop offset="1" stop-color="#b7321e"/></linearGradient>
+  <radialGradient id="gp-green" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#d9efab"/><stop offset="1" stop-color="#7fae44"/></radialGradient>
+  <radialGradient id="gp-rice" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#d9d0bd"/></radialGradient>
+  <linearGradient id="gp-water" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#bff3f0"/><stop offset=".55" stop-color="#4fb8c4"/><stop offset="1" stop-color="#1d6f86"/></linearGradient>
+  <linearGradient id="gp-lacq" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a3a2c"/><stop offset="1" stop-color="#120c08"/></linearGradient>
+  <radialGradient id="gp-lamp" cx=".45" cy=".45" r=".65"><stop offset="0" stop-color="#ffd27a"/><stop offset=".5" stop-color="#f06a3c"/><stop offset="1" stop-color="#a8281a"/></radialGradient>`;
+  function giftSVG(id) {
+    let h = '';
+    for (const p of GIFT_ART[id]) h += '<path d="' + p.d + '" fill="' + (p.f || 'none') + '"' + (p.s ? ' stroke="' + p.s + '" stroke-width="' + (p.w || 1.2) + '" stroke-linejoin="round" stroke-linecap="' + (p.cap || 'round') + '"' : '') + '/>';
+    return '<svg viewBox="0 0 48 48" aria-hidden="true">' + h + '</svg>';
+  }
+  const GIFT_TEXT = { lotus: ['Lotus', '+{n} points'], matcha: ['Matcha', 'the next mistake is free'], bell: ['Wind bell', 'the jar rests {s} s'],
+    dango: ['Dango', 'a third of the Zen Zone'], drop: ['Onsen drop', 'the stones sink'], lantern: ['Lantern', 'twice the time for an order'],
+    enso: ['Ensō', 'a life back'], onsen: ['Hot spring', 'half the grains sink'] };
+  const giftWhat = (id, e) => tr(GIFT_TEXT[id][1], { n: fmt(e ? e.points || 0 : sim.lotusPoints()), s: GS.ZEN_GIFTS.bell.secs });
+  $('giftDefs').innerHTML = GIFT_DEFS;
+  // the banner: one at a time; it waits for a line already showing, and a line said while it shows waits for it
+  let giftQ = [], giftBusy = false, saidLater = null;
+  function showGift(e) { giftQ.push(e); if (!giftBusy) nextGift(); }
+  function nextGift() {
+    const e = giftQ.shift(), el = $('gift');
+    if (!e) { giftBusy = false; if (saidLater) { const a = saidLater; saidLater = null; zenSay(...a); } return; }
+    giftBusy = true;
+    const wait = $('zsay').classList.contains('show') && zsayPri >= 2 ? Math.max(0, 1400 - (performance.now() - zsayAt)) : 0;
+    setTimeout(() => {
+      if (!sim || !sim.zen) { giftQ = []; giftBusy = false; saidLater = null; return; }
+      hideSay();
+      const av = el.querySelector('.av');
+      if (!av.firstChild) av.innerHTML = $('capy').querySelector('.cap').innerHTML;
+      el.querySelector('.tx b').textContent = tr(GIFT_TEXT[e.id][0]);
+      el.querySelector('.tx span').textContent = giftWhat(e.id, e);
+      el.querySelector('.ic').innerHTML = giftSVG(e.id);
+      el.querySelector('.x u').textContent = e.n;
+      el.setAttribute('aria-label', tr('Zen Capybara') + ': ' + tr(GIFT_TEXT[e.id][0]) + ', ' + giftWhat(e.id, e));
+      el.classList.toggle('big', e.tier === 3);
+      el.hidden = false; el.classList.remove('in', 'out'); void el.offsetWidth; el.classList.add('in');
+      setTimeout(() => {
+        el.classList.remove('in'); el.classList.add('out');
+        setTimeout(() => { el.hidden = true; el.classList.remove('out'); nextGift(); }, 230);
+      }, e.tier === 3 ? 3200 : 2600);
+    }, wait);
+  }
+  // what waits for its moment shows on the capybara's medallion
+  function syncHeld() {
+    const c = $('capy');
+    let box = c.querySelector('.held');
+    if (!box) { box = document.createElement('span'); box.className = 'held'; c.appendChild(box); }
+    const want = sim && sim.zen && !sim.done ? [sim.shield && 'matcha', sim.lantern && 'lantern'].filter(Boolean).join() : '';
+    if (box.dataset.ids === want) return;
+    box.dataset.ids = want;
+    box.innerHTML = want ? want.split(',').map((id) => '<i>' + giftSVG(id) + '</i>').join('') : '';
+  }
+  // at a new moon the night waits on a tray of three gifts; a tap takes one
+  function openOffer(opts) {
+    releaseInput();
+    $('offerKicker').textContent = tr('New moon'); $('offerTitle').textContent = tr('Take a gift');
+    const list = $('offerList');
+    list.innerHTML = '';
+    opts.forEach((id, i) => {
+      const b = document.createElement('button');
+      b.className = GS.ZEN_GIFTS[id].tier === 3 ? 'big' : '';
+      b.innerHTML = '<i>' + giftSVG(id) + '</i><b></b><span></span>';
+      b.querySelector('b').textContent = tr(GIFT_TEXT[id][0]);
+      b.querySelector('span').textContent = giftWhat(id);
+      b.addEventListener('click', () => { if (!$('offer').hidden) { input.pick = i; $('offer').hidden = true; Haptics.buzz(10); } });
+      list.appendChild(b);
+    });
+    $('offer').hidden = false;
+    Sound.zenOpen(); Haptics.buzz([8, 30, 8]);
+  }
+  // a big gift is traced into the sand under the grains too, large and faint, then gone
+  function drawSandGift(ox, oy) {
+    const G = fx.sandGift;
+    if (!G) return;
+    const k = (performance.now() - G.t0) / 1000;
+    if (k > 2.8) { fx.sandGift = null; return; }
+    const draw = clamp(k / 0.9, 0, 1), fade = k < 2 ? 1 : 1 - (k - 2) / 0.8, size = 240;
+    worldTransform(ox, oy);
+    ctx.save();
+    ctx.translate(W / 2 - size / 2, view.top + (sim.H - view.top) * 0.36 - size / 2); ctx.scale(size / 48, size / 48);
+    ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.setLineDash([130, 130]); ctx.lineDashOffset = 130 * (1 - draw);
+    for (const p of GIFT_ART[G.id]) {
+      const path = p.path || (p.path = new Path2D(p.d));
+      if (p.f) { ctx.fillStyle = 'rgba(246,196,83,' + (0.07 * fade * draw).toFixed(3) + ')'; ctx.fill(path); }
+      ctx.lineWidth = p.f ? 0.9 : Math.max(1, p.w || 1.2);
+      ctx.strokeStyle = 'rgba(246,196,83,' + (0.46 * fade).toFixed(3) + ')'; ctx.stroke(path);
+    }
+    ctx.restore();
+  }
   function zenTip(key, text) {
     if (!sim || !sim.zen || save.zen.tips[key]) return;
     save.zen.tips[key] = true; persist();
@@ -6270,6 +6601,7 @@ const GrainSim = (() => {
   // more important is not cut short by something less. A title goes first in gold; a new rule waits for the first touch.
   let zsayT = 0, zsayPri = 0, zsayAt = 0, zsayHold = false;
   function zenSay(text, pri, tone, o) {
+    if (giftBusy) { saidLater = [text, pri, tone, o]; return; }
     const el = $('zsay'), now = performance.now();
     if (zsayPri > (pri || 1) && now - zsayAt < 900) return;
     el.textContent = '';
@@ -7279,6 +7611,7 @@ const GrainSim = (() => {
     if (s === sim) drawSandTitle(ox, oy);
     if (s === sim) drawMoonPool(s, ox, oy);
     if (s === sim && s.zen && s.overT > 0 && !s.done) drawFullWord(s, ox, oy);
+    if (s === sim && fx.sandGift) drawSandGift(ox, oy);
     const t = s.t, gs = s.grains;
     const badId = s === sim && fx.bad ? fx.bad.id : -1;
     const sp = s === sim ? fx.spill : null;
@@ -7569,7 +7902,7 @@ const GrainSim = (() => {
       let n = 0;
       while (acc >= step && n < 24) {
         const inp = autoBot ? autoBot() : input;
-        sim.step(inp); if (inp === input) input.fire = false;
+        sim.step(inp); if (inp === input) { input.fire = false; input.pick = null; }
         handleEvents(sim.drainEvents()); acc -= step; n++;
       }
       if (n === 24) acc = 0;

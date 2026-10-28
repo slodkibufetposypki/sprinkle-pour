@@ -33,6 +33,7 @@ const { chromium } = require('playwright');
   await p.evaluate(() => { const s = __grainLine.sim, B = s.bounds(); s.cat = { wall: 1, at: 600, t: 0, stirred: false }; }); await watch('Pełnia, cat at the edge', 3000);
   await p.evaluate(() => { const s = __grainLine.sim; s.cat = { wall: 0, at: 600, x: 300, y: 600, ids: [], t: 0, stirred: false }; }); await watch('Pełnia, cat in the open', 3000);
   await p.evaluate(() => { const s = __grainLine.sim; s.zone = 1; }); await watch('Pełnia, Zen Zone', 4000);
+  await p.evaluate(() => { __grainLine.sim.debugGift('onsen'); }); await watch('Pełnia, a big gift traced in the sand', 3000);
   await p.evaluate(() => { __grainLine.autoplay(false); const s = __grainLine.sim, B = s.bounds(); let k = 0; while (s.crowd < 1.02 && k < 300) { s.debugPut(['lentil', 'rice'][k % 2], B.x0 + 30 + (k * 37) % (B.x1 - B.x0 - 60), B.y0 + 60 + ((k * 53) % 600)); k++; s.step({ down: false, x: 300, y: 1200 }); } });
   await watch('Pełnia, full board', 2500);
   await p.evaluate(() => { const s = __grainLine.sim; s.clock = 1230; }); await watch('Pełnia, blood moon', 3000);
