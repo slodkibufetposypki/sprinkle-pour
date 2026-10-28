@@ -1969,7 +1969,7 @@ const GrainSim = (() => {
       for (const q of sim.grains) if (q.spare) { g = q; break; }
       if (!g) { g = makeGrain(sim.grains.length, type, W / 2, -100, 0, 1, 0); sim.grains.push(g); }
       g.type = type; g.st = ST.JAR; g.spare = false; g.rot = rng() * Math.PI * 2; g.s = 0.9 + rng() * 0.2; g.tint = Math.floor(rng() * 4);
-      g.vx = g.vy = g.w = 0; g.warn = 0; g.slot = -1; g.px = NaN; g.hd = undefined; g.life = 0; g.hopT = 0; g.burst = 0; g.cool = false; g.fly = 0; g.sq = 0;
+      g.vx = g.vy = g.w = 0; g.warn = 0; g.slot = -1; g.px = NaN; g.hd = undefined; g.life = 0; g.hopT = 0; g.burst = 0; g.cool = false; g.fly = 0; g.sq = 0; g.prT = undefined; g.pushD = 0;
       return g;
     }
     // zen: the kinds the jar pours now: the stage's, in their corners, not those on their way out
@@ -2296,7 +2296,7 @@ const GrainSim = (() => {
         if (c >= hw + r || c <= -(hw + r)) continue;
         const side = c > 0 ? 1 : c < 0 ? -1 : (g.id & 1 ? 1 : -1);
         const d = side * (hw + r) - c;
-        g.x += G.nx * d; g.y += G.ny * d; g.pk = sim.steps; g.sh = sim.steps;
+        g.x += G.nx * d; g.y += G.ny * d; g.pk = sim.steps; g.sh = sim.steps; shoved(g, Math.abs(d));
         if (ELONG[g.type] > 0.5) g.rot = turn(g.rot, Math.atan2(G.uy, G.ux), 0.12);   // a long grain swings round along the stick
         const vn = (S.vx * G.nx + S.vy * G.ny) * side, fk = TYPES[g.type].flickK || 1;
         if (vn * fk > 80) {                                 // a quick sweep flicks grains away; a round or light one goes easier
@@ -2400,12 +2400,13 @@ const GrainSim = (() => {
       return d[w] < CAT_EDGE.band ? w : -1;
     }
     function edgeLine(w, B) {
-      let n = 0, lo = Infinity, hi = -Infinity, sum = 0;
+      let n = 0, lo = Infinity, hi = -Infinity, sum = 0, nSwept = 0;
       for (const g of sim.grains) {
         if ((g.st !== ST.REST && g.st !== ST.WALK) || TYPES[g.type].stone || TYPES[g.type].gold || wallOf(g, B) !== w) continue;
         const a = w < 2 ? g.y : g.x; n++; sum += a; lo = Math.min(lo, a); hi = Math.max(hi, a);
+        if (swept(g)) nSwept++;
       }
-      return { n, span: n ? hi - lo : 0, mid: n ? sum / n : 0 };
+      return { n, span: n ? hi - lo : 0, mid: n ? sum / n : 0, swept: nSwept };
     }
     function edgeCall(g) {
       const B = bounds(), w = wallOf(g, B);
@@ -2413,22 +2414,74 @@ const GrainSim = (() => {
       S.edge = S.edge || [0, 0, 0, 0];
       if (++S.edge[w] < CAT_EDGE.calls) return;
       const line = edgeLine(w, B);
-      if (line.n < CAT_EDGE.line || line.span < CAT_EDGE.span) return;
+      // a line the level laid along its edge is fair game; only one the sticks swept there brings her
+      if (line.n < CAT_EDGE.line || line.span < CAT_EDGE.span || line.swept < line.n * CAT_LINE.pressed) return;
       sim.cat = { wall: w, at: line.mid, t: 0, stirred: false };
       sim.catNext = sim.t + CAT_EDGE.gap; S.edge = [0, 0, 0, 0];
-      emit('cat_comes', { wall: w, at: line.mid });
+      emit('cat_comes', { wall: w, at: line.mid, n: line.n });
+    }
+    // Not only along an edge: grains swept together into a long thin line anywhere on the board are a queue laid out
+    // to be picked off, and she stirs that too. A line counts when most of its grains were moved by the sticks in the
+    // last quarter of a minute (so a level's own shapes never bring her), it is long, and it is no more than a grain or two wide.
+    const CAT_LINE = { every: 0.4, link: 36, n: 14, len: 260, thin: 17, pressed: 0.55, recent: 15, moved: 40 };
+    // how far the sticks have pushed a grain lately: a nudge to a level's own line is not sweeping it there
+    function shoved(g, d) {
+      if (g.prT === undefined || sim.t - g.prT > CAT_LINE.recent) g.pushD = 0;
+      g.pushD = (g.pushD || 0) + d; g.prT = sim.t;
+    }
+    const swept = (g) => g.prT !== undefined && sim.t - g.prT < CAT_LINE.recent && g.pushD >= CAT_LINE.moved;
+    function lineCheck() {
+      if (sim.cat || sim.t < (sim.catNext || 0) || sim.t < (sim.lineNext || 0)) return;
+      sim.lineNext = sim.t + CAT_LINE.every;
+      const gs = sim.grains.filter((g) => g.st === ST.REST && !TYPES[g.type].stone && !TYPES[g.type].gold);
+      if (gs.length < CAT_LINE.n) return;
+      // grains closer than a link to each other belong together
+      const up = gs.map((_, i) => i), find = (i) => { while (up[i] !== i) i = up[i] = up[up[i]]; return i; };
+      const cell = new Map(), key = (cx, cy) => cx * 4096 + cy, L2 = CAT_LINE.link * CAT_LINE.link;
+      gs.forEach((g, i) => { const k = key(Math.floor(g.x / CAT_LINE.link), Math.floor(g.y / CAT_LINE.link)); (cell.get(k) || cell.set(k, []).get(k)).push(i); });
+      gs.forEach((g, i) => {
+        const cx = Math.floor(g.x / CAT_LINE.link), cy = Math.floor(g.y / CAT_LINE.link);
+        for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) for (const j of cell.get(key(cx + dx, cy + dy)) || []) {
+          if (j <= i) continue;
+          const o = gs[j], ex = o.x - g.x, ey = o.y - g.y;
+          if (ex * ex + ey * ey < L2) { const a = find(i), b = find(j); if (a !== b) up[a] = b; }
+        }
+      });
+      const groups = new Map();
+      gs.forEach((g, i) => { const r = find(i); (groups.get(r) || groups.set(r, []).get(r)).push(g); });
+      for (const grp of groups.values()) {
+        if (grp.length < CAT_LINE.n) continue;
+        if (grp.filter(swept).length < grp.length * CAT_LINE.pressed) continue;
+        // its long axis, how long it is along it and how wide across
+        let mx = 0, my = 0;
+        for (const g of grp) { mx += g.x / grp.length; my += g.y / grp.length; }
+        let cxx = 0, cyy = 0, cxy = 0;
+        for (const g of grp) { const ex = g.x - mx, ey = g.y - my; cxx += ex * ex; cyy += ey * ey; cxy += ex * ey; }
+        const th = 0.5 * Math.atan2(2 * cxy, cxx - cyy), ux = Math.cos(th), uy = Math.sin(th);
+        let lo = Infinity, hi = -Infinity, vv = 0;
+        for (const g of grp) { const u = (g.x - mx) * ux + (g.y - my) * uy, v = -(g.x - mx) * uy + (g.y - my) * ux; lo = Math.min(lo, u); hi = Math.max(hi, u); vv += v * v / grp.length; }
+        if (hi - lo < CAT_LINE.len || Math.sqrt(vv) > CAT_LINE.thin) continue;
+        const B = bounds(), wall = mx - B.x0 < B.x1 - mx ? 0 : 1;
+        sim.cat = { wall, at: my, x: mx, y: my, ids: grp.map((g) => g.id), t: 0, stirred: false };
+        sim.catNext = sim.t + CAT_EDGE.gap;
+        emit('cat_comes', { wall, at: my, line: true, n: grp.length });
+        return;
+      }
     }
     function catStep(dt) {
+      lineCheck();
       const C = sim.cat;
       if (!C) return;
       C.t += dt;
       if (!C.stirred && C.t >= CAT_EDGE.stir) {
         C.stirred = true;
-        const B = bounds(), nx = [1, -1, 0, 0][C.wall], ny = [0, 0, 1, -1][C.wall];
+        const B = bounds(), nx = [1, -1, 0, 0][C.wall], ny = [0, 0, 1, -1][C.wall], line = C.ids ? new Set(C.ids) : null;
         let n = 0;
         for (const g of sim.grains) {
-          if ((g.st !== ST.REST && g.st !== ST.SLIDE && g.st !== ST.WALK) || TYPES[g.type].gold || wallOf(g, B) !== C.wall) continue;
-          const T = TYPES[g.type], a = Math.atan2(ny, nx) + (rng() - 0.5) * 2, v = (140 + rng() * 260) * cfg.friction * (T.slide || 1);
+          if ((g.st !== ST.REST && g.st !== ST.SLIDE && g.st !== ST.WALK) || TYPES[g.type].gold) continue;
+          if (line ? !line.has(g.id) : wallOf(g, B) !== C.wall) continue;
+          // off an edge: back into the board; a line in the open: every which way
+          const T = TYPES[g.type], a = line ? rng() * Math.PI * 2 : Math.atan2(ny, nx) + (rng() - 0.5) * 2, v = (140 + rng() * 260) * cfg.friction * (T.slide || 1);
           g.st = ST.SLIDE; g.vx = Math.cos(a) * v; g.vy = Math.sin(a) * v; g.w = (rng() - 0.5) * 24; g.px = NaN; n++;
         }
         S.trail = S.trail.filter((id) => sim.grains[id].st === ST.WALK);
@@ -2536,12 +2589,12 @@ const GrainSim = (() => {
         nrm.nx = sx; nrm.ny = sy;
         if (w.st === ST.WALK) sidestep(w, sx, sy);
         f.x += nrm.nx * o; f.y += nrm.ny * o; f.aw = true; f.hit = sim.steps;
-        if (pressed(w)) f.pr = sim.steps;
+        if (pressed(w)) { f.pr = sim.steps; shoved(f, o); }
         if (ELONG[f.type] > 0.05) f.rot = turn(f.rot, Math.atan2(nrm.ny, nrm.nx) + Math.PI / 2, ELONG[f.type] * Math.min(0.3, o / 8));
       } else {
         const ia = 1 / massOf(a), ib = 1 / massOf(b), k = o / (ia + ib);
         a.x -= nx * k * ia; a.y -= ny * k * ia; b.x += nx * k * ib; b.y += ny * k * ib; a.aw = b.aw = true; a.hit = b.hit = sim.steps;
-        if (pressed(a)) b.pr = sim.steps; else if (pressed(b)) a.pr = sim.steps;
+        if (pressed(a)) { b.pr = sim.steps; shoved(b, k * ib); } else if (pressed(b)) { a.pr = sim.steps; shoved(a, k * ia); }
         const side = Math.atan2(ny, nx) + Math.PI / 2;            // a long grain pushed on turns side-on to the push
         if (ELONG[a.type] > 0.05) a.rot = turn(a.rot, side, ELONG[a.type] * Math.min(0.3, (k * ia) / 8));
         if (ELONG[b.type] > 0.05) b.rot = turn(b.rot, side, ELONG[b.type] * Math.min(0.3, (k * ib) / 8));
@@ -6421,7 +6474,9 @@ const GrainSim = (() => {
     if (!C || !s.bounds) return;
     const B = s.bounds(), t = C.t, w = C.wall, nx = [1, -1, 0, 0][w], ny = [0, 0, 1, -1][w], tx = -ny, ty = nx;
     const ex = w === 0 ? B.x0 - 24 : w === 1 ? B.x1 + 24 : C.at, ey = w === 2 ? B.y0 - 24 : w === 3 ? B.y1 + 24 : C.at;
-    const Tx = ex + nx * 50, Ty = ey + ny * 50, far = 420, ease = (k) => 1 - Math.pow(1 - clamp(k, 0, 1), 3);
+    // over an edge it stops just inside it; for a line in the open it reaches in from the nearer side to the line
+    const Tx = C.x !== undefined ? C.x : ex + nx * 50, Ty = C.y !== undefined ? C.y : ey + ny * 50;
+    const far = (C.x !== undefined ? Math.abs(Tx - ex) : 0) + 420, ease = (k) => 1 - Math.pow(1 - clamp(k, 0, 1), 3);
     let px, py, lift = 0, wag = null;
     if (t < 0.4) { const k = ease(t / 0.4); px = Tx - nx * far * (1 - k); py = Ty - ny * far * (1 - k); }
     else if (t < 1.1) {
