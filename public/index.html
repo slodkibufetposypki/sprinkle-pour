@@ -4755,16 +4755,6 @@ const GrainSim = (() => {
         grit(cx - rr, cy - rr, rr * 2, rr * 2, Math.round((rr * rr * 4) / (40 * d * d)));
         o.rings.forEach(furrow);
         c.restore();
-        // a few river stones where the rings begin, as in a dry garden, with their shadow on the sand
-        const st = painted('zg-stones', () => { bgCache.delete('zen'); bgCache.delete('zen-glow'); swatches.delete('zen'); });
-        if (st && !flat) {
-          const sr = o.rings.length ? Math.hypot(o.rings[o.rings.length - 1][0][0] - cx, o.rings[o.rings.length - 1][0][1] - cy) + 6 * d : rr * 0.3;
-          const sw = sr * 2, sh = sw * st.height / st.width;
-          const sg = c.createRadialGradient(cx + 5 * d, cy + 8 * d, sr * 0.3, cx + 5 * d, cy + 8 * d, sr * 1.15);
-          sg.addColorStop(0, 'rgba(8,6,4,0.55)'); sg.addColorStop(1, 'rgba(8,6,4,0)');
-          c.fillStyle = sg; c.beginPath(); c.arc(cx + 5 * d, cy + 8 * d, sr * 1.15, 0, Math.PI * 2); c.fill();
-          c.drawImage(st, cx - sw / 2, cy - sh / 2, sw, sh);
-        }
       }
     } else if (id === 'porcelain') {
       // a celadon glaze, flat to the edges: soft mottling where it ran thicker, iron specks, a fine crackle in the glaze,
@@ -4982,7 +4972,7 @@ const GrainSim = (() => {
     c.clip('evenodd');
     lightAll(rake.lines);
     c.restore();
-    for (const o of rake.rounds) { c.save(); c.beginPath(); c.arc(o.cx, o.cy, o.rr, 0, Math.PI * 2); c.clip(); lightAll(painted('zg-stones') ? o.rings.slice(0, -1) : o.rings); c.restore(); }
+    for (const o of rake.rounds) { c.save(); c.beginPath(); c.arc(o.cx, o.cy, o.rr, 0, Math.PI * 2); c.clip(); lightAll(o.rings); c.restore(); }
     bgCache.set('zen-glow', cv);
     return cv;
   }
