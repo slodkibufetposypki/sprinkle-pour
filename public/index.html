@@ -181,6 +181,19 @@
   #zone.on .bar { border-color: var(--ember); box-shadow: 0 0 0 1px rgba(10, 12, 15, 0.5), 0 0 12px 3px rgba(246, 196, 83, 0.65); }
   #zone.on .bar b { transition: none; }
   #zone.up { animation: zoneup .42s cubic-bezier(.34, 1.25, .64, 1); }
+  /* full and waiting for the player: the tube glows gold, a tap sign bobs over it, and the tube takes a touch */
+  #zone .tap { position: absolute; left: 50%; top: -38px; width: 26px; height: 30px; margin-left: -13px; display: none; pointer-events: none;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .7)); }
+  #zone .tap svg { width: 100%; height: 100%; overflow: visible; }
+  #zone .tap path { fill: #f6c453; stroke: rgba(60, 36, 8, .8); stroke-width: 1.1; stroke-linejoin: round; }
+  #zone .tap .ripple { fill: none; stroke: #f6c453; stroke-width: 1.6; stroke-linecap: round; opacity: .8; }
+  #zone.ready { pointer-events: auto; cursor: pointer; width: 56px; margin-right: -11px; padding-top: 0; }
+  #zone.ready .tap { display: block; animation: tapbob 1s ease-in-out infinite; }
+  #zone.ready .bar { border-color: #f6c453; animation: zoneready 1.2s ease-in-out infinite; }
+  #zone.ready .bar b { filter: brightness(1.12); }
+  @keyframes tapbob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
+  @keyframes zoneready { 0%, 100% { box-shadow: 0 0 0 1px rgba(10, 12, 15, .5), 0 0 8px 2px rgba(246, 196, 83, .45); }
+    50% { box-shadow: 0 0 0 1px rgba(10, 12, 15, .5), 0 0 16px 5px rgba(246, 196, 83, .8); } }
   @keyframes zoneup { 40% { transform: scale(1.12); } }
   /* the Zen Zone opening: its name, large, for a moment, and what it gives */
   #zentitle { position: fixed; z-index: 5; left: 50%; top: 24%; transform: translate(-50%, 0); text-align: center; pointer-events: none; opacity: 0; white-space: nowrap; }
@@ -609,7 +622,8 @@
   #tuneJson { width: 100%; box-sizing: border-box; background: #0d0f12; color: var(--chalk); border: 1px solid var(--chalk-3); border-radius: 10px; font: 12px ui-monospace, Menlo, monospace; }
 
   @media (prefers-reduced-motion: reduce) {
-    .slab, #done .slab, #chip.swap, .dial.up svg, #catpaw.go, #lives svg.lose, .stars.big svg.stamp, #streak.up b, #streak.lost, #streak.lost b, .tally li, .total em, #tally .nw, .lcard.next, #best.pop, #zone.up, #zone.near .bar, #capy.bless { animation: none; }
+    .slab, #done .slab, #chip.swap, .dial.up svg, #catpaw.go, #lives svg.lose, .stars.big svg.stamp, #streak.up b, #streak.lost, #streak.lost b, .tally li, .total em, #tally .nw, .lcard.next, #best.pop, #zone.up, #zone.near .bar, #capy.bless, #zone.ready .tap, #zone.ready .bar { animation: none; }
+    #zone.ready .bar { box-shadow: 0 0 0 1px rgba(10, 12, 15, .5), 0 0 12px 4px rgba(246, 196, 83, .65); }
     .bpage .bopen, .bpage.laid .lcard, .bpage > canvas { transition: none; }
     .rest::before { animation: none; opacity: 0.5; }
     .ema { animation: none; } .toggle .sw, .toggle .sw::after { transition: none; }
@@ -645,7 +659,7 @@
 <div id="banner" class="note chalk" role="status"><b></b><span></span></div>
 <div id="zsay" class="chalk" role="status"></div>
 <div id="zentitle" class="chalk" aria-live="polite"><b></b><span></span></div>
-<div id="zone" hidden aria-label="Zen Zone"><span class="lbl"></span><i class="bar"><s></s><b></b></i><span class="wait"></span></div>
+<div id="zone" hidden aria-label="Zen Zone" role="button"><span class="lbl"></span><i class="bar"><s></s><b></b></i><span class="wait"></span><span class="tap" aria-hidden="true"><svg viewBox="0 0 24 28"><path d="M9.2 3.6c0-1.3 1-2.3 2.3-2.3s2.3 1 2.3 2.3v8.1l4.6 1c1.6.4 2.6 1.9 2.4 3.5l-.9 6.4c-.2 1.6-1.6 2.8-3.2 2.8h-5.6c-1 0-2-.5-2.6-1.3L4 18.4c-.8-1-.7-2.4.3-3.2.9-.7 2.2-.7 3.1.1l1.8 1.6z"/><path class="ripple" d="M5.6 6.2a6.6 6.6 0 0 1 11.8 0"/></svg></span></div>
 <div id="medals" aria-hidden="true"></div>
 <div id="catpaw" aria-hidden="true"><svg viewBox="0 0 130 64">
   <path d="M130 16C104 15 76 17 56 19 36 21 18 26 16 35c-2 10 14 16 32 15 26-1 54 0 82 0z" fill="#e8a25a" stroke="#9c5a24" stroke-width="2"/>
@@ -1366,7 +1380,7 @@ const GrainSim = (() => {
   // the peak a calm to tidy up, and round again. The stretches shorten as the night goes on. Stones come with it, from
   // the second stage: one on the board in the steady stretch, two with the order and in the calm, three at the peak, so
   // they go 1, 2, 3, 2, 1, 2, 3...
-  const ZEN_FLOW = { first: 34, steady: 16, breath: 5, gapMin: 8, warn: 2, rush: 12, rushK: 2.3, calm: 9, calmK: 0.4, orderT: 22, orderGain: 0.3, orderLoss: 0.15,
+  const ZEN_FLOW = { first: 34, steady: 16, breath: 5, gapMin: 8, warn: 2, rush: 12, rushK: 2.3, calm: 9, calmK: 0.4, orderT: 22, orderGain: 0.3, orderFine: 15,
     stones: { steady: 1, order: 2, breath: 2, peak: 3, calm: 2 } };
   // Pełnia: the multiplier is earned over minutes, not rows. A full row adds a quarter of what it adds in a level, and
   // less the higher it already stands, so clean quick rows reach ×5 in about a minute and ×9 in three; ×10 is rare.
@@ -1674,7 +1688,7 @@ const GrainSim = (() => {
     }
     sim.ideal = idealScore(level.types, sim.total, sim.caps, sim.par);
     if (sim.zen) {
-      sim.lives = level.lives || 3; sim.overT = 0; sim.zenN = 0; sim.moon = null; sim.packs = []; sim.stage = 0; sim.bowls = 0; sim.continues = 0;
+      sim.lives = level.lives || 3; sim.overT = 0; sim.zenN = 0; sim.moon = null; sim.thanks = 0; sim.packs = []; sim.stage = 0; sim.bowls = 0; sim.continues = 0;
       sim.retiring = new Set(); sim.goldT = 40; sim.emberT = 9; sim.golds = 0;
       sim.zone = 0; sim.zoneT = 0; sim.zones = 0;
       sim.flow = { kind: 'steady', until: 0, next: ZEN_FLOW.first, last: null }; sim.order = null; sim.orders = 0;
@@ -2034,9 +2048,10 @@ const GrainSim = (() => {
       st.ids = []; st.n = 0; sim.stats.taken[type] = 0;
       if (!n) return;
       const bonus = Math.round(25 * n * (ZEN_WORTH[type] || 1));
-      sim.score += bonus; sim.bowls++;
-      emit('pile_packed', { grain: type, n, bonus, x: st.x, y: st.y, r: st.r, corner: st.kind, held, score: sim.score, bowls: sim.bowls, why });
-      if (sim.bowls % ZEN_THANKS === 0 && !(sim.moon && sim.moon.blood)) {
+      sim.score += bonus; sim.bowls++; sim.thanks++;
+      emit('pile_packed', { grain: type, n, bonus, x: st.x, y: st.y, r: st.r, corner: st.kind, held, score: sim.score, bowls: sim.bowls, thanks: sim.thanks, why });
+      if (sim.thanks >= ZEN_THANKS && !(sim.moon && sim.moon.blood)) {
+        sim.thanks = 0;
         if (sim.lives < 3) { sim.lives++; emit('capybara', { gave: 'life', lives: sim.lives, bowls: sim.bowls }); }
         else { const b = Math.round(250 * (ZEN_WORTH[type] || 1) * sim.mult); sim.score += b; emit('capybara', { gave: 'points', points: b, bowls: sim.bowls }); }
       }
@@ -2114,15 +2129,22 @@ const GrainSim = (() => {
       emit('zone', { on: false, zones: sim.zones, broken: !!broken, sunk });
     }
     // zen: the Zen Zone fills; when full it starts at once
+    // full, the Zen Zone waits for the player: it holds its charge until they fire it (the owner, 28 Oct), so they
+    // choose the moment, a crowded board or an order to fill
     function chargeZone(k) {
-      if (sim.zoneT > 0 || !sim.zoneOpen()) return;
+      if (sim.zoneT > 0 || !sim.zoneOpen() || sim.zone >= 1) return;
       sim.zone = clamp(sim.zone + k, 0, 1);
-      if (sim.zone < 1) return;
+      if (sim.zone >= 1) emit('zone_ready', {});
+    }
+    function fireZone() {
+      if (!sim.zen || sim.done || sim.zoneT > 0 || sim.zone < 1) return false;
       sim.zone = 0; sim.zoneT = ZEN_ZONE.secs; sim.zones++;
       if (sim.jar) sim.jar.next = Math.min(sim.jar.next, sim.clock + 0.3);
       for (const g of sim.grains) g.warn = 0;
       emit('zone', { on: true, secs: ZEN_ZONE.secs, zones: sim.zones });
+      return true;
     }
+    sim.zoneReady = () => sim.zen && sim.zoneT <= 0 && sim.zone >= 1;
     // zen: the night's rhythm (see ZEN_FLOW)
     function zenFlow() {
       const F = sim.flow, t = sim.clock;
@@ -2148,9 +2170,11 @@ const GrainSim = (() => {
           emit('order_done', { grain: O.type, need: O.need, bonus, score: sim.score, x: st.x, y: st.y });
           chargeZone(ZEN_FLOW.orderGain);
         } else if (t >= O.until || !st) {
+          // missed: the capybara turns away (the bowls toward her next blessing are lost) and it costs points
           sim.order = null; rest();
-          sim.zone = Math.max(0, sim.zone - ZEN_FLOW.orderLoss);
-          emit('order_failed', { grain: O.type, need: O.need, got: O.got, x: st ? st.x : W / 2, y: st ? st.y : sim.H });
+          const penalty = Math.min(sim.score, Math.round(ZEN_FLOW.orderFine * O.need * (ZEN_WORTH[O.type] || 1))), lost = sim.thanks;
+          sim.score -= penalty; sim.thanks = 0;
+          emit('order_failed', { grain: O.type, need: O.need, got: O.got, penalty, thanksLost: lost, score: sim.score, x: st ? st.x : W / 2, y: st ? st.y : sim.H });
         }
         return;      // nothing else starts while an order is open
       }
@@ -2277,7 +2301,7 @@ const GrainSim = (() => {
       S.phase = 'snap'; S.pt = 0; sim.waitLift = true;
       // zen: a broken row costs points and some of the Zen Zone (in the zone itself it ends it); a stone in the row
       // costs a life as well, since a stone is in plain sight and can always be kept away from the tips
-      if (sim.zen) { if (sim.zoneT > 0) endZone(true); else sim.zone = Math.max(0, sim.zone - ZEN_ZONE.broken); }
+      if (sim.zen) { if (sim.zoneT > 0) endZone(true); else if (sim.zone < 1) sim.zone = Math.max(0, sim.zone - ZEN_ZONE.broken); }
       emit('break', { id: bad.id, wrong: bad.type, grain: S.rowType, x: bad.x, y: bad.y, lost: lost.length, inRow, comboLost, multLost, penalty, score: sim.score });
       if (sim.zen && TYPES[bad.type].stone) loseLife('stone');
     }
@@ -2774,6 +2798,7 @@ const GrainSim = (() => {
     // input: { down, x, y } with x, y the finger in board units
     sim.step = function (input) {
       const dt = 1 / cfg.stepHz;
+      if (input && input.fire) fireZone();
       sim.t += dt; sim.steps++;
       const down = !!(input && input.down) && !sim.done && !sim.timeUp;
       if (!down) { sim.waitLift = false; sim.rearm = 0; } else if (sim.rearm > 0) sim.rearm -= dt;
@@ -2868,7 +2893,7 @@ const GrainSim = (() => {
         zenMoon(); zenStages(); packPiles(); zenCrowd(dt); zenGold(dt); zenEmbers(dt); zenStones(dt); zenFlow();
         if (sim.zoneT > 0) { sim.zoneT -= dt; if (sim.zoneT <= 0) endZone(false); }
         if (sim.mult > 1 && sim.clock - sim.lastPull > 5) sim.mult = Math.max(1, sim.mult - 0.12 * dt);
-        if (sim.zoneT <= 0 && sim.zone > 0 && sim.clock - sim.lastPull > ZEN_ZONE.idle) sim.zone = Math.max(0, sim.zone - ZEN_ZONE.drain * dt);
+        if (sim.zoneT <= 0 && sim.zone > 0 && sim.zone < 1 && sim.clock - sim.lastPull > ZEN_ZONE.idle) sim.zone = Math.max(0, sim.zone - ZEN_ZONE.drain * dt);
       }
     };
 
@@ -2967,7 +2992,7 @@ const GrainSim = (() => {
       }
       return best;
     }
-    return function next() {
+    const bot = function next() {
       const S = sim.sticks;
       if (sim.done) return { down: false, x: W / 2, y: sim.H * 0.7 };
       if (sim.manual && (S.phase === 'close' || S.phase === 'hold' || S.phase === 'parked')) {
@@ -3015,6 +3040,8 @@ const GrainSim = (() => {
       }
       return finger(aim);
     };
+    // a full Zen Zone is fired at once
+    return () => { const i = bot(); if (sim.zen && sim.zoneReady()) i.fire = true; return i; };
   }
 
   return {
@@ -3049,7 +3076,7 @@ const GrainSim = (() => {
     "The jar never stops. Three lives: a broken row or a full board costs one.": "Słoik nie przestaje sypać. Trzy życia: przerwany rząd albo pełna plansza zabiera jedno.",
     "Zen mode opens after the first three levels.": "Tryb zen otwiera się po trzech pierwszych poziomach.",
     "The board is full": "Plansza pełna", "A life gone": "minus jedno życie", "Bowl full": "Miska pełna",
-    "The board is filling up: sort faster!": "Plansza się zapełnia, sortuj szybciej!", "Board full!": "Plansza pełna!", "No, no, no.": "Nie, nie, nie.", "The moon is rising": "Wschodzi księżyc", "Rows closed in its light pay more.": "Rzędy zamknięte w jego świetle płacą więcej.", "Blood moon": "Krwawy księżyc", "×3 on everything, twice the stones, no capybara. Hold on.": "×3 za wszystko, dwa razy więcej kamieni, bez kapibary. Wytrzymaj.", "Full moon": "Pełnia", "Its light pays ×2.": "Jej światło płaci ×2.", "You came through the blood moon": "Przetrwałeś krwawy księżyc", "The capybara gives a life back.": "Kapibara oddaje życie.", "Sort from the board, not off its edge.": "Zbieraj z planszy, nie spod krawędzi.",
+    "The board is filling up: sort faster!": "Plansza się zapełnia, sortuj szybciej!", "Board full!": "Plansza pełna!", "No, no, no.": "Nie, nie, nie.", "The Zen Zone is full: tap the tube to start it.": "Strefa Zen pełna: dotknij tuby, by ją włączyć.", "The moon is rising": "Wschodzi księżyc", "Rows closed in its light pay more.": "Rzędy zamknięte w jego świetle płacą więcej.", "Blood moon": "Krwawy księżyc", "×3 on everything, twice the stones, no capybara. Hold on.": "×3 za wszystko, dwa razy więcej kamieni, bez kapibary. Wytrzymaj.", "Full moon": "Pełnia", "Its light pays ×2.": "Jej światło płaci ×2.", "You came through the blood moon": "Przetrwałeś krwawy księżyc", "The capybara gives a life back.": "Kapibara oddaje życie.", "Sort from the board, not off its edge.": "Zbieraj z planszy, nie spod krawędzi.",
     "The jar won this time": "Tym razem wygrał słoik", "Three rows broken": "Trzy przerwane rzędy",
     "{t} at the board, {n} sorted.": "{t} przy stole, posortowane: {n}.", "Best: {s}.": "Rekord: {s}.", "Again": "Jeszcze raz",
     "Touch and hold below the lentils. The sticks come in above your finger.": "Dotknij i przytrzymaj pod soczewicą. Pałeczki pojawią się nad palcem.",
@@ -4909,7 +4936,8 @@ const GrainSim = (() => {
       }
       const k = on ? sim.zoneT / GS.ZEN_ZONE.secs : fx.zoneSeen, open = sim.zoneOpen();
       zEl.hidden = false;
-      zEl.classList.toggle('on', on); zEl.classList.toggle('near', !on && fx.zoneSeen >= 0.75); zEl.classList.toggle('locked', !open);
+      zEl.classList.toggle('on', on); zEl.classList.toggle('near', !on && fx.zoneSeen >= 0.75 && !sim.zoneReady()); zEl.classList.toggle('locked', !open);
+      zEl.classList.toggle('ready', sim.zoneReady());
       zEl.querySelector('.bar b').style.height = (100 * clamp(k, 0, 1)).toFixed(1) + '%';
       if (!open) { const w = mmss(Math.ceil(GS.ZEN_ZONE.from - sim.clock)); if (zEl.querySelector('.wait').textContent !== w) zEl.querySelector('.wait').textContent = w; }
       else if (!fx.zoneOpened && sim.started) {
@@ -4919,13 +4947,12 @@ const GrainSim = (() => {
       const lbl = on ? '×' + GS.ZEN_ZONE.pay : '';
       if (zEl.querySelector('.lbl').textContent !== lbl) { zEl.querySelector('.lbl').textContent = lbl; zEl.setAttribute('aria-label', on ? tr('Zen Zone ×{p}', { p: GS.ZEN_ZONE.pay }) : tr('Zen Zone')); }
       const cEl = $('capy'), now = performance.now(), pips = cEl.querySelectorAll('.ring path');
-      if (now >= fx.capyHold && fx.capySeen !== sim.bowls) {
-        const up = sim.bowls > fx.capySeen;
-        if (up && sim.bowls % GS.ZEN_THANKS === 0) fx.capyFive = now + 900;
-        fx.capySeen = sim.bowls;
-        if (up) restartAnim(pips[(sim.bowls - 1) % GS.ZEN_THANKS], 'pop');
+      if (now >= fx.capyHold && fx.capySeen !== sim.thanks) {
+        const up = sim.thanks > fx.capySeen;
+        fx.capySeen = sim.thanks;
+        if (up) restartAnim(pips[Math.min(GS.ZEN_THANKS, sim.thanks) - 1], 'pop');
       }
-      const n = now < fx.capyFive ? GS.ZEN_THANKS : fx.capySeen % GS.ZEN_THANKS;
+      const n = now < fx.capyFive ? GS.ZEN_THANKS : Math.min(GS.ZEN_THANKS, fx.capySeen);
       cEl.hidden = false;
       pips.forEach((p, i) => p.classList.toggle('on', i < n));
       cEl.setAttribute('aria-label', tr('{n} of {m} bowls to the Zen Capybara', { n, m: GS.ZEN_THANKS }));
@@ -5798,6 +5825,11 @@ const GrainSim = (() => {
     }
   }
   function releaseInput() { input.down = false; input.id = null; }
+  // the full Zen Zone is fired with a tap on its tube (a second finger will do while the first holds the sticks)
+  $('zone').addEventListener('pointerdown', (e) => {
+    if (screen !== 'play' || !sim || !sim.zoneReady || !sim.zoneReady()) return;
+    e.preventDefault(); e.stopPropagation(); input.fire = true; Haptics.buzz(10);
+  });
   // a finger or a mouse: the first lesson shows the tips above a finger, at a pointer
   let pointerKind = window.matchMedia && window.matchMedia('(pointer: fine)').matches ? 'mouse' : 'touch';
   window.addEventListener('pointermove', (e) => { if (e.pointerType && e.pointerType !== pointerKind && screen === 'play') { pointerKind = e.pointerType === 'mouse' ? 'mouse' : 'touch'; showHint(); } }, { passive: true });
@@ -5854,6 +5886,7 @@ const GrainSim = (() => {
         case 'push': Sound.push(e.n, e.speed); break;
         case 'clack': Sound.knock(e.v); break;
         case 'cat_comes': Sound.cat(); break;
+        case 'zone_ready': Sound.zenOpen(); Haptics.buzz([8, 30, 8]); zenTip('zoneTap', 'The Zen Zone is full: tap the tube to start it.'); break;
         case 'moon_phase':
           if (e.phase === 1 && !fx.moonTold) { fx.moonTold = true; zenSay(tr('The moon is rising'), 2, '', { sub: tr('Rows closed in its light pay more.') }); }
           else if (e.full && e.blood) { Sound.thud(); Haptics.buzz([40, 60, 40]); zenSay(tr('Blood moon'), 3, 'red', { sub: tr('×3 on everything, twice the stones, no capybara. Hold on.') }); }
@@ -5946,7 +5979,7 @@ const GrainSim = (() => {
             fx.swaps.set(e.corner, { t: 0, x: e.x, y: e.y, r: e.r, corner: e.corner, type: e.grain, dir: { x: dir.x / d, y: dir.y / d },
               held: e.held.map((g) => ({ ...g, st: ST.GONE })) });
           }
-          const pip = $('capy').querySelectorAll('.ring path')[(e.bowls - 1) % GS.ZEN_THANKS];
+          const pip = $('capy').querySelectorAll('.ring path')[Math.min(GS.ZEN_THANKS, e.thanks) - 1];
           if (pip && pip.offsetWidth && !reducedMotion()) {
             const r = pip.getBoundingClientRect(), at = { x: e.x + (W / 2 - e.x) * 0.2, y: e.y - e.r * 0.45 };
             mote(at, r.left + r.width / 2, r.top + r.height / 2, false);
@@ -5994,6 +6027,7 @@ const GrainSim = (() => {
           break;
         case 'order_failed':
           Sound.lost();
+          if (e.penalty) note('\u2212' + fmt(e.penalty), '', '#ff7a6b', '#ff7a6b', e.x + (e.x < W / 2 ? 120 : e.x > W / 2 ? -120 : 0), e.y - 110);
           zenSay(tr('The order went unfilled'), 2);
           Analytics.emit('zen_order', { done: false, grain: e.grain, need: e.need, got: e.got, time: sim.clock });
           break;
@@ -6043,6 +6077,7 @@ const GrainSim = (() => {
           }
           break;
         case 'capybara':
+          fx.capyFive = performance.now() + 900;      // the whole ring lit for a moment, then it starts again
           Sound.fanfare(); Haptics.buzz([15, 40, 15]); syncLives(false); restartAnim($('capy'), 'bless');
           giveMedal('capybara', '', $('capy'));
           zenSay(tr('Zen Capybara') + ': ' + (e.gave === 'life' ? tr('a life back') : '+' + fmt(e.points)), 3, 'gold');
@@ -7552,7 +7587,8 @@ const GrainSim = (() => {
       let n = 0;
       while (acc >= step && n < 24) {
         const inp = autoBot ? autoBot() : input;
-        sim.step(inp); handleEvents(sim.drainEvents()); acc -= step; n++;
+        sim.step(inp); if (inp === input) input.fire = false;
+        handleEvents(sim.drainEvents()); acc -= step; n++;
       }
       if (n === 24) acc = 0;
       // a heartbeat that quickens as a wrong grain creeps toward the open tips
