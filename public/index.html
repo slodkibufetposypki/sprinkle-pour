@@ -6509,29 +6509,72 @@ const GrainSim = (() => {
     const txt = tr('{n} in {s} s', { n: Math.max(0, O.need - O.got), s: Math.ceil(left) }), ty = y - pr - 38;
     ctx.strokeText(txt, x, ty); ctx.fillText(txt, x, ty);
   }
-  // the jar lies on its side at the top of the board and tips forward while it pours; the chalk number is what is left
+  // The jar: a small stoneware tsubo lying on its side at the top of the board, its mouth toward the middle, in a
+  // tenmoku glaze that thins to rust where the light falls (upper left) and pools dark below, with an unglazed foot,
+  // a lip ring and a paper label that says in ink how many grains are still in it. It rests on its own soft shadow,
+  // tips forward while it pours, shivers before a wave, and rolls right over when it spills, then rights itself.
   function drawJar(s, ox, oy) {
     const J = s.jar;
     if (!J) return;
-    const dir = J.left ? 1 : -1, tip = J.tip * J.tip, k = K();
-    ctx.setTransform(k * dir, 0, 0, k, view.dpr * (view.offX + ox + J.x * view.scale), view.dpr * (oy + J.y * view.scale));
-    const shake = s.flow && s.flow.kind === 'warn' && !reducedMotion() ? Math.sin(performance.now() / 22) * 0.12 : 0;
-    ctx.rotate(0.38 + 0.32 * tip + shake);
-    ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.beginPath(); ctx.ellipse(6, 12, 38, 26, 0, 0, Math.PI * 2); ctx.fill();
-    const g = ctx.createRadialGradient(-12, -14, 2, 0, 0, 44);
-    g.addColorStop(0, '#8a6544'); g.addColorStop(0.5, '#56391f'); g.addColorStop(1, '#2a1a0e');
-    ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(0, 0, 36, 27, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#4a311b'; ctx.fillRect(26, -12, 14, 24);
-    ctx.fillStyle = '#9a774f'; ctx.beginPath(); ctx.ellipse(41, 0, 5.5, 14.5, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#150d07'; ctx.beginPath(); ctx.ellipse(42, 0, 3.4, 11, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = 'rgba(255,235,200,0.28)'; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.ellipse(-4, -2, 26, 18, 0, Math.PI * 1.1, Math.PI * 1.45); ctx.stroke();
+    const dir = J.left ? 1 : -1, tip = J.tip * J.tip, k = K(), still = reducedMotion();
+    const X = view.dpr * (view.offX + ox + J.x * view.scale), Y = view.dpr * (oy + J.y * view.scale);
+    const shake = s.flow && s.flow.kind === 'warn' && !still ? Math.sin(performance.now() / 22) * 0.12 : 0;
+    const sp = s.flow && s.flow.kind === 'spill' && s.clock < s.flow.until ? clamp((s.flow.until - s.clock) / 1.5, 0, 1) : 0;
+    const over = sp > 0 ? 1.15 * Math.sin(sp * Math.PI) : 0, rot = 0.38 + 0.32 * tip + shake + over;
+    // the shadow on the board, which does not turn with the jar
+    ctx.setTransform(k, 0, 0, k, X, Y);
+    const sh = ctx.createRadialGradient(dir * 6, 26, 2, dir * 6, 26, 50);
+    sh.addColorStop(0, 'rgba(10,6,3,0.5)'); sh.addColorStop(1, 'rgba(10,6,3,0)');
+    ctx.fillStyle = sh; ctx.beginPath(); ctx.ellipse(dir * 6, 26, 50, 16, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.setTransform(k * dir, 0, 0, k, X, Y);
+    ctx.rotate(rot);
+    // the unglazed foot, at the back
+    ctx.fillStyle = '#9c7a55'; ctx.beginPath(); ctx.ellipse(-35, 0, 5, 15, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#6e5238'; ctx.beginPath(); ctx.ellipse(-36.5, 0, 2.6, 11, 0, 0, Math.PI * 2); ctx.fill();
+    // the body: belly, shoulder and neck as one outline
+    ctx.beginPath();
+    ctx.moveTo(-33, -13);
+    ctx.bezierCurveTo(-30, -33, 6, -36, 20, -20);
+    ctx.bezierCurveTo(26, -14, 28, -12, 36, -11);
+    ctx.lineTo(36, 11);
+    ctx.bezierCurveTo(28, 12, 26, 14, 20, 20);
+    ctx.bezierCurveTo(6, 36, -30, 33, -33, 13);
+    ctx.closePath();
+    const hx = dir > 0 ? -12 : 8;            // the light stays upper left on the board, whichever way the jar lies
+    const gl = ctx.createRadialGradient(hx, -18, 2, hx * 0.35, 0, 42);
+    gl.addColorStop(0, '#c07a3c'); gl.addColorStop(0.22, '#8a4d26'); gl.addColorStop(0.55, '#3d2515'); gl.addColorStop(1, '#170e08');
+    ctx.fillStyle = gl; ctx.fill();
+    ctx.save(); ctx.clip();
+    // where the glaze ran: a few soft streaks down the shoulder, and the glaze pooling darker toward the foot
+    ctx.strokeStyle = 'rgba(214,150,90,0.22)'; ctx.lineWidth = 1.6; ctx.lineCap = 'round';
+    ctx.beginPath();
+    for (const [x0, y0, x1, y1] of [[-16, -30, -14, -12], [-6, -32, -4, -18], [4, -30, 7, -14], [12, -25, 14, -10]]) { ctx.moveTo(x0, y0); ctx.quadraticCurveTo(x0 + 2, (y0 + y1) / 2, x1, y1); }
+    ctx.stroke();
+    const pool = ctx.createLinearGradient(-36, 0, -18, 0);
+    pool.addColorStop(0, 'rgba(8,4,2,0.55)'); pool.addColorStop(1, 'rgba(8,4,2,0)');
+    ctx.fillStyle = pool; ctx.fillRect(-40, -40, 24, 80);
+    ctx.restore();
+    // the light: a broad sheen and a small bright glint, upper left
+    ctx.fillStyle = 'rgba(255,226,190,0.16)'; ctx.beginPath(); ctx.ellipse(hx, -19, 15, 7, -0.25 * dir, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(255,244,226,0.55)'; ctx.beginPath(); ctx.ellipse(hx - 3 * dir, -21, 4.5, 2, -0.3 * dir, 0, Math.PI * 2); ctx.fill();
+    // the lip ring, glaze thick on it, and the dark mouth
+    ctx.fillStyle = '#7a4a28'; ctx.beginPath(); ctx.ellipse(38, 0, 5.5, 13.5, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,214,170,0.35)'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.ellipse(38, 0, 5.5, 13.5, 0, Math.PI * 1.05, Math.PI * 1.55); ctx.stroke();
+    ctx.fillStyle = '#0d0805'; ctx.beginPath(); ctx.ellipse(39.4, 0.6, 3.4, 10, 0, 0, Math.PI * 2); ctx.fill();
     ctx.lineCap = 'butt';
+    // the label: a slip of paper pasted on the belly; the count on it in ink, always upright
     const n = s.inJar();
+    ctx.save(); ctx.translate(-8, 4); ctx.rotate(-0.08);
+    ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(-11.5, -14, 24, 30);
+    ctx.fillStyle = '#e6dbc3'; ctx.fillRect(-12, -15, 24, 30);
+    ctx.fillStyle = 'rgba(168,58,40,0.85)'; ctx.fillRect(6, -13, 4, 4);           // a small vermilion seal
+    ctx.restore();
     if (!n) return;
-    ctx.setTransform(k, 0, 0, k, view.dpr * (view.offX + ox + J.x * view.scale), view.dpr * (oy + J.y * view.scale));
-    ctx.font = '26px ' + HAND; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillStyle = 'rgba(236,232,222,0.85)'; ctx.fillText(String(n), -dir * 4, 2);
+    const lx = -8, ly = 4, c = Math.cos(rot), sn = Math.sin(rot);
+    const wx = (lx * c - ly * sn) * dir, wy = lx * sn + ly * c;                       // the label's middle on the board
+    ctx.setTransform(k, 0, 0, k, X + wx * k, Y + wy * k);
+    ctx.font = '400 ' + (n > 99 ? 15 : 20) + 'px ' + BRUSH; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#2a1b11'; ctx.fillText(String(n), 0, 1.5);
   }
   function drawTrayEdge(s, ox, oy) {
     if (!s.tilt) return;
