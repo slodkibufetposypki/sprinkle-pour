@@ -1,7 +1,7 @@
 """The game's two faces with the Polish letters they lack, embedded in game.html.
 
-Klee One (the pen hand) and Yuji Syuku (the brush) carry ł and ó but not ą ć ę ń ś ź ż, so a browser drew those few
-letters in another font. This takes the Latin part of each font from Google Fonts, builds the missing letters from
+Kaisei Decol (the text, an old Japanese print antiqua) and Yuji Syuku (the brush) carry ł and ó but not ą ć ę ń ś ź ż,
+so a browser drew those few letters in another font. This takes the Latin part of each font from Google Fonts, builds the missing letters from
 the font's own strokes (the acute from ´, the dot from the i, the ogonek from the cedilla turned round), renames the
 result (SIL Open Font License, Version 1.1) and writes it into game.html between the FONTS-PL markers as data URIs.
 
@@ -21,7 +21,7 @@ HERE = Path(__file__).resolve().parent
 GAME = HERE.parent.parent / 'game.html'
 TEXT = (''.join(chr(c) for c in range(32, 127)) + ''.join(chr(c) for c in range(0xA0, 0x100))
         + 'ąćęłńśźżĄĆĘŁŃŚŹŻ‐‑‒–—‘’‚“”„•…‹›′″→←↑↓−×·')
-FACES = [('Klee One', 400, 'Zen Hand'), ('Klee One', 600, 'Zen Hand'), ('Yuji Syuku', 400, 'Zen Brush')]
+FACES = [('Kaisei Decol', 400, 'Zen Hand'), ('Kaisei Decol', 700, 'Zen Hand'), ('Yuji Syuku', 400, 'Zen Brush')]
 UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36'
 
 
@@ -122,7 +122,7 @@ def build(font, new_family, weight):
     if 'post' in font and font['post'].formatType == 2.0: font['post'].formatType = 3.0   # glyph names are not needed
 
     # a renamed family, as the licence asks of a changed font
-    style = 'SemiBold' if weight == 600 else 'Regular'
+    style = {600: 'SemiBold', 700: 'Bold'}.get(weight, 'Regular')
     nm = font['name']
     old = nm.getDebugName(0) or ''
     for rec in list(nm.names):
@@ -148,7 +148,7 @@ def main():
         print(new, w, len(data), 'bytes', file=sys.stderr)
         rules.append("@font-face { font-family: '%s'; font-weight: %d; font-display: swap; src: url(data:font/woff2;base64,%s) format('woff2'); }"
                      % (new, w, base64.b64encode(data).decode()))
-    block = ('<style id="fonts-pl">\n/* FONTS-PL BEGIN: Klee One and Yuji Syuku (SIL OFL 1.1) with the Polish letters they lack, made by\n'
+    block = ('<style id="fonts-pl">\n/* FONTS-PL BEGIN: Kaisei Decol and Yuji Syuku (SIL OFL 1.1) with the Polish letters they lack, made by\n'
              '   tools/media/fonts_pl.py; do not edit by hand */\n' + '\n'.join(rules) + '\n/* FONTS-PL END */\n</style>')
     src = GAME.read_text(encoding='utf-8')
     if '<style id="fonts-pl">' in src:
