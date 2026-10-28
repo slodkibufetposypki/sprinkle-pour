@@ -5014,7 +5014,17 @@ const GrainSim = (() => {
   const BOWL_GLAZE = { slate: 'cobalt', walnut: 'celadon', bamboo: 'tenmoku', clay: 'cobalt', lacquer: 'celadon', paper: 'tenmoku', porcelain: 'tenmoku',
     iron: 'cobalt', damascus: 'tenmoku', marble: 'celadon', cedar: 'shino', obsidian: 'celadon', zen: 'cobalt' };
   const GLAZE_TRY = new URLSearchParams(location.search).get('glaze');
-  const bowlPic = () => painted('zg-bowl-' + (GLAZE_TRY || BOWL_GLAZE[levelIndex < 0 ? 'zen' : SURFACE_TRY || GS.surfaceOf(levelIndex)] || 'cobalt'));
+  // the same glazes drawn in code, in a few flat tones: the well, the wall, the rim, the drips on the lip, the gloss
+  const BOWL_CODE = {
+    cobalt: { well: '#14284a', wall: '#22457c', rim: '#3a66a6', drip: '#2b558f', hi: '160,200,255' },
+    celadon: { well: '#28423a', wall: '#43705c', rim: '#6a9a82', drip: '#54836c', hi: '205,238,218' },
+    tenmoku: { well: '#170e09', wall: '#341f10', rim: '#5e3b1e', drip: '#4b2e17', hi: '255,205,150' },
+    shino: { well: '#5a3c2b', wall: '#8a5e44', rim: '#b98964', drip: '#a67452', hi: '255,232,205' },
+  };
+  const bowlGlaze = () => GLAZE_TRY || BOWL_GLAZE[levelIndex < 0 ? 'zen' : SURFACE_TRY || GS.surfaceOf(levelIndex)] || 'cobalt';
+  // ?bowls=code draws the bowls in code, ?bowls=simple shows the simpler painted test bowl, to compare with the painted ones
+  const BOWLS_TRY = new URLSearchParams(location.search).get('bowls');
+  const bowlPic = () => BOWLS_TRY === 'code' ? null : painted(BOWLS_TRY === 'simple' ? 'zg-bowl-simple-cobalt' : 'zg-bowl-' + bowlGlaze());
   const porcImgs = {};
   function porcelainLayer(which) {
     if (!porcImgs[which]) {
@@ -7379,14 +7389,32 @@ const GrainSim = (() => {
       }
       return;
     }
+    const C = BOWL_CODE[bowlGlaze()] || BOWL_CODE.cobalt;
     // the lip: pale stoneware, rounded, the glaze thinning to brown at its very edges
     g = ctx.createRadialGradient(cx, cy, r - 1, cx, cy, R);
     g.addColorStop(0, '#6d5a43'); g.addColorStop(0.18, '#c9b897'); g.addColorStop(0.5, '#ece0c6'); g.addColorStop(0.82, '#d2c2a2'); g.addColorStop(1, '#7c6a52');
     ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.arc(cx, cy, r, 0, Math.PI * 2, true); ctx.fill('evenodd');
+    // the glaze laps over onto the lip in a few soft drips, the same on every bowl of a board
+    ctx.beginPath();
+    for (let i = 0; i <= 96; i++) {
+      const a = (i / 96) * Math.PI * 2;
+      const k = Math.pow(Math.max(0, Math.sin(a * 5 + 0.7)), 6) + 0.7 * Math.pow(Math.max(0, Math.sin(a * 3 + 2.1)), 10);
+      const rr = r + BOWL_LIP * (0.16 + 0.42 * Math.min(1, k));
+      if (i) ctx.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr); else ctx.moveTo(cx + rr, cy);
+    }
+    g = ctx.createRadialGradient(cx, cy, r, cx, cy, r + BOWL_LIP * 0.6);
+    g.addColorStop(0, C.rim); g.addColorStop(1, C.drip);
+    ctx.fillStyle = g; ctx.fill();
     // inside: a deep glaze, darker down in the well, lighter up the wall
     g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-    g.addColorStop(0, '#1d2733'); g.addColorStop(0.7, '#253241'); g.addColorStop(0.94, '#33465a'); g.addColorStop(1, '#3d536a');
+    g.addColorStop(0, C.well); g.addColorStop(0.38, C.well); g.addColorStop(0.8, C.wall); g.addColorStop(1, C.rim);
     ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+    // the foot ring in the bottom of the well, its far side catching a little light
+    ctx.lineWidth = 2.6; ctx.strokeStyle = 'rgba(0,0,0,0.28)';
+    ctx.beginPath(); ctx.arc(cx, cy, r * 0.44, 0, Math.PI * 2); ctx.stroke();
+    const la = Math.atan2(-L.y, -L.x);
+    ctx.lineWidth = 1.6; ctx.strokeStyle = 'rgba(' + C.hi + ',0.28)';
+    ctx.beginPath(); ctx.arc(cx, cy, r * 0.44 + 1.5, la - 0.9, la + 0.9); ctx.stroke();
     // the lip's shadow on the inner wall toward the light, and the light on the far wall
     const sx = cx - L.x * r * 0.12, sy = cy - L.y * r * 0.12;
     g = ctx.createRadialGradient(sx, sy, r * 0.82, sx, sy, r * 1.04);
@@ -7394,8 +7422,14 @@ const GrainSim = (() => {
     ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.clip();
     ctx.fillStyle = g; ctx.fillRect(cx - r - 20, cy - r - 20, r * 2 + 40, r * 2 + 40);
     const hx = cx - L.x * r * 0.55, hy = cy - L.y * r * 0.55, hg = ctx.createRadialGradient(hx, hy, 0, hx, hy, r * 0.6);
-    hg.addColorStop(0, 'rgba(170,200,230,0.16)'); hg.addColorStop(1, 'rgba(170,200,230,0)');
+    hg.addColorStop(0, 'rgba(' + C.hi + ',0.2)'); hg.addColorStop(1, 'rgba(' + C.hi + ',0)');
     ctx.fillStyle = hg; ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
+    // the gloss of the glaze: one soft crescent on the lit wall and a small bright point on it
+    ctx.lineCap = 'round'; ctx.lineWidth = r * 0.09; ctx.strokeStyle = 'rgba(' + C.hi + ',0.3)';
+    ctx.beginPath(); ctx.arc(cx, cy, r * 0.8, la - 0.55, la + 0.55); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.beginPath(); ctx.arc(cx + Math.cos(la - 0.3) * r * 0.8, cy + Math.sin(la - 0.3) * r * 0.8, r * 0.04, 0, Math.PI * 2); ctx.fill();
+    ctx.lineCap = 'butt';
     ctx.restore();
     // a glint along the lip where it faces the light, on the part that is on the board
     const ga = Math.atan2(L.y, L.x), a = Math.abs(((ga - am + Math.PI * 3) % (Math.PI * 2)) - Math.PI) < 1.2 ? ga : am - 0.45;
