@@ -6493,7 +6493,7 @@ const GrainSim = (() => {
   }
   // The jar: a small stoneware tsubo lying on its side at the top of the board, its mouth toward the middle, in a
   // tenmoku glaze that thins to rust where the light falls (upper left) and pools dark below, with an unglazed foot,
-  // a lip ring and a paper label that says in ink how many grains are still in it. It rests on its own soft shadow,
+  // a lip ring, and how many grains are still in it brushed on the glaze in gold. It rests on its own soft shadow,
   // tips forward while it pours, shivers before a wave, and rolls right over when it spills, then rights itself.
   function drawJar(s, ox, oy) {
     const J = s.jar;
@@ -6544,19 +6544,15 @@ const GrainSim = (() => {
     ctx.strokeStyle = 'rgba(255,214,170,0.35)'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.ellipse(38, 0, 5.5, 13.5, 0, Math.PI * 1.05, Math.PI * 1.55); ctx.stroke();
     ctx.fillStyle = '#0d0805'; ctx.beginPath(); ctx.ellipse(39.4, 0.6, 3.4, 10, 0, 0, Math.PI * 2); ctx.fill();
     ctx.lineCap = 'butt';
-    // the label: a slip of paper pasted on the belly; the count on it in ink, always upright
+    // how many grains are still in it, brushed in gold straight onto the glaze, upright on the board
     const n = s.inJar();
-    ctx.save(); ctx.translate(-8, 4); ctx.rotate(-0.08);
-    ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(-11.5, -14, 24, 30);
-    ctx.fillStyle = '#e6dbc3'; ctx.fillRect(-12, -15, 24, 30);
-    ctx.fillStyle = 'rgba(168,58,40,0.85)'; ctx.fillRect(6, -13, 4, 4);           // a small vermilion seal
-    ctx.restore();
     if (!n) return;
-    const lx = -8, ly = 4, c = Math.cos(rot), sn = Math.sin(rot);
-    const wx = (lx * c - ly * sn) * dir, wy = lx * sn + ly * c;                       // the label's middle on the board
+    const lx = -6, ly = 2, c = Math.cos(rot), sn = Math.sin(rot);
+    const wx = (lx * c - ly * sn) * dir, wy = lx * sn + ly * c;                       // the belly's middle on the board
     ctx.setTransform(k, 0, 0, k, X + wx * k, Y + wy * k);
-    ctx.font = '400 ' + (n > 99 ? 15 : 20) + 'px ' + BRUSH; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#2a1b11'; ctx.fillText(String(n), 0, 1.5);
+    ctx.font = '400 ' + (n > 99 ? 20 : 26) + 'px ' + BRUSH; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.lineJoin = 'round'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(20,10,4,0.55)'; ctx.strokeText(String(n), 0, 1.5);
+    ctx.fillStyle = 'rgba(232,190,104,0.95)'; ctx.fillText(String(n), 0, 1.5);
   }
   function drawTrayEdge(s, ox, oy) {
     if (!s.tilt) return;
