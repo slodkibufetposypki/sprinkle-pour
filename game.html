@@ -6680,16 +6680,18 @@ const GrainSim = (() => {
     const lf = 1 + G.lift * 1.8, la = 1 - G.lift * 0.45;
     at(G.Tx, G.Ty);
     for (const side of [-1, 1]) {
-      const m = stickShape(ctx, side, G, L);
-      const gr = ctx.createLinearGradient(-m.baseW / 2, 0, m.baseW / 2, 0);
-      [0, 0.22, 0.42, 0.62, 1].forEach((p, i) => gr.addColorStop(p, skin.body[i]));
       // its shadow without a blur (a blurred canvas shadow is the costliest thing a phone's browser draws): the same
-      // shape twice, offset, the nearer one darker, which reads as one soft shadow
+      // shape twice, offset, the nearer one darker, which reads as one soft shadow. stickShape saves the canvas state
+      // and leaves it to the caller to restore: every call here is paired with a restore, or the state stack grows
+      // by the frame until Safari gives up drawing
       for (const [o, al] of [[1, 0.16], [0.72, 0.2]]) {
         ctx.setTransform(cs, sn, -sn, cs, view.dpr * (view.offX + ox + G.Tx * view.scale) + 8 * lf * k * o, view.dpr * (oy + G.Ty * view.scale) + 11 * lf * k * o);
-        stickShape(ctx, side, G, L); ctx.fillStyle = 'rgba(20,10,4,' + (al * la).toFixed(3) + ')'; ctx.fill();
+        stickShape(ctx, side, G, L); ctx.fillStyle = 'rgba(20,10,4,' + (al * la).toFixed(3) + ')'; ctx.fill(); ctx.restore();
       }
-      at(G.Tx, G.Ty); stickShape(ctx, side, G, L);
+      at(G.Tx, G.Ty);
+      const m = stickShape(ctx, side, G, L);          // restored at the end of this side
+      const gr = ctx.createLinearGradient(-m.baseW / 2, 0, m.baseW / 2, 0);
+      [0, 0.22, 0.42, 0.62, 1].forEach((p, i) => gr.addColorStop(p, skin.body[i]));
       ctx.fillStyle = gr; ctx.fill();
       if (skin.tip) {
         ctx.save(); ctx.clip();
