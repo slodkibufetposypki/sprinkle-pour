@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Żywa kapibara</title>
+<style>
+  :root {
+    --bg: #f3ead9; --stage: #e6d8bf; --ink: #2b1d12; --muted: #6f5b45;
+    --line: rgba(43, 29, 18, .14); --chip: rgba(43, 29, 18, .06); --chip-on: #2b1d12; --chip-on-ink: #f3ead9;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #17100b; --stage: #241811; --ink: #f1e4cc; --muted: #b29d80;
+      --line: rgba(241, 228, 204, .14); --chip: rgba(241, 228, 204, .07); --chip-on: #f1e4cc; --chip-on-ink: #17100b;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #17100b; --stage: #241811; --ink: #f1e4cc; --muted: #b29d80;
+    --line: rgba(241, 228, 204, .14); --chip: rgba(241, 228, 204, .07); --chip-on: #f1e4cc; --chip-on-ink: #17100b;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink); }
+  body { font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 20px 16px 28px; }
+  h1 { font-size: 20px; margin: 0; letter-spacing: .01em; }
+  .sub { color: var(--muted); margin: 4px 0 14px; font-size: 14px; text-align: center; }
+  .stage { position: relative; width: min(100%, 380px); aspect-ratio: 489 / 720; background: radial-gradient(ellipse at 50% 92%, rgba(0,0,0,.18), transparent 38%), var(--stage); border-radius: 18px; border: 1px solid var(--line); overflow: hidden; touch-action: manipulation; cursor: pointer; }
+  .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 14px; max-width: 380px; }
+  button { font: inherit; font-size: 14px; color: var(--ink); background: var(--chip); border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px; cursor: pointer; transition: transform .12s, background .15s; }
+  button:active { transform: scale(.96); }
+  button[aria-pressed="true"] { background: var(--chip-on); color: var(--chip-on-ink); border-color: transparent; }
+  .note { color: var(--muted); font-size: 13px; margin-top: 12px; text-align: center; max-width: 380px; }
+</style>
+</head>
+<body>
+  <h1>Żywa kapibara</h1>
+  <p class="sub">Ten sam obrazek, ruch dopisany w kodzie. Dotknij kapibary.</p>
+  <div class="stage" id="stage">
+    <canvas id="gl"></canvas>
+    <canvas id="fx"></canvas>
+  </div>
+  <div class="row" id="acts">
+    <button data-act="happy">Minka</button>
+    <button data-act="rub">Brzuszek</button>
+    <button data-act="sniff">Węszy</button>
+    <button data-act="ear">Ucho</button>
+    <button data-act="nod">Drzemka</button>
+  </div>
+  <div class="row">
+    <button id="still" aria-pressed="false">Bez ruchu</button>
+    <button id="auto" aria-pressed="true">Sama z siebie</button>
+  </div>
+  <p class="note" id="note"></p>
+<script>
+(() => {
+  // Rest-pose landmarks, in pixels of zg-capy-idle.webp (409 × 640).
+  const IW = 409, IH = 640, PAD = 40, W = IW + 2 * PAD, H = IH + 2 * PAD;
+  const COLS = 52, ROWS = 80;
+  const L = {
+    neck: [198, 244],
+    head: { c: [186, 150], r: [124, 104] },
+    yuzu: { piv: [184, 84], c: [184, 50], r: 40, leaf: [236, 24], lr: 30 },
+    earL: { c: [126, 84], base: [138, 104], r: 26 },
+    earR: { c: [254, 80], base: [244, 102], r: 26 },
+    nose: { c: [108, 152], r: 30 },
+    eye: { c: [229, 117], r: [22, 12] },
+    mouth: { c: [124, 200], r: [30, 16] },
+    hands: { c: [184, 442], r: [72, 36] },
+    belly: { c: [205, 430], s: [150, 140] },
+    cheek: [[214, 168], [150, 186]],
+    feetY: 580,
+  };
+
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const stage = document.getElementById('stage');
+  const glc = document.getElementById('gl'), fxc = document.getElementById('fx');
+  const fx = fxc.getContext('2d');
+  const gl = glc.getContext('webgl', { premultipliedAlpha: true, antialias: true });
+  const note = document.getElementById('note');
+  if (!gl) { note.textContent = 'Ta przeglądarka nie pokazuje grafiki WebGL, więc kapibara stoi bez ruchu.'; }
+
+  // ---------- weights: how much each part of the picture follows each "bone" ----------
+  const sstep = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+  const ell = (p, c, r) => Math.hypot((p[0] - c[0]) / r[0], (p[1] - c[1]) / r[1]);
+  function weights(p) {
+    const head = Math.max(1 - sstep(.72, 1.22, ell(p, L.head.c, L.head.r)), 1 - sstep(.8, 1.3, ell(p, L.yuzu.c, [L.yuzu.r * 1.3, L.yuzu.r * 1.3])), 1 - sstep(.7, 1.2, ell(p, L.yuzu.leaf, [L.yuzu.lr, L.yuzu.lr])));
+    const yuzu = Math.max(1 - sstep(.75, 1.15, ell(p, L.yuzu.c, [L.yuzu.r, L.yuzu.r])), 1 - sstep(.7, 1.2, ell(p, L.yuzu.leaf, [L.yuzu.lr, L.yuzu.lr]))) * sstep(L.yuzu.piv[1] + 6, L.yuzu.piv[1] - 8, p[1]);
+    const earL = 1 - sstep(.6, 1.15, ell(p, L.earL.c, [L.earL.r, L.earL.r * 1.2]));
+    const earR = 1 - sstep(.6, 1.15, ell(p, L.earR.c, [L.earR.r, L.earR.r * 1.2]));
+    const nose = 1 - sstep(.3, 1, ell(p, L.nose.c, [L.nose.r, L.nose.r]));
+    const eye = 1 - sstep(.4, 1.1, ell(p, L.eye.c, L.eye.r));
+    const mouth = 1 - sstep(.3, 1.05, ell(p, L.mouth.c, L.mouth.r));
+    const hands = 1 - sstep(.55, 1.25, ell(p, L.hands.c, L.hands.r));
+    const bx = (p[0] - L.belly.c[0]) / L.belly.s[0], by = (p[1] - L.belly.c[1]) / L.belly.s[1];
+    const belly = Math.exp(-(bx * bx + by * by));
+    const body = sstep(L.feetY + 30, L.feetY - 40, p[1]);
+    return { head, yuzu, earL, earR, nose, eye, mouth, hands, belly, body };
+  }
+
+  const rot = (q, c, a) => { const cs = Math.cos(a), sn = Math.sin(a), dx = q[0] - c[0], dy = q[1] - c[1]; return [c[0] + cs * dx - sn * dy, c[1] + sn * dx + cs * dy]; };
+  const scl = (q, c, sx, sy) => [c[0] + (q[0] - c[0]) * sx, c[1] + (q[1] - c[1]) * sy];
+  const mix = (a, b, w) => [a[0] + (b[0] - a[0]) * w, a[1] + (b[1] - a[1]) * w];
+
+  function deform(p, w, s) {
+    let q = p;
+    q = mix(q, rot(q, L.earL.base, s.earL), w.earL);
+    q = mix(q, rot(q, L.earR.base, s.earR), w.earR);
+    q = mix(q, scl(q, L.nose.c, 1 + s.sniff, 1 + s.sniff * .6), w.nose);
+    q = mix(q, scl(q, L.eye.c, 1 + s.eyeSq * .06, 1 - s.eyeSq * .32), w.eye);
+    q = mix(q, [q[0], q[1] - s.smile * 2.2 * Math.max(0, (q[0] - L.mouth.c[0]) / L.mouth.r[0] + .4)], w.mouth);
+    q = mix(q, rot(q, L.yuzu.piv, s.yuzu), w.yuzu);
+    let h = scl(q, L.neck, s.hsx, s.hsy);
+    h = rot(h, L.neck, s.head);
+    q = mix(q, [h[0] + s.hx, h[1] + s.hy], w.head);
+    q = [q[0] + s.handX * w.hands, q[1] + s.handY * w.hands];
+    const lift = Math.max(0, (L.feetY - p[1]) / L.feetY);
+    q = [q[0] + (p[0] - L.belly.c[0]) * s.breath * .024 * w.belly + s.sway * (L.feetY - p[1]) * w.body,
+         q[1] - s.breath * 4.2 * lift * w.body];
+    return q;
+  }
+
+  // ---------- mesh ----------
+  const verts = [], wts = [];
+  for (let j = 0; j <= ROWS; j++) for (let i = 0; i <= COLS; i++) {
+    const p = [i / COLS * IW, j / ROWS * IH];
+    verts.push(p); wts.push(weights(p));
+  }
+  const idx = [];
+  for (let j = 0; j < ROWS; j++) for (let i = 0; i < COLS; i++) {
+    const a = j * (COLS + 1) + i, b = a + 1, c = a + COLS + 1, d = c + 1;
+    idx.push(a, c, b, b, c, d);
+  }
+  const pos = new Float32Array(verts.length * 2), uv = new Float32Array(verts.length * 2);
+  verts.forEach((p, k) => { uv[2 * k] = p[0] / IW; uv[2 * k + 1] = p[1] / IH; });
+
+  let prog, posBuf, tex, ready = false;
+  if (gl) {
+    const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s; };
+    prog = gl.createProgram();
+    gl.attachShader(prog, sh(gl.VERTEX_SHADER, 'attribute vec2 p;attribute vec2 t;uniform vec2 sz;varying vec2 v;void main(){v=t;vec2 c=(p+vec2(' + PAD + '.0))/sz*2.0-1.0;gl_Position=vec4(c.x,-c.y,0.0,1.0);}'));
+    gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, 'precision mediump float;uniform sampler2D img;varying vec2 v;void main(){gl_FragColor=texture2D(img,v);}'));
+    gl.linkProgram(prog); gl.useProgram(prog);
+    posBuf = gl.createBuffer();
+    const uvBuf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, uvBuf); gl.bufferData(gl.ARRAY_BUFFER, uv, gl.STATIC_DRAW);
+    const tl = gl.getAttribLocation(prog, 't'); gl.enableVertexAttribArray(tl); gl.vertexAttribPointer(tl, 2, gl.FLOAT, false, 0, 0);
+    const ib = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ib); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(idx), gl.STATIC_DRAW);
+    gl.uniform2f(gl.getUniformLocation(prog, 'sz'), W, H);
+    gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+    const im = new Image();
+    im.onload = () => {
+      tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, im);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      ready = true;
+    };
+    im.src = 'zg-capy-idle.webp';
+  }
+
+  function resize() {
+    const r = stage.getBoundingClientRect(), dpr = Math.min(2.5, devicePixelRatio || 1);
+    for (const c of [glc, fxc]) { c.width = Math.round(r.width * dpr); c.height = Math.round(r.height * dpr); }
+    if (gl) gl.viewport(0, 0, glc.width, glc.height);
+  }
+  addEventListener('resize', resize); resize();
+
+  // ---------- actions: each one is a short envelope that adds to the pose ----------
+  const acts = [];
+  const LEN = { happy: 1.7, rub: 3.4, sniff: 1.3, ear: .9, nod: 3.2 };
+  function play(name) { for (const a of acts) if (a.name === name) return; acts.push({ name, t0: now }); }
+  const env = (u, a = .18, r = .3) => u <= 0 || u >= 1 ? 0 : Math.min(1, u / a, (1 - u) / r);
+  const bounce = u => u <= 0 || u >= 1 ? 0 : Math.sin(Math.PI * u) * (1 + .35 * Math.sin(3 * Math.PI * u) * (1 - u));
+
+  let now = 0, last = performance.now(), still = false, auto = true, nextAuto = 1.2, autoStep = 0;
+  const AUTO = ['sniff', 'ear', 'happy', 'rub', 'ear', 'nod', 'sniff', 'happy'];
+  const yz = { a: 0, v: 0 }; let prevHead = 0;
+
+  function pose(dt) {
+    const s = { earL: 0, earR: 0, sniff: 0, eyeSq: 0, smile: 0, yuzu: 0, head: 0, hsx: 1, hsy: 1, hx: 0, hy: 0, handX: 0, handY: 0, breath: 0, sway: 0, blush: 0 };
+    if (still) return s;
+    const idle = !reduce;
+    let breathRate = 1, breathAmp = 1;
+    if (idle) {
+      s.head = .028 * Math.sin(now * 2 * Math.PI / 6.4) + .01 * Math.sin(now * 1.7);
+      s.hy = .8 * Math.sin(now * 2 * Math.PI / 6.4 + 1);
+    }
+    for (let k = acts.length - 1; k >= 0; k--) {
+      const a = acts[k], t = now - a.t0, u = t / LEN[a.name];
+      if (u >= 1) { acts.splice(k, 1); continue; }
+      if (a.name === 'happy') {
+        const e = env(u, .14, .35), b = bounce(u);
+        s.head += .11 * e; s.hsx += .03 * b; s.hsy -= .045 * b; s.hy += 3 * b;
+        s.eyeSq = Math.max(s.eyeSq, e); s.smile = Math.max(s.smile, e); s.blush = Math.max(s.blush, e);
+        s.earL -= .12 * e; s.earR += .12 * e;
+      } else if (a.name === 'rub') {
+        const e = env(u, .12, .2), w = 2 * Math.PI * 1.6 * t;
+        s.handX += 7 * Math.cos(w) * e; s.handY += 3.6 * Math.sin(w) * e;
+        s.head += .06 * e + .012 * Math.sin(w) * e; s.sway += .0035 * Math.sin(w * .5) * e;
+        s.eyeSq = Math.max(s.eyeSq, .7 * e); s.smile = Math.max(s.smile, .8 * e); s.blush = Math.max(s.blush, .7 * e);
+        breathAmp = 1 - .5 * e;
+      } else if (a.name === 'sniff') {
+        const e = env(u, .1, .25);
+        s.sniff += .085 * Math.pow(Math.abs(Math.sin(2 * Math.PI * 4.5 * t)), 2) * e;
+        s.head -= .045 * e; s.hy -= 2 * e; s.hx -= 1.5 * e;
+      } else if (a.name === 'ear') {
+        const d = Math.sin(2 * Math.PI * 6 * t) * Math.exp(-5 * t);
+        s.earR += .46 * d; s.earL += .26 * Math.sin(2 * Math.PI * 6 * (t - .12)) * Math.exp(-5 * Math.max(0, t - .12)) * (t > .12);
+      } else if (a.name === 'nod') {
+        const e = env(u, .25, .3);
+        const dip = e * (.6 + .4 * Math.pow(Math.max(0, Math.sin(Math.PI * 2 * 1.1 * t)), 6));
+        s.head -= .02 * e; s.hy += 7 * dip; s.hsy -= .02 * dip;
+        s.eyeSq = Math.max(s.eyeSq, .4 * e); breathRate = 1 - .35 * e; breathAmp = 1 + .5 * e;
+      }
+    }
+    if (idle) {
+      breathPhase += dt * 2 * Math.PI / 3.8 * breathRate;
+      s.breath = Math.sin(breathPhase) * breathAmp;
+    }
+    // the yuzu lags behind the head, like it is really sitting on it
+    const hv = (s.head - prevHead) / Math.max(dt, 1 / 240); prevHead = s.head;
+    const target = -hv * .22 + (idle ? .02 * Math.sin(now * 1.3) : 0);
+    yz.v += ((target - yz.a) * 90 - yz.v * 9) * dt; yz.a += yz.v * dt;
+    s.yuzu = Math.max(-.35, Math.min(.35, yz.a));
+    return s;
+  }
+  let breathPhase = 0;
+
+  function frame(t) {
+    const dt = Math.min(.05, (t - last) / 1000); last = t; now += dt;
+    if (auto && !still && !reduce && now > nextAuto) { play(AUTO[autoStep++ % AUTO.length]); nextAuto = now + 2.6 + Math.random() * 1.6; }
+    const s = pose(dt);
+    if (ready) {
+      verts.forEach((p, k) => { const q = deform(p, wts[k], s); pos[2 * k] = q[0]; pos[2 * k + 1] = q[1]; });
+      gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.bindBuffer(gl.ARRAY_BUFFER, posBuf); gl.bufferData(gl.ARRAY_BUFFER, pos, gl.DYNAMIC_DRAW);
+      const pl = gl.getAttribLocation(prog, 'p'); gl.enableVertexAttribArray(pl); gl.vertexAttribPointer(pl, 2, gl.FLOAT, false, 0, 0);
+      gl.drawElements(gl.TRIANGLES, idx.length, gl.UNSIGNED_SHORT, 0);
+    }
+    // blush on the cheeks, drawn where the cheeks are after the bend
+    fx.clearRect(0, 0, fxc.width, fxc.height);
+    if (s.blush > .01) {
+      const k = fxc.width / W;
+      L.cheek.forEach((c, i) => {
+        const q = deform(c, weights(c), s), x = (q[0] + PAD) * k, y = (q[1] + PAD) * k, r = (i ? 16 : 22) * k;
+        const g = fx.createRadialGradient(x, y, 0, x, y, r);
+        g.addColorStop(0, `rgba(240,110,105,${.42 * s.blush * (i ? .6 : 1)})`); g.addColorStop(1, 'rgba(240,110,105,0)');
+        fx.fillStyle = g; fx.beginPath(); fx.ellipse(x, y, r, r * .7, 0, 0, 7); fx.fill();
+      });
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  document.getElementById('acts').addEventListener('click', e => { const b = e.target.closest('button'); if (b) play(b.dataset.act); });
+  stage.addEventListener('click', () => play(Math.random() < .6 ? 'happy' : 'sniff'));
+  const bStill = document.getElementById('still'), bAuto = document.getElementById('auto');
+  bStill.onclick = () => { still = !still; bStill.setAttribute('aria-pressed', still); acts.length = 0; };
+  bAuto.onclick = () => { auto = !auto; bAuto.setAttribute('aria-pressed', auto); };
+  if (reduce) { auto = false; bAuto.setAttribute('aria-pressed', 'false'); note.textContent = 'Masz włączone ograniczenie ruchu, więc kapibara rusza się tylko po dotknięciu przycisku.'; }
+  window.capy = { play, setAuto: v => { auto = v; bAuto.setAttribute('aria-pressed', v); } };
+})();
+</script>
+</body>
+</html>
