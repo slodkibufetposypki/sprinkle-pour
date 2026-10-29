@@ -1,5 +1,5 @@
 // Offline: load the public build once with its worker, cut the network, reload, and play.
-//   node tools/flows/pwoffline.cjs http://localhost:8765/zen-grain/ OUTDIR   (serve docs/ for this one)
+//   node tools/flows/pwoffline.cjs http://localhost:8765/ OUTDIR   (serve dist/ for this one)
 const { chromium } = require('playwright');
 (async () => {
   const base = process.argv[2], out = process.argv[3];

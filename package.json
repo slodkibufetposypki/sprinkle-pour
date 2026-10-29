@@ -1,0 +1,12 @@
+{
+  "name": "zen-grains",
+  "private": true,
+  "description": "Zen Grains: a calm sorting game played with chopsticks.",
+  "type": "module",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "build": "node build.mjs",
+    "build:local": "node build.mjs --local",
+    "test": "node --test test/sim.test.mjs"
+  }
+}

@@ -4,7 +4,7 @@ The medallion is found on its black ground and cut out as a circle (a hair insid
 fringe is left). Then it is made to sit with the game's drawn things rather than look like a photograph: the fine
 texture of the picture is smoothed away, the studio light is evened out (the game lays its own light and rim
 over it), and the colour is lifted a little.
-    python3 zen-grain/tools/media/medals.py SOURCE.png docs/zen-grain/medal-cat-front.webp
+    python3 tools/media/medals.py SOURCE.png public/medal-cat-front.webp
 """
 import sys
 import numpy as np

@@ -1,27 +1,63 @@
-# Zen Grains — source
+# Zen Grains
 
-The public page is `docs/zen-grain/index.html`, built from this folder. Edit `game.html`, never the built page.
+A calm sorting game for the phone: a spilled mess of grains, a pair of chopsticks, one straight row at a time.
+Edit `game.html`; the site is built from it. State of the work: `STATUS.md`. Plan and decisions: `ROADMAP.md`.
+Look of every picture: `STYLE.md`.
 
-| File | What it is |
+## Build: one static folder
+
+```bash
+npm run build            # = node build.mjs, writes dist/
+npm test                 # = node --test test/sim.test.mjs, the simulation (74 tests)
+```
+
+`dist/` is the whole site and nothing else: `index.html`, `sw.js` (the offline worker, versioned from the page and
+the files), everything in `public/` (pictures, sound, room video, icons, `manifest.webmanifest`, `_headers`) and the
+test pages in `dist/labs/`. No dependencies, no install step; Node 18 or newer. `dist/` is not committed.
+
+### Cloudflare Pages (zengrains.com)
+
+| Setting | Value |
 | --- | --- |
-| `game.html` | The whole game: styles, markup and script in one file, with no `<html>`, `<head>` or `<body>`. The simulation sits between the `GRAIN-SIM BEGIN` / `END` markers, so the tests can run it without a browser. |
-| `head.html` | The doctype, meta tags, icons, manifest link and offline-worker registration that the standalone page gets in front of `game.html`. |
-| `offline-worker.js` | The service worker that keeps the game on the phone after the first visit. The build writes it to `docs/zen-grain/sw.js` with a version taken from the page. |
-| `build.mjs` | `node zen-grain/build.mjs` writes the public page. `--local` writes `zen-grain/local.html` and copies the media beside it for testing. |
-| `test/sim.test.mjs` | `node --test zen-grain/test/sim.test.mjs`: runs the simulation in a bare VM, with no DOM and with `Math.random` disabled, and checks every level can be finished and scored. |
-| `tools/flows/*.cjs` | Playwright walks through the real page: `node tools/flows/pwmenu.cjs http://localhost:8767/ OUTDIR` after serving this folder with `python3 -m http.server 8767`. Each writes screenshots to OUTDIR and prints what it checked. |
-| `tools/media/room_loop.py` | Turns one or more Seedance clips of the room into the title-screen loop (`zen-room.mp4`, `.webm`, `.jpg`, `.mp3`). |
-| `tools/media/icon.html`, `icon-render.cjs` | The home-screen icon, drawn as SVG and rendered to `icon-512/192/180.png`. |
-| `tools/media/*.py` (others) | One-off steps used to cut the older painting into layers (`?scene=painting`). |
-| `tools/sim/levels.mjs`, `calibrate.mjs` | What each generated level brings, and how the bot does on a range of levels. |
+| Repository | `slodkibufetposypki/zen-grains`, branch `main` |
+| Framework preset | None |
+| Build command | `npm run build` |
+| Build output directory | `dist` |
+| Root directory | `/` (the repo root) |
+| Node | 18 or newer (`NODE_VERSION=20` if the default is older) |
 
-The media files (`zen-room.*`, `zen-night.jpg`, the chime, flame and lantern) live in `docs/zen-grain/`; the local
-build copies them here, and they are ignored in this folder.
+`public/_headers` asks for the page, `sw.js` and the manifest to be revalidated on every visit, so a new build
+reaches phones at once. Until the launch the site sits behind Cloudflare Access. The domain, Access and the Pages
+project are set up by the Master session; the old page at
+https://slodkibufetposypki.github.io/sprinkle-pour/zen-grain/ stays until the new one works.
+
+## Files
+
+| Path | What it is |
+| --- | --- |
+| `game.html` | The whole game: styles, markup and script in one file, with no `<html>`, `<head>` or `<body>` (it is also the source of the claude.ai artifact). The simulation sits between the `GRAIN-SIM BEGIN` / `END` markers, so the tests run it without a browser. |
+| `head.html` | Doctype, meta tags, icons, manifest link and the offline-worker registration put in front of `game.html`. |
+| `offline-worker.js` | The service worker that keeps the game on the phone after the first visit. |
+| `build.mjs` | Writes `dist/`. `--local` also writes `dist/local.html` for the test tools. |
+| `public/` | Every file the page loads, served as is. |
+| `labs/` | Test pages that are not the game (the living capybara, the head-scratch frames). |
+| `test/sim.test.mjs` | Runs the simulation in a bare VM, with no DOM and with `Math.random` disabled: every level can be finished and scored, and the rules hold. |
+| `tools/flows/*.cjs` | Playwright walks through the real page, each writing screenshots to OUTDIR. |
+| `tools/checks/canvas-stack.cjs` | Counts the canvas layers on every screen; a number that grows is a leak. |
+| `tools/media/` | Steps that made the media: the room loop, the icon, the porcelain, the medallions, the Polish font subsets. |
+| `tools/sim/` | What each generated level brings and how the bot does on them. |
+| `art/` | Originals and prompts of the generated pictures (`art/wave2/`, the capybara sheet F01, the rabbit medallion). |
+| `archive/` | Kept, not built: `zen-grain-przed/` (the game before the painted assets, 28 Oct) and `chopstick-catch/` (the first prototype, from cake-hero). |
 
 ## Making a change
 
 ```bash
-node --test zen-grain/test/sim.test.mjs      # the simulation
-node zen-grain/build.mjs --local              # then serve zen-grain/ and run a flow from tools/flows
-node zen-grain/build.mjs                      # the public page, committed with the change
+npm test
+node build.mjs --local && python3 -m http.server 8767 -d dist     # then, in another shell:
+node tools/checks/canvas-stack.cjs http://localhost:8767/          # no LEAK
+node tools/flows/pwmenu.cjs http://localhost:8767/ OUTDIR           # or any other flow
+npm run build                                                      # what Cloudflare Pages runs
 ```
+
+The history before 29 Oct comes from `slodkibufetposypki/sprinkle-pour` (`zen-grain/`, `docs/zen-grain/` and the
+older `docs/grain-line/`), moved here with every commit; the Chopstick Catch prototype keeps its own three commits.

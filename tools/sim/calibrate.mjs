@@ -1,5 +1,5 @@
 // Plays levels with the bot and prints how each went: cleared, stars, time against the clock, breaks, wrong piles,
-// grains that fell off. node zen-grain/tools/sim/calibrate.mjs 10 60 [seeds] [--clean]
+// grains that fell off. node tools/sim/calibrate.mjs 10 60 [seeds] [--clean]
 // --clean: wrong grains never creep in, so no row breaks; stands in for a player who never lets one in, to see
 // whether the stars a level asks for can be reached at all.
 import { GS, LAYOUT } from './load.mjs';

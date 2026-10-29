@@ -1,5 +1,5 @@
 // A zen run played by the bot, with a count of what happened and when: how the game feels, in numbers.
-//   node zen-grain/tools/sim/zenstats.mjs [bot skill, default 5] [seconds, default 900] [seed]
+//   node tools/sim/zenstats.mjs [bot skill, default 5] [seconds, default 900] [seed]
 import { GS, LAYOUT } from './load.mjs';
 const skill = +(process.argv[2] || 5), secs = +(process.argv[3] || 900), seed = +(process.argv[4] || 7);
 const sim = GS.create({}, GS.ZEN, LAYOUT, seed), bot = GS.makeBot(sim, skill);

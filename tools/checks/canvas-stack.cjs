@@ -2,8 +2,8 @@
 // Chrome and freezes the board in Safari once its limit is reached (28 Oct: one chopstick drawn, the rest gone).
 // Counts save() against restore() on every screen and in Pełnia's special states, and exits 1 on a leak.
 //
-//   node zen-grain/build.mjs --local && (cd zen-grain && python3 -m http.server 8767 &)
-//   node zen-grain/tools/checks/canvas-stack.cjs http://localhost:8767/
+//   node build.mjs --local && (python3 -m http.server 8767 -d dist &)
+//   node tools/checks/canvas-stack.cjs http://localhost:8767/
 const { chromium } = require('playwright');
 (async () => {
   const base = process.argv[2];

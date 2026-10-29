@@ -1,5 +1,5 @@
 // The live page: loads with no errors, registers its offline worker, shows all six boards, plays a jar level.
-//   node tools/flows/pwlive.cjs https://slodkibufetposypki.github.io/sprinkle-pour/zen-grain/ OUTDIR
+//   node tools/flows/pwlive.cjs https://zengrains.com/ OUTDIR   (or the old page, https://slodkibufetposypki.github.io/sprinkle-pour/zen-grain/)
 const { chromium } = require('playwright');
 (async () => {
   const url = process.argv[2], out = process.argv[3];

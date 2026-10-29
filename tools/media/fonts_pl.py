@@ -6,7 +6,7 @@ the font's own strokes (the acute from ´, the dot from the i, the ogonek from t
 result (SIL Open Font License, Version 1.1) and writes it into game.html between the FONTS-PL markers as data URIs.
 
     pip install fonttools brotli
-    python3 zen-grain/tools/media/fonts_pl.py          # rewrites the block in zen-grain/game.html
+    python3 tools/media/fonts_pl.py          # rewrites the block in game.html
 """
 import base64, io, re, sys, urllib.parse, urllib.request
 from pathlib import Path

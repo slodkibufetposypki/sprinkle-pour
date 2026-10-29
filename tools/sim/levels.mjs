@@ -1,5 +1,5 @@
 // Prints what every level from FROM to TO brings: board, kinds, ways of playing, grains, difficulty.
-//   node zen-grain/tools/sim/levels.mjs 10 60
+//   node tools/sim/levels.mjs 10 60
 import { GS } from './load.mjs';
 const [from = 10, to = 60] = process.argv.slice(2).map(Number);
 for (let i = from; i < to; i++) {

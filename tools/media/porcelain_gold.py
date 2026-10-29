@@ -3,7 +3,7 @@
 Inside the tray's rim, only the gold is kept: pixels of the seams' own hue and strength. The capybara and the
 yuzu, which are warm too, are left out by where they sit in the painting, and the rim's rounded corners too.
 Each pixel is unblended from the white glaze, so the seams keep their soft edges and their own shine.
-    python3 zen-grain/tools/media/porcelain_gold.py CONCEPT.png docs/zen-grain/zen-porcelain-gold.webp
+    python3 tools/media/porcelain_gold.py CONCEPT.png public/zen-porcelain-gold.webp
 """
 import sys
 import numpy as np

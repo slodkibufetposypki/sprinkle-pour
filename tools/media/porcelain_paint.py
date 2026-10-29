@@ -2,7 +2,7 @@
 
 The white is taken out exactly (each pixel unblended from white, so soft washes keep their softness). The grey-green
 ink turns pale, as slip painted on a dark glaze; warm colours (the capybara, the yuzu) keep their own colour.
-    python3 zen-grain/tools/media/porcelain_paint.py SOURCE.png docs/zen-grain/zen-porcelain.webp
+    python3 tools/media/porcelain_paint.py SOURCE.png public/zen-porcelain.webp
 """
 import sys
 import numpy as np

@@ -1,0 +1,5 @@
+# the built site (Cloudflare Pages builds it from the repo)
+dist/
+node_modules/
+__pycache__/
+.DS_Store
